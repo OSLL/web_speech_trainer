@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Training</title>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body>
+<form>
+    <script type="text/javascript">
+        var currentPage = 1;
+        function nextPresentationPage() {
+            currentPage++;
+            document.getElementById("pdf").setAttribute('data', '{{ name }}#zoom=Fit&page='+ currentPage);
+
+        }
+
+        function submitDone() {
+            $.ajax({
+                type: 'GET',
+                url: '/done',
+                data: {
+                    name: '{{ name }}'.slice(8)
+                }
+            });
+            alert("Thanks!");
+            window.location.replace("/upload");
+        }
+
+        function updateCurrentPage() {
+            $.ajax({
+                type: 'GET',
+                url: '/show_page',
+                data: {
+                    page: currentPage,
+                    name: '{{ name }}'.slice(8)
+                }
+            });
+        }
+    </script>
+    <object type="application/pdf" style="min-height:50vh;width:40%" id="pdf" data="{{ name }}#zoom=Fit">
+        <p>PDF cannot be displayed.</p>
+    </object>
+    <button type="button" id="next" onclick="nextPresentationPage();updateCurrentPage()">next</button>
+    <button type="button" id="done" onclick="submitDone()">done</button>
+</form>
+</body>
+</html>
