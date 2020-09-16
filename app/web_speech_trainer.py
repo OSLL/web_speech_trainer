@@ -3,6 +3,7 @@ from flask_uploads import UploadSet, configure_uploads
 
 from app.config import Config
 from app.mongo_odm import DBManager
+from app.utils import file_has_pdf_beginning
 
 app = Flask(__name__)
 
@@ -29,11 +30,18 @@ def training(presentation_file_id):
     return render_template('training.html', presentation_file_id=presentation_file_id)
 
 
+PRESENTATION_FILE_MAX_SIZE_IN_MEGABYTES = 16
+BYTES_IN_MEGABYTE = 1024 * 1024
+
 @app.route('/', methods=['GET', 'POST'])
 @app.route('/upload', methods=['GET', 'POST'])
 def upload():
     if request.method == 'POST' and 'presentation' in request.files:
+        if request.content_length > PRESENTATION_FILE_MAX_SIZE_IN_MEGABYTES * BYTES_IN_MEGABYTE:
+            return "Presentation file should not exceed {}MB".format(PRESENTATION_FILE_MAX_SIZE_IN_MEGABYTES), 413
         presentation_file = request.files['presentation']
+        if not file_has_pdf_beginning(presentation_file):
+            return "Presentation file should be a pdf file", 400
         presentation_file_id = DBManager().add_file(presentation_file, presentation_file.filename)
         return training(presentation_file_id)
     else:

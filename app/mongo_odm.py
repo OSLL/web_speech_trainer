@@ -7,7 +7,7 @@ from pymodm.connection import _get_db
 from pymodm.files import GridFSStorage
 
 from app.config import Config
-from mongo_models import Trainings
+from app.mongo_models import Trainings
 
 
 class DBManager:
