@@ -1,6 +1,7 @@
 import os
 import time
 
+from bson import ObjectId
 from gridfs import GridFSBucket
 from pymodm import connect
 from pymodm.connection import _get_db
@@ -47,4 +48,5 @@ class DBManager:
             return None
 
     def get_presentation_file(self, presentation_file_id):
+        presentation_file_id = ObjectId(presentation_file_id)
         return self.storage.open(presentation_file_id)

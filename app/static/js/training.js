@@ -72,12 +72,10 @@ document.getElementById('next').addEventListener('click', onNextPage);
 
 function setPresentationFileId(fileId) {
     presentationFileId = fileId;
+    var loadingTask = pdfjsLib.getDocument(`/get_presentation_file?presentationFileId=${presentationFileId}`);
+    loadingTask.promise.then(function(pdfDoc_) {
+      pdfDoc = pdfDoc_;
+      document.getElementById('page_count').textContent = pdfDoc.numPages;
+      renderPage(pageNum);
+    });
 }
-
-var loadingTask = pdfjsLib.getDocument(url);
-loadingTask.promise.then(function(pdfDoc_) {
-  pdfDoc = pdfDoc_;
-  document.getElementById('page_count').textContent = pdfDoc.numPages;
-  renderPage(pageNum);
-});
-

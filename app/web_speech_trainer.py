@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, Response, send_file
 from flask_uploads import UploadSet, configure_uploads
 
 from app.config import Config
@@ -11,6 +11,13 @@ presentations = UploadSet(name='presentations', extensions=['pdf'])
 
 app.config['UPLOADED_PRESENTATIONS_DEST'] = 'static'
 configure_uploads(app, presentations)
+
+
+@app.route('/get_presentation_file')
+def get_presentation_file():
+    presentation_file_id = request.args.get("presentationFileId")
+    presentation_file = DBManager().get_presentation_file(presentation_file_id)
+    return send_file(presentation_file, mimetype='application/pdf')
 
 
 @app.route('/show_page')
@@ -26,12 +33,12 @@ def show_page():
 @app.route('/training')
 def training(presentation_file_id):
     DBManager().add_training(presentation_file_id)
-    presentation_file = DBManager().get_presentation_file(presentation_file_id)
     return render_template('training.html', presentation_file_id=presentation_file_id)
 
 
 PRESENTATION_FILE_MAX_SIZE_IN_MEGABYTES = 16
 BYTES_IN_MEGABYTE = 1024 * 1024
+
 
 @app.route('/', methods=['GET', 'POST'])
 @app.route('/upload', methods=['GET', 'POST'])
