@@ -1,5 +1,3 @@
-var url = 'static/test.pdf';
-
 var pdfDoc = null,
     pageNum = 1,
     pageRendering = false,
@@ -54,6 +52,7 @@ function callShowPage() {
   });
 }
 document.getElementById('done').addEventListener('click', callShowPage);
+
 function returnToUploadPage() {
   window.location.replace("/upload");
 }

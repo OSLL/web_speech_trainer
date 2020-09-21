@@ -2,3 +2,5 @@ flask
 Flask-Reuploaded
 pymongo
 pymodm
+vext
+vext.gi

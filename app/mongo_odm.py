@@ -1,5 +1,6 @@
 import os
 import time
+import uuid
 
 from bson import ObjectId
 from gridfs import GridFSBucket
@@ -8,7 +9,7 @@ from pymodm.connection import _get_db
 from pymodm.files import GridFSStorage
 
 from app.config import Config
-from app.mongo_models import Trainings
+from app.mongo_models import Trainings, Presentations
 
 
 class DBManager:
@@ -19,7 +20,7 @@ class DBManager:
             cls.instance.storage = GridFSStorage(GridFSBucket(_get_db()))
         return cls.instance
 
-    def add_file(self, file, filename):
+    def add_file(self, file, filename=uuid.uuid4()):
         return str(self.storage.save(name=filename, content=file))
 
     def read_and_add_file(self, path, filename=None):
@@ -42,7 +43,6 @@ class DBManager:
             training = Trainings.objects.get({'presentation_file_id': presentation_file_id})
             training.timestamps.append(timestamp)
             training.save()
-            print(training.timestamps, training.presentation_file_id)
             return training.presentation_file_id
         except Trainings.DoesNotExist:
             return None
@@ -50,3 +50,9 @@ class DBManager:
     def get_presentation_file(self, presentation_file_id):
         presentation_file_id = ObjectId(presentation_file_id)
         return self.storage.open(presentation_file_id)
+
+    def add_presentation(self, presentation_file_id, presentation_record_file_id):
+        return Presentations(
+            presentation_file_id=presentation_file_id,
+            presentation_record_file_id=presentation_record_file_id
+        ).save()
