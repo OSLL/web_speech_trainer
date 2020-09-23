@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Training</title>
+    <script src="static/js/jquery.min.js"></script>
+</head>
+<body>
+<div>
+  <button id="next">Next</button>
+  <button id="done">Done</button>
+  &nbsp; &nbsp;
+  <span>Page: <span id="page_num"></span> / <span id="page_count"></span></span>
+</div>
+
+<div>
+  <canvas id="the-canvas" style="border: 1px solid #000000; direction: ltr;"></canvas>
+</div>
+
+<script src="static/js/pdf.js/build/pdf.js"></script>
+<script src="static/js/training.js"></script>
+<script type="text/javascript">
+    setPresentationFileId("{{ presentation_file_id }}");
+</script>
+</body>
+</html>
