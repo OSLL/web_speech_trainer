@@ -1,17 +1,10 @@
-from flask import Flask, render_template, request, jsonify, Response, send_file
-from flask_uploads import UploadSet, configure_uploads
+from flask import Flask, render_template, request, jsonify, send_file
 
 from app.config import Config
 from app.mongo_odm import DBManager
 from app.utils import file_has_pdf_beginning
-from playsound import playsound
 
 app = Flask(__name__)
-
-presentations = UploadSet(name='presentations', extensions=['pdf'])
-
-app.config['UPLOADED_PRESENTATIONS_DEST'] = 'static'
-configure_uploads(app, presentations)
 
 
 @app.route('/get_presentation_file')
@@ -37,11 +30,10 @@ def training(presentation_file_id):
     return render_template('training.html', presentation_file_id=presentation_file_id)
 
 
-PRESENTATION_FILE_MAX_SIZE_IN_MEGABYTES = 16
 BYTES_IN_MEGABYTE = 1024 * 1024
 
 
-@app.route('/presentation_record', methods=['POST'])
+@app.route('/presentation_record', methods=['GET', 'POST'])
 def presentation_record():
     if 'presentationRecord' not in request.files:
         return 'Presentation record file should be present', 400
@@ -59,8 +51,9 @@ def presentation_record():
 @app.route('/upload', methods=['GET', 'POST'])
 def upload():
     if request.method == 'POST' and 'presentation' in request.files:
-        if request.content_length > PRESENTATION_FILE_MAX_SIZE_IN_MEGABYTES * BYTES_IN_MEGABYTE:
-            return 'Presentation file should not exceed {}MB'.format(PRESENTATION_FILE_MAX_SIZE_IN_MEGABYTES), 413
+        if request.content_length > int(Config.c.constants.presentation_file_max_size_in_megabytes) * BYTES_IN_MEGABYTE:
+            return 'Presentation file should not exceed {}MB'\
+                       .format(Config.c.constants.presentation_file_max_size_in_megabytes), 413
         presentation_file = request.files['presentation']
         if not file_has_pdf_beginning(presentation_file):
             return 'Presentation file should be a pdf file', 400
