@@ -8,5 +8,4 @@ class Trainings(MongoModel):
 
 class Presentations(MongoModel):
     presentation_file_id = fields.CharField()
-    number_of_pages = fields.IntegerField(min_value=1)
-
+    presentation_record_file_id = fields.CharField()

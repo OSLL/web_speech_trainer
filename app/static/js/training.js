@@ -1,13 +1,11 @@
-var url = 'static/test.pdf';
-
-var pdfDoc = null,
-    pageNum = 1,
-    pageRendering = false,
-    pageNumPending = null,
-    scale = 1.1,
-    canvas = document.getElementById('the-canvas'),
-    ctx = canvas.getContext('2d'),
-    presentationFileId = null;
+var pdfDoc,
+    pageNum,
+    pageRendering,
+    pageNumPending,
+    scale,
+    canvas,
+    ctx,
+    presentationFileId;
 
 function renderPage(num) {
   pageRendering = true;
@@ -33,7 +31,7 @@ function renderPage(num) {
   });
 
   // Update page counters
-  document.getElementById('page_num').textContent = num;
+  $('#page_num')[0].textContent = num;
 }
 
 function queueRenderPage(num) {
@@ -53,11 +51,10 @@ function callShowPage() {
     }
   });
 }
-document.getElementById('done').addEventListener('click', callShowPage);
+
 function returnToUploadPage() {
   window.location.replace("/upload");
 }
-document.getElementById('done').addEventListener('click', returnToUploadPage);
 
 function onNextPage() {
   if (pageNum >= pdfDoc.numPages) {
@@ -67,15 +64,27 @@ function onNextPage() {
   callShowPage();
   queueRenderPage(pageNum);
 }
-document.getElementById('next').addEventListener('click', onNextPage);
-
 
 function setPresentationFileId(fileId) {
     presentationFileId = fileId;
     var loadingTask = pdfjsLib.getDocument(`/get_presentation_file?presentationFileId=${presentationFileId}`);
     loadingTask.promise.then(function(pdfDoc_) {
       pdfDoc = pdfDoc_;
-      document.getElementById('page_count').textContent = pdfDoc.numPages;
+      $('#page_count')[0].textContent = pdfDoc.numPages;
       renderPage(pageNum);
     });
 }
+
+$(document).ready(function() {
+    pdfDoc = null;
+    pageNum = 1;
+    pageRendering = false;
+    pageNumPending = null;
+    scale = 1.1;
+    canvas = $('#the-canvas')[0];
+    ctx = canvas.getContext('2d');
+    presentationFileId = null;
+    $('#done').click(callShowPage);
+    $('#done').click(returnToUploadPage);
+    $('#next').click(onNextPage);
+});
