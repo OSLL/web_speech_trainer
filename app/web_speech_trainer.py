@@ -57,4 +57,4 @@ def upload():
 
 if __name__ == '__main__':
     Config.init_config('config.ini')
-    app.run()
+    app.run(host='0.0.0.0')
