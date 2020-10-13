@@ -1,4 +1,4 @@
-var gumStream,
+let gumStream,
     recorder,
     input,
     encodeAfterRecord;
@@ -13,6 +13,7 @@ function startRecording() {
             encoding: "mp3",
         });
         recorder.onComplete = function(recorder, blob) {
+            $('#record_processing')[0].style.visibility = "hidden";
             createDownloadLink(blob);
             callAddPresentationRecord(blob);
         }
@@ -31,14 +32,15 @@ function stopRecording() {
     gumStream.getAudioTracks()[0].stop();
     $('#stop')[0].disabled = true;
     $('#record')[0].disabled = false;
+    $('#record_processing')[0].style.visibility = "visible";
     recorder.finishRecording();
 }
 
 function createDownloadLink(blob) {
-    var url = window.URL.createObjectURL(blob);
-    var audio = document.createElement('audio');
-    var record = document.createElement('li');
-    var link = document.createElement('a');
+    let url = window.URL.createObjectURL(blob);
+    let audio = document.createElement('audio');
+    let record = document.createElement('li');
+    let link = document.createElement('a');
     audio.controls = true;
     audio.src = url;
     link.href = url;
@@ -50,7 +52,7 @@ function createDownloadLink(blob) {
 }
 
 function callAddPresentationRecord(blob) {
-    var fd = new FormData();
+    let fd = new FormData();
     fd.append('presentationRecord', blob);
     fd.append('presentationFileId', presentationFileId);
 
