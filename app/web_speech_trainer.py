@@ -30,6 +30,18 @@ def training(presentation_file_id):
     return render_template('training.html', presentation_file_id=presentation_file_id)
 
 
+@app.route('/training_statistics/<training_id>/')
+def training_statistics(training_id):
+    # TO DO get presentation name and training statistics from the database by training_id
+    page_title = f'Статистика тренировки с ID: {training_id}'
+    presentation_name = f'Название презентации с ID: {training_id}'
+    presentation_time =  f'Длительность презентации с ID: {training_id}'
+    return render_template(
+        'training_statistics.html', 
+        page_title=page_title,
+        presentation_name=presentation_name,
+        presentation_time=presentation_time)
+
 BYTES_IN_MEGABYTE = 1024 * 1024
 
 
