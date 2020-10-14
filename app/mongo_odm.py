@@ -47,9 +47,9 @@ class DBManager:
         except Trainings.DoesNotExist:
             return None
 
-    def get_presentation_file(self, presentation_file_id):
-        presentation_file_id = ObjectId(presentation_file_id)
-        return self.storage.open(presentation_file_id)
+    def get_file(self, file_id):
+        file_id = ObjectId(file_id)
+        return self.storage.open(file_id)
 
     def add_presentation(self, presentation_file_id, presentation_record_file_id):
         return Presentations(

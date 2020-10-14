@@ -7,10 +7,17 @@ from app.utils import file_has_pdf_beginning
 app = Flask(__name__)
 
 
+@app.route('/get_presentation_record')
+def get_presentation_record():
+    presentation_record_file_id = request.args.get('presentationRecordFileId')
+    presentation_record_file = DBManager().get_file(presentation_record_file_id)
+    return send_file(presentation_record_file, attachment_filename='{}.mp3'.format(presentation_record_file_id), as_attachment=True)
+
+
 @app.route('/get_presentation_file')
 def get_presentation_file():
     presentation_file_id = request.args.get('presentationFileId')
-    presentation_file = DBManager().get_presentation_file(presentation_file_id)
+    presentation_file = DBManager().get_file(presentation_file_id)
     return send_file(presentation_file, mimetype='application/pdf')
 
 
@@ -41,10 +48,13 @@ def presentation_record():
     presentation_record_file = request.files['presentationRecord']
     presentation_record_file_id = DBManager().add_file(presentation_record_file)
     DBManager().add_presentation(presentation_file_id, presentation_record_file_id)
-    return jsonify({
+    response_dict = {
         'presentationFileId': presentation_file_id,
         'presentationRecordFileId': presentation_record_file_id
-    })
+    }
+    response = jsonify(response_dict)
+    print(response_dict)
+    return response
 
 
 @app.route('/', methods=['GET', 'POST'])
