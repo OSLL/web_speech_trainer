@@ -1,0 +1,7 @@
+soundfile
+librosa
+noisereduce
+numpy
+math
+python_speech_features
+pysndfx
