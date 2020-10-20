@@ -6,20 +6,15 @@
 </head>
 <body>
 <div id="controls">
- <button id="record">Record</button>
- <button id="stop">Stop</button>
-</div>
-<div>
-  <button id="next">Next</button>
-  <button id="done">Done</button>
+  <button id="record">Record</button>
+  <button id="next" disabled>Next</button>
+  <button id="done" disabled>Done</button>
   &nbsp; &nbsp;
   <span>Page: <span id="page_num"></span> / <span id="page_count"></span></span>
+  <p id="record_processing" style="visibility: hidden; font-size: 0">Your record is being processed. Please don't leave the page.</p>
 </div>
 <div>
   <canvas id="the-canvas" style="border: 1px solid #000000; direction: ltr;"></canvas>
-</div>
-<div id="record_div">
-    <p id="record_processing" style="visibility: hidden">Your record is being processed</p>
 </div>
 
 <script src="static/js/libraries/jquery.min.js"></script>

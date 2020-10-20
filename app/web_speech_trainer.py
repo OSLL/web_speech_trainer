@@ -9,10 +9,18 @@ from app.utils import file_has_pdf_beginning
 app = Flask(__name__)
 
 
+@app.route('/get_presentation_record')
+def get_presentation_record():
+    presentation_record_file_id = request.args.get('presentationRecordFileId')
+    presentation_record_file = DBManager().get_file(presentation_record_file_id)
+    return send_file(presentation_record_file, attachment_filename='{}.mp3'.format(presentation_record_file_id),
+                     as_attachment=True)
+
+
 @app.route('/get_presentation_file')
 def get_presentation_file():
     presentation_file_id = request.args.get('presentationFileId')
-    presentation_file = DBManager().get_presentation_file(presentation_file_id)
+    presentation_file = DBManager().get_file(presentation_file_id)
     return send_file(presentation_file, mimetype='application/pdf')
 
 
@@ -40,15 +48,16 @@ def training_statistics(training_id):
 
     # training_id is the presentation file id for now
     presentation_file_name = DBManager().get_file_name(training_id)
-    presentation_name = f'Название презентации с ID: {presentation_file_name}'
+    presentation_name = f'Название презентации: {presentation_file_name}'
 
-    presentation_time = f'Длительность презентации с ID: {training_id}'
+    presentation_record_file_id = DBManager().get_presentation_record_file_id(training_id)
 
     return render_template(
-        'training_statistics.html', 
+        'training_statistics.html',
         page_title=page_title,
         presentation_name=presentation_name,
-        presentation_time=presentation_time)
+        presentation_record_file_id=presentation_record_file_id)
+
 
 BYTES_IN_MEGABYTE = 1024 * 1024
 

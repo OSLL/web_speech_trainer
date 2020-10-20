@@ -83,8 +83,6 @@ $(document).ready(function() {
     scale = 0.9;
     canvas = $('#the-canvas')[0];
     ctx = canvas.getContext('2d');
-    presentationFileId = null;
     $('#done').click(callShowPage);
-    $('#done').click(returnToUploadPage);
     $('#next').click(onNextPage);
 });

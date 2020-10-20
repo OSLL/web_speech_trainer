@@ -13,8 +13,7 @@ function startRecording() {
             encoding: "mp3",
         });
         recorder.onComplete = function(recorder, blob) {
-            $('#record_processing')[0].style.visibility = "hidden";
-            createDownloadLink(blob);
+            $('#record_processing')[0].style = "visibility: hidden; font-size: 0";
             callAddPresentationRecord(blob);
         }
         recorder.setOptions({
@@ -23,32 +22,17 @@ function startRecording() {
             mp3: {bitRate: 160}
         });
         recorder.startRecording();
+        $('#next')[0].disabled = false;
+        $('#record')[0].disabled = true;
+        $('#done')[0].disabled = false;
     });
-    $('#record')[0].disabled = true;
-    $('#stop')[0].disabled = false;
 }
 
 function stopRecording() {
     gumStream.getAudioTracks()[0].stop();
-    $('#stop')[0].disabled = true;
     $('#record')[0].disabled = false;
-    $('#record_processing')[0].style.visibility = "visible";
+    $('#record_processing')[0].style = "visibility: visible; font-size: 14px";
     recorder.finishRecording();
-}
-
-function createDownloadLink(blob) {
-    let url = window.URL.createObjectURL(blob);
-    let audio = document.createElement('audio');
-    let record = document.createElement('li');
-    let link = document.createElement('a');
-    audio.controls = true;
-    audio.src = url;
-    link.href = url;
-    link.download = 'audio.mp3';
-    link.innerHTML = 'Download';
-    record.appendChild(audio);
-    record.appendChild(link);
-    $('#record_div')[0].appendChild(record);
 }
 
 function callAddPresentationRecord(blob) {
@@ -61,12 +45,15 @@ function callAddPresentationRecord(blob) {
       data: fd,
       processData: false,
       contentType: false,
-      type: 'POST'
+      type: 'POST',
+      success() {
+          window.location.href = `/training_statistics/${presentationFileId}`;
+      }
     });
 }
 
 $(document).ready(function() {
     encodeAfterRecord = true;
     $('#record').click(startRecording);
-    $('#stop').click(stopRecording);
+    $('#done').click(stopRecording);
 });
