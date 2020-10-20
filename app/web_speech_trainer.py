@@ -73,7 +73,7 @@ def presentation_record():
         'presentationRecordFileId': presentation_record_file_id
     }
     response = jsonify(response_dict)
-    print(response_dict)
+    app.logger.info('presentation_record: response = {}'.format(response_dict))
     return response
 
 
