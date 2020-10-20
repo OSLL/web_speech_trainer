@@ -1,17 +1,14 @@
 <!DOCTYPE html>
 <html>
-    {% block header %}
-        {% include "header.html" %}
-    {% endblock %}
+{% block header %} {% include "header.html" %} {% endblock %}
+
 <body>
-<div class='container'>
-    <div class="course_title">
-         <h1>Задачи курса "Тренажер публичных выступлений"</h1>
+    <div class='container'>
+        <div class="course_title">
+            <h1>{{ page_title }}</h1>
+        </div>
     </div>
-</div>
-    {% block footer %}
-        {% include "footer.html" %}
-    {% endblock %}
+    {% block content %} {% endblock %} {% block footer %} {% include "footer.html" %} {% endblock %}
 </body>
-    
+
 </html>

@@ -47,6 +47,13 @@ class DBManager:
         except Trainings.DoesNotExist:
             return None
 
+    def get_file_name(self, file_id):
+        file_id = ObjectId(file_id)
+        file = self.storage.open(file_id)
+        file_name = file.filename
+        file.close()
+        return file_name
+
     def get_file(self, file_id):
         file_id = ObjectId(file_id)
         return self.storage.open(file_id)
