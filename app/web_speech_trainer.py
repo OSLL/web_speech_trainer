@@ -1,3 +1,5 @@
+import logging
+
 from flask import Flask, render_template, request, jsonify, send_file
 
 from app.config import Config
@@ -26,16 +28,22 @@ def show_page():
 
 @app.route('/training')
 def training(presentation_file_id):
+    app.logger.info('presentation_file_id = {}'.format(presentation_file_id))
     DBManager().add_training(presentation_file_id)
     return render_template('training.html', presentation_file_id=presentation_file_id)
 
 
 @app.route('/training_statistics/<training_id>/')
 def training_statistics(training_id):
-    # TO DO get presentation name and training statistics from the database by training_id
+    # TODO get presentation name and training statistics from the database by training_id
     page_title = f'Статистика тренировки с ID: {training_id}'
-    presentation_name = f'Название презентации с ID: {training_id}'
-    presentation_time =  f'Длительность презентации с ID: {training_id}'
+
+    # training_id is the presentation file id for now
+    presentation_file_name = DBManager().get_file_name(training_id)
+    presentation_name = f'Название презентации с ID: {presentation_file_name}'
+
+    presentation_time = f'Длительность презентации с ID: {training_id}'
+
     return render_template(
         'training_statistics.html', 
         page_title=page_title,
@@ -77,4 +85,5 @@ def upload():
 
 if __name__ == '__main__':
     Config.init_config('config.ini')
+    app.logger.setLevel(logging.INFO)
     app.run(host='0.0.0.0')
