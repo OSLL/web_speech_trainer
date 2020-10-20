@@ -12,7 +12,7 @@ app = Flask(__name__)
 @app.route('/get_presentation_file')
 def get_presentation_file():
     presentation_file_id = request.args.get('presentationFileId')
-    presentation_file = DBManager().get_presentation_file(presentation_file_id)
+    presentation_file = DBManager().get_file(presentation_file_id)
     return send_file(presentation_file, mimetype='application/pdf')
 
 
