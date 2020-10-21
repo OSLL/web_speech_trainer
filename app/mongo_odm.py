@@ -63,3 +63,7 @@ class DBManager:
             presentation_file_id=presentation_file_id,
             presentation_record_file_id=presentation_record_file_id
         ).save()
+
+    def get_presentation_record_file_id(self, presentation_file_id):
+        presentation = Presentations.objects.get({'presentation_file_id': presentation_file_id})
+        return presentation.presentation_record_file_id
