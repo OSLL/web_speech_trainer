@@ -13,8 +13,7 @@ app = Flask(__name__)
 def get_presentation_record():
     presentation_record_file_id = request.args.get('presentationRecordFileId')
     presentation_record_file = DBManager().get_file(presentation_record_file_id)
-    return send_file(presentation_record_file, attachment_filename='{}.mp3'.format(presentation_record_file_id),
-                     as_attachment=True)
+    return send_file(presentation_record_file, attachment_filename='{}.mp3'.format(presentation_record_file_id), as_attachment=True)
 
 
 @app.route('/get_presentation_file')
@@ -70,10 +69,13 @@ def presentation_record():
     presentation_record_file = request.files['presentationRecord']
     presentation_record_file_id = DBManager().add_file(presentation_record_file)
     DBManager().add_presentation(presentation_file_id, presentation_record_file_id)
-    return jsonify({
+    response_dict = {
         'presentationFileId': presentation_file_id,
         'presentationRecordFileId': presentation_record_file_id
-    })
+    }
+    response = jsonify(response_dict)
+    app.logger.info('presentation_record: response = {}'.format(response_dict))
+    return response
 
 
 @app.route('/', methods=['GET', 'POST'])
