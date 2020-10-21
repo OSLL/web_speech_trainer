@@ -9,7 +9,6 @@ var pdfDoc,
 
 function renderPage(num) {
   pageRendering = true;
-  // Using promise to fetch the page
   pdfDoc.getPage(num).then(function(page) {
     var viewport = page.getViewport({ scale: scale, });
     canvas.height = viewport.height;
@@ -29,8 +28,6 @@ function renderPage(num) {
       }
     });
   });
-
-  // Update page counters
   $('#page_num')[0].textContent = num;
 }
 
@@ -83,7 +80,6 @@ $(document).ready(function() {
     scale = 1.1;
     canvas = $('#the-canvas')[0];
     ctx = canvas.getContext('2d');
-    presentationFileId = null;
     $('#done').click(callShowPage);
     $('#done').click(returnToUploadPage);
     $('#next').click(onNextPage);
