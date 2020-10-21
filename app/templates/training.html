@@ -1,10 +1,5 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Training</title>
-</head>
-<body>
+{% extends 'base.html' %} {% block content %}
+
 <div id="controls">
   <button id="record">Record</button>
   <button id="next" disabled>Next</button>
@@ -25,5 +20,5 @@
     setPresentationFileId("{{ presentation_file_id }}");
 </script>
 <script src="static/js/recording.js"></script>
-</body>
-</html>
+
+{% endblock %}

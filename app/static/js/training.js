@@ -9,7 +9,6 @@ let pdfDoc,
 
 function renderPage(num) {
   pageRendering = true;
-  // Using promise to fetch the page
   pdfDoc.getPage(num).then(function(page) {
     let viewport = page.getViewport({ scale: scale });
     canvas.height = viewport.height;
@@ -29,8 +28,6 @@ function renderPage(num) {
       }
     });
   });
-
-  // Update page counters
   $('#page_num')[0].textContent = num;
 }
 
