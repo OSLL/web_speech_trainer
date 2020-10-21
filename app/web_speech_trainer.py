@@ -47,15 +47,16 @@ def training_statistics(training_id):
 
     # training_id is the presentation file id for now
     presentation_file_name = DBManager().get_file_name(training_id)
-    presentation_name = f'Название презентации с ID: {presentation_file_name}'
+    presentation_name = f'Название презентации: {presentation_file_name}'
 
-    presentation_time = f'Длительность презентации с ID: {training_id}'
+    presentation_record_file_id = DBManager().get_presentation_record_file_id(training_id)
 
     return render_template(
-        'training_statistics.html', 
+        'training_statistics.html',
         page_title=page_title,
         presentation_name=presentation_name,
-        presentation_time=presentation_time)
+        presentation_record_file_id=presentation_record_file_id)
+
 
 BYTES_IN_MEGABYTE = 1024 * 1024
 

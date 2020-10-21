@@ -1,4 +1,4 @@
-var pdfDoc,
+let pdfDoc,
     pageNum,
     pageRendering,
     pageNumPending,
@@ -10,15 +10,15 @@ var pdfDoc,
 function renderPage(num) {
   pageRendering = true;
   pdfDoc.getPage(num).then(function(page) {
-    var viewport = page.getViewport({ scale: scale, });
+    let viewport = page.getViewport({ scale: scale });
     canvas.height = viewport.height;
     canvas.width = viewport.width;
 
-    var renderContext = {
+    let renderContext = {
       canvasContext: ctx,
       viewport: viewport,
     };
-    var renderTask = page.render(renderContext);
+    let renderTask = page.render(renderContext);
 
     renderTask.promise.then(function () {
       pageRendering = false;
@@ -64,7 +64,7 @@ function onNextPage() {
 
 function setPresentationFileId(fileId) {
     presentationFileId = fileId;
-    var loadingTask = pdfjsLib.getDocument(`/get_presentation_file?presentationFileId=${presentationFileId}`);
+    let loadingTask = pdfjsLib.getDocument(`/get_presentation_file?presentationFileId=${presentationFileId}`);
     loadingTask.promise.then(function(pdfDoc_) {
       pdfDoc = pdfDoc_;
       $('#page_count')[0].textContent = pdfDoc.numPages;
@@ -77,10 +77,9 @@ $(document).ready(function() {
     pageNum = 1;
     pageRendering = false;
     pageNumPending = null;
-    scale = 1.1;
+    scale = 0.9;
     canvas = $('#the-canvas')[0];
     ctx = canvas.getContext('2d');
     $('#done').click(callShowPage);
-    $('#done').click(returnToUploadPage);
     $('#next').click(onNextPage);
 });

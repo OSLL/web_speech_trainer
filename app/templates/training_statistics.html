@@ -1,6 +1,7 @@
 {% extends 'base.html' %} {% block content %}
 <div class='container'>
-    <h2>Название презентации: {{ presentation_name }}</h2>
-    <h2>Длительность тренировки: {{ presentation_time }}</h2>
+    <h2>{{ presentation_name }}</h2>
+    <h2>id аудиозаписи: {{ presentation_record_file_id }}</h2>
+    <audio controls src="/get_presentation_record?presentationRecordFileId={{ presentation_record_file_id }}"></audio>
 </div>
 {% endblock %}
