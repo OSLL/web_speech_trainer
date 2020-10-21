@@ -54,7 +54,7 @@ class DBManager:
         file.close()
         return file_name
 
-    def get_presentation_file(self, file_id):
+    def get_file(self, file_id):
         file_id = ObjectId(file_id)
         return self.storage.open(file_id)
 
@@ -63,3 +63,7 @@ class DBManager:
             presentation_file_id=presentation_file_id,
             presentation_record_file_id=presentation_record_file_id
         ).save()
+
+    def get_presentation_record_file_id(self, presentation_file_id):
+        presentation = Presentations.objects.get({'presentation_file_id': presentation_file_id})
+        return presentation.presentation_record_file_id
