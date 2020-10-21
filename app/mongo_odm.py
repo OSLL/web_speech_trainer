@@ -54,7 +54,7 @@ class DBManager:
         file.close()
         return file_name
 
-    def get_presentation_file(self, file_id):
+    def get_file(self, file_id):
         file_id = ObjectId(file_id)
         return self.storage.open(file_id)
 
