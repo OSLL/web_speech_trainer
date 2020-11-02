@@ -4,6 +4,7 @@ from flask import Flask, render_template, request, jsonify, send_file
 
 from app.config import Config
 from app.mongo_odm import DBManager
+from app.training_manager import TrainingManager
 from app.utils import file_has_pdf_beginning
 
 app = Flask(__name__)
@@ -36,7 +37,7 @@ def show_page():
 @app.route('/training')
 def training(presentation_file_id):
     app.logger.info('presentation_file_id = {}'.format(presentation_file_id))
-    DBManager().add_training(presentation_file_id)
+    DBManager().add_slide_switch_timestamps(presentation_file_id)
     return render_template('training.html', presentation_file_id=presentation_file_id)
 
 
@@ -68,7 +69,7 @@ def presentation_record():
     presentation_file_id = request.form['presentationFileId']
     presentation_record_file = request.files['presentationRecord']
     presentation_record_file_id = DBManager().add_file(presentation_record_file)
-    DBManager().add_presentation(presentation_file_id, presentation_record_file_id)
+    TrainingManager().add_training(presentation_file_id, presentation_record_file_id)
     response_dict = {
         'presentationFileId': presentation_file_id,
         'presentationRecordFileId': presentation_record_file_id
