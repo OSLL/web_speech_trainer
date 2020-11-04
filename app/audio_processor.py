@@ -29,7 +29,7 @@ class AudioProcessor:
 
 if __name__ == "__main__":
     Config.init_config('config.ini')
-    DBManager().add_audio_to_recognize(file_id='5f9f5e87963d16d6d2cdf353')
+    #DBManager().add_audio_to_recognize(file_id='5fa1f71a2740f38d9d6cbd4a')
     audio_recognizer = SimpleAudioRecognizer()
     audio_processor = AudioProcessor(audio_recognizer)
     audio_processor.run()

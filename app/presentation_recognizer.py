@@ -1,20 +1,18 @@
 from app.mongo_odm import DBManager
-from app.recognized_slides import RecognizedSlides
+from app.recognized_presentation import RecognizedPresentation
+from app.recognized_slide import RecognizedSlide
+from app.word import Word
 
 
-class SlidesRecognizer:
-    def recognize(self, slides_id):
+class PresentationRecognizer:
+    def recognize(self, presentation):
         pass
 
-    def recognize_file(self, slides):
-        pass
 
-
-class SimpleSlidesRecognizer:
-    def recognize(self, slides_id):
-        slides = DBManager().get_file(slides_id)
-        return self.recognize_file(slides)
-
-    def recognize_file(self, slides):
-        recognized_slides = []
-        return RecognizedSlides(recognized_slides)
+class SimplePresentationRecognizer:
+    def recognize(self, presentation):
+        recognized_slides = [
+            RecognizedSlide(words=[Word('hello')]),
+            RecognizedSlide(words=[Word('world')]),
+        ]
+        return RecognizedPresentation(recognized_slides)

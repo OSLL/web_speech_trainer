@@ -1,20 +1,25 @@
-from app.mongo_odm import DBManager
-
-
 class Feedback:
     def __init__(self, score):
         self.score = score
         
 
 class FeedbackEvaluator:
-    def calculate_feedback(self, criteria_results):
+    def __init__(self, name, weights):
+        self.name = name
+        self.weights = weights
+
+    def evaluate_feedback(self, criteria_results):
         pass
 
 
-class SimpleFeedbackEvaluator:
-    def __init__(self, name):
-        self.weights = DBManager().get_feedback_evaluator_weights(name)
+class SimpleFeedbackEvaluator(FeedbackEvaluator):
+    def __init__(self):
+        name = 'SimpleFeedbackEvaluator'
+        weights = {
+            'SpeechIsNotTooLongCriteria': 1
+        }
+        super().__init__(name, weights)
 
-    def calculate_feedback(self, criteria_results):
-        score = criteria_results['SpeechIsNotTooLongCriteria'] * self.weights['SpeechIsNotTooLongCriteria']
+    def evaluate_feedback(self, criteria_results):
+        score = criteria_results['SpeechIsNotTooLongCriteria'].result * self.weights['SpeechIsNotTooLongCriteria']
         return Feedback(score)

@@ -11,7 +11,7 @@ from pymodm.files import GridFSStorage
 
 from app.config import Config
 from app.mongo_models import SlideSwitchTimestamps, Trainings, AudioToRecognize, TrainingsToProcess, \
-    PresentationsToRecognize, RecognizedAudioToProcess
+    PresentationsToRecognize, RecognizedAudioToProcess, RecognizedPresentationsToProcess, FeedbackEvaluators
 from app.status import AudioStatus, PresentationStatus, TrainingStatus
 
 
@@ -61,8 +61,8 @@ class DBManager:
         file_id = ObjectId(file_id)
         return self.storage.open(file_id)
 
-    def add_training(self, presentation_file_id, presentation_record_file_id, status=TrainingStatus.NEW,
-                         audio_status=AudioStatus.NEW, presentation_status=PresentationStatus.NEW):
+    def add_training(self, presentation_file_id, presentation_record_file_id, status=TrainingStatus.PREPARING,
+                     audio_status=AudioStatus.NEW, presentation_status=PresentationStatus.NEW):
         return Trainings(
             presentation_file_id=presentation_file_id,
             presentation_record_file_id=presentation_record_file_id,
@@ -87,9 +87,6 @@ class DBManager:
     def get_criteria_parameters(self, name):
         pass
 
-    def get_feedback_evaluator_weights(self, name):
-        pass
-
     def add_presentation_to_recognize(self, file_id):
         return PresentationsToRecognize(
             file_id=file_id
@@ -100,9 +97,9 @@ class DBManager:
             file_id=file_id
         ).save()
 
-    def add_training_to_process(self, presentation_id):
+    def add_training_to_process(self, training_id):
         return TrainingsToProcess(
-            presentation_id=presentation_id
+            training_id=training_id
         ).save()
 
     def extract_presentation_record_file_id_to_recognize(self):
@@ -130,14 +127,10 @@ class DBManager:
         if status == AudioStatus.RECOGNIZING or status == AudioStatus.RECOGNIZED:
             training = Trainings.objects.get({'presentation_record_file_id': audio_id})
         elif status == AudioStatus.PROCESSING or status == AudioStatus.PROCESSED:
-            print(Trainings.objects.all())
-            for x in Trainings.objects.all():
-                print(x)
             training = Trainings.objects.get({'recognized_audio_id': audio_id})
         training.audio_status = status
         training.save()
-        if training.presentation_status == PresentationStatus.PROCESSED:
-            Trainings().add_training_to_process(training._id)
+        self.check_training_ready_for_processing(training)
 
     def add_recognized_audio_to_process(self, file_id):
         return RecognizedAudioToProcess(
@@ -161,3 +154,80 @@ class DBManager:
     def get_slide_switch_timestamps_by_recognized_audio_id(self, recognized_audio_id):
         presentation_file_id = Trainings.objects.get({'recognized_audio_id': recognized_audio_id}).presentation_file_id
         return SlideSwitchTimestamps.objects.get({'presentation_file_id': presentation_file_id}).timestamps
+
+    def change_training_status(self, training_id, status):
+        obj = Trainings.objects.get({'_id': ObjectId(training_id)})
+        obj.status = status
+        return obj.save()
+
+    def extract_presentation_file_id_to_recognize(self):
+        obj = PresentationsToRecognize.objects.model._mongometa.collection.find_one_and_delete(
+            filter={},
+            sort=[('_id', pymongo.ASCENDING)]
+        )
+        if obj is None:
+            print('extract_presentation_file_id_to_recognize None')
+            return None
+        print('extract_presentation_file_id_to_recognize', obj['file_id'])
+        return obj['file_id']
+
+    def check_training_ready_for_processing(self, training):
+        if training.presentation_status == PresentationStatus.PROCESSED \
+                and training.audio_status == AudioStatus.PROCESSED:
+            DBManager().change_training_status(training._id, TrainingStatus.PREPARED)
+            DBManager().add_training_to_process(training._id)
+
+    def change_presentation_status(self, presentation_file_id, status):
+        if status == PresentationStatus.RECOGNIZING or status == PresentationStatus.RECOGNIZED:
+            training = Trainings.objects.get({'presentation_file_id': presentation_file_id})
+        elif status == AudioStatus.PROCESSING or status == AudioStatus.PROCESSED:
+            training = Trainings.objects.get({'recognized_presentation_id': presentation_file_id})
+        training.presentation_status = status
+        training.save()
+        self.check_training_ready_for_processing(training)
+
+    def add_recognized_presentation_id(self, presentation_file_id, recognized_presentation_id):
+        obj = Trainings.objects.get({'presentation_file_id': presentation_file_id})
+        obj.recognized_presentation_id = recognized_presentation_id
+        return obj.save()
+
+    def add_recognized_presentation_to_process(self, file_id):
+        return RecognizedPresentationsToProcess(
+            file_id=file_id
+        ).save()
+
+    def extract_recognized_presentation_id_to_process(self):
+        obj = RecognizedPresentationsToProcess.objects.model._mongometa.collection.find_one_and_delete(
+            filter={},
+            sort=[('_id', pymongo.ASCENDING)]
+        )
+        if obj is None:
+            print('extract_recognized_presentation_id_to_process None')
+            return None
+        print('extract_recognized_presentation_id_to_process', obj['file_id'])
+        return obj['file_id']
+
+    def get_slide_switch_timestamps_by_recognized_presentation_id(self, recognized_presentation_id):
+        presentation_file_id = Trainings.objects.get({
+            'recognized_presentation_id': recognized_presentation_id
+        }).presentation_file_id
+        return SlideSwitchTimestamps.objects.get({'presentation_file_id': presentation_file_id}).timestamps
+
+    def add_presentation_id(self, recognized_presentation_id, presentation_id):
+        obj = Trainings.objects.get({'recognized_presentation_id': recognized_presentation_id})
+        obj.presentation_id = presentation_id
+        return obj.save()
+
+    def extract_training_id_to_process(self):
+        obj = TrainingsToProcess.objects.model._mongometa.collection.find_one_and_delete(
+            filter={},
+            sort=[('_id', pymongo.ASCENDING)]
+        )
+        if obj is None:
+            print('extract_training_id_to_process None')
+            return None
+        print('extract_training_id_to_process', obj['training_id'])
+        return obj['training_id']
+
+    def get_training(self, training_id):
+        return Trainings.objects.get({'_id': ObjectId(training_id)})

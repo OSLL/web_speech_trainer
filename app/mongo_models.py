@@ -53,3 +53,8 @@ class RecognizedAudioToProcess(MongoModel):
 
 class TrainingsToProcess(MongoModel):
     training_id = fields.CharField()
+
+
+class FeedbackEvaluators(MongoModel):
+    name = fields.CharField()
+    weights = fields.DictField()

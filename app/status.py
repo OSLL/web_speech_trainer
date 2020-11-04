@@ -1,9 +1,8 @@
 class TrainingStatus:
-    NEW = 0
-    PREPARING = 1
-    PREPARED = 2
-    PROCESSING = 3
-    PROCESSED = 4
+    PREPARING = 0
+    PREPARED = 1
+    PROCESSING = 2
+    PROCESSED = 3
 
 
 class AudioStatus:

@@ -29,6 +29,6 @@ class RecognizedAudioProcessor:
 
 if __name__ == "__main__":
     Config.init_config('config.ini')
-    DBManager().add_recognized_audio_to_process('5f9f60897a3a4b282ca1e911')
+    #DBManager().add_recognized_audio_to_process('5f9f60897a3a4b282ca1e911')
     recognized_audio_processor = RecognizedAudioProcessor()
     recognized_audio_processor.run()

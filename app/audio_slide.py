@@ -1,6 +1,5 @@
 import json
 
-from app.audio_slide_stats import AudioSlideStats
 from app.recognized_word import RecognizedWord
 
 
@@ -17,12 +16,14 @@ class AudioSlide:
             slide_duration = 0
         else:
             slide_duration = recognized_words[-1].end_timestamp - recognized_words[0].begin_timestamp
-        return AudioSlideStats(slide_duration)
+        return {
+            'slide_duration': slide_duration
+        }
 
     def __repr__(self):
         return json.dumps({
             'recognized_words': [repr(recognized_word) for recognized_word in self.recognized_words],
-            'audio_slide_stats': repr(self.audio_slide_stats),
+            'audio_slide_stats': json.dumps(self.audio_slide_stats),
         })
 
     @staticmethod
@@ -32,5 +33,5 @@ class AudioSlide:
         recognized_words = [
             RecognizedWord.from_json_string(json_recognized_word) for json_recognized_word in json_recognized_words
         ]
-        audio_slide_stats = AudioSlideStats.from_json_string(json_obj['audio_slide_stats'])
+        audio_slide_stats = json.loads(json_obj['audio_slide_stats'])
         return AudioSlide(recognized_words, audio_slide_stats)
