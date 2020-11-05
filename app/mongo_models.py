@@ -16,7 +16,7 @@ class Trainings(MongoModel):
     status = fields.IntegerField()
     audio_status = fields.IntegerField()
     presentation_status = fields.IntegerField()
-    feedback = fields.CharField()
+    feedback = fields.DictField()
 
 
 class Criterias(MongoModel):

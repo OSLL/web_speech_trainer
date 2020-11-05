@@ -30,7 +30,7 @@ class TrainingProcessor:
                 training = Training(audio, presentation, self.criteria_pack, self.feedback_evaluator)
                 feedback = training.evaluate_feedback()
                 DBManager().change_training_status(training_id, PresentationStatus.PROCESSED)
-                print('training_id = ', training_id)
+                DBManager().add_feedback(training_id, feedback.to_dict())
                 print(feedback.score)
             else:
                 sleep(1)

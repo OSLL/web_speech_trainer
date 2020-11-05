@@ -231,3 +231,8 @@ class DBManager:
 
     def get_training(self, training_id):
         return Trainings.objects.get({'_id': ObjectId(training_id)})
+
+    def add_feedback(self, training_id, feedback):
+        obj = Trainings.objects.get({'_id': ObjectId(training_id)})
+        obj.feedback = feedback
+        return obj.save()
