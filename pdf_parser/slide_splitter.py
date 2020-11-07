@@ -9,7 +9,7 @@ import argparse
 import re
 
 
-def text_processor(text):
+def text_processor(text, mode):
     # Очистка текста от англ слов и цифр
     text = re.sub(r'[^А-я\s]', '', text)
 
@@ -29,7 +29,11 @@ def text_processor(text):
                 print('Удаляем шумовое слово:', normal_form)
         l_text = l_text.strip(' ')
         l_text += '\n'
-    l_text = re.sub(r'\n+', '\n', l_text)
+
+    if mode == "txt":
+        l_text = re.sub(r'\n\n+', '\n\n', l_text)
+    elif mode == "pdf":
+        l_text = re.sub(r'\n+', '\n', l_text)
 
     return l_text
 
@@ -40,7 +44,7 @@ def parse_txt(txt_path, extract_dir):
 
     with open(txt_path) as txt:
         text = txt.readlines()
-        l_text = text_processor(''.join(text))
+        l_text = text_processor(''.join(text), mode="txt")
 
         with open('{}/clear.txt'.format(extract_dir), 'w') as f:
             f.write(l_text)
@@ -54,7 +58,7 @@ def parse_pdf(pdf_path, extract_dir):
 
     for page in pdf_doc:
         text = page.getText("text")
-        l_text = text_processor(text)
+        l_text = text_processor(text, mode="pdf")
 
         with open("{}/{}_slide.txt".format(extract_dir, page.number), "w") as f:
             f.write(l_text)
