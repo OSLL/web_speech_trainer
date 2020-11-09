@@ -8,17 +8,53 @@ from matplotlib import pyplot as plt
 from tqdm import tqdm
 
 
+SAMPLE_RATE = 22050
+
+
 class Encoder:
     def __init__(self):
         self.encoder = VoiceEncoder()
 
 
-    def embed(self, filepath):
-        fpath = Path(filepath)
+    def load_file(self, filename):
+        fpath = Path(filename)
         wav = preprocess_wav(fpath)
+        return wav
 
+    def embed(self, wav):
         embedding = self.encoder.embed_utterance(wav)
         return embedding
+
+    def embed_full(self, filenames):
+        '''Embed entire files'''
+        embeddings = {}
+        for filename in tqdm(filenames):
+            wav = self.load_file(filename)
+            embeddings[filename] = self.embed(wav)
+        return embeddings
+
+    def embed_windows(self, filenames, window_length: int):
+        '''Embed overlapping windows of files (length in seconds)'''
+        window_length *= SAMPLE_RATE
+        embeddings = {}
+        for filename in tqdm(filenames):
+            wav = self.load_file(filename)
+            windows = {
+                start: wav[start:start+window_length]
+                for start in range(0, wav.shape[0] - window_length, window_length // 2)
+            }
+            for start, window in tqdm(windows.items()):
+                embeddings[f'{filename}_{start}'] = self.embed(window)
+        return embeddings
+
+    def pairwise_similarites(self, embeddings: dict):
+        similarity_matrix = np.zeros((len(embeddings), len(embeddings)))
+        combinations = get_combinations(embeddings)
+        for i, j, f1, f2 in combinations:
+            similarity = np.inner(embeddings[f1], embeddings[f2])
+            similarity_matrix[i, j] = similarity
+            similarity_matrix[j, i] = similarity
+        return similarity_matrix
 
 
 def get_combinations(l):
@@ -34,22 +70,11 @@ def get_combinations(l):
 if __name__ == '__main__':
     encoder = Encoder()
 
-    # calculate pairwise embeddings and save the result
-    filenames = [f'data/audio_source_{n}.wav' for n in range(1, 11)]
-    embeddings = {}
-    for filename in tqdm(filenames):
-        embeddings[filename] = encoder.embed(filename)
+    filenames = [f'data/audio_source_{n}.wav' for n in range(1, 11)][:2]
 
-    similarity_matrix = np.zeros((len(filenames), len(filenames)))
-    combinations = get_combinations(filenames)
-    for i, j, f1, f2 in combinations:
-        similarity = np.inner(embeddings[f1], embeddings[f2])
-        similarity_matrix[i, j] = similarity
-        similarity_matrix[j, i] = similarity
-    
-    similarity_df = pd.DataFrame(similarity_matrix,
-                                 index=filenames,
-                                 columns=filenames)
+    embeddings = encoder.embed_windows(filenames, 30)
+    similarity_matrix = encoder.pairwise_similarites(embeddings)
+    similarity_df = pd.DataFrame(similarity_matrix)
     similarity_df.to_csv('similarity_matrix.csv')
 
 
