@@ -9,7 +9,47 @@ services:
       - "5000:5000"
     depends_on:
       - db
+      - training_processor
+
+  audio_processor:
+    build: .
+    command: python -m audio_processor
+    restart: always
+    depends_on:
+      - db
+
+  recognized_audio_processor:
+    build: .
+    command: python -m recognized_audio_processor
+    restart: always
+    depends_on:
+      - db
+      - audio_processor
+
+  presentation_processor:
+    build: .
+    command: python -m presentation_processor
+    restart: always
+    depends_on:
+      - db
+
+  recognized_presentation_processor:
+    build: .
+    command: python -m recognized_presentation_processor
+    restart: always
+    depends_on:
+      - db
+      - presentation_processor
+
+  training_processor:
+    build: .
+    command: python -m training_processor
+    restart: always
+    depends_on:
+      - db
+      - audio_processor
+      - presentation_processor
+
   db:
     image: "mongo:4.4.1"
     restart: always
-
