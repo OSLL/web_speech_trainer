@@ -12,7 +12,7 @@ class PresentationRecognizer:
 class SimplePresentationRecognizer:
     def recognize(self, presentation):
         recognized_slides = [
-            RecognizedSlide(words=[Word('hello')]),
-            RecognizedSlide(words=[Word('world')]),
+            RecognizedSlide(words='hello\nworld'),
+            RecognizedSlide(words='world'),
         ]
         return RecognizedPresentation(recognized_slides)
