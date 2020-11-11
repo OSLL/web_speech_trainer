@@ -1,6 +1,6 @@
 from time import sleep
 
-from app.audio_recognizer import SimpleAudioRecognizer
+from app.audio_recognizer import SimpleAudioRecognizer, VoskAudioRecognizer
 from app.config import Config
 from app.mongo_odm import DBManager
 from app.status import AudioStatus
@@ -29,7 +29,8 @@ class AudioProcessor:
 
 if __name__ == "__main__":
     Config.init_config('config.ini')
-    #DBManager().add_audio_to_recognize(file_id='5fa1f71a2740f38d9d6cbd4a')
-    audio_recognizer = SimpleAudioRecognizer()
+    #DBManager().add_audio_to_recognize(file_id='5fabc2b9244920579b65a3ed')
+    #audio_recognizer = SimpleAudioRecognizer()
+    audio_recognizer = VoskAudioRecognizer(host='ws://localhost:2700')
     audio_processor = AudioProcessor(audio_recognizer)
     audio_processor.run()

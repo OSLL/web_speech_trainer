@@ -41,7 +41,7 @@ class Presentation:
         return json.dumps({
             'slides': [repr(slide) for slide in self.slides],
             'presentation_stats': json.dumps(self.presentation_stats),
-        })
+        }, ensure_ascii=False)
 
     @staticmethod
     def from_json_file(json_file):

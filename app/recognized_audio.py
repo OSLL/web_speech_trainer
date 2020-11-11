@@ -10,7 +10,7 @@ class RecognizedAudio:
     def __repr__(self):
         return json.dumps({
             'recognized_words': [repr(recognized_word) for recognized_word in self.recognized_words]
-        })
+        }, ensure_ascii=False)
 
     @staticmethod
     def from_json_file(json_file):

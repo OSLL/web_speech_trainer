@@ -22,7 +22,7 @@ class Slide:
         return json.dumps({
             'words': [repr(word) for word in self.words],
             'slide_stats': json.dumps(self.slide_stats),
-        })
+        }, ensure_ascii=False)
 
     @staticmethod
     def from_json_string(json_string):

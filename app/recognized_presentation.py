@@ -10,7 +10,7 @@ class RecognizedPresentation:
     def __repr__(self):
         return json.dumps({
             'recognized_slides': [repr(recognized_slide) for recognized_slide in self.recognized_slides]
-        })
+        }, ensure_ascii=False)
 
     @staticmethod
     def from_json_file(json_file):

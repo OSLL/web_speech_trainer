@@ -16,7 +16,7 @@ class RecognizedWord:
             'begin_timestamp': self.begin_timestamp,
             'end_timestamp': self.end_timestamp,
             'probability': self.probability
-        })
+        }, ensure_ascii=False)
 
     @staticmethod
     def from_json_string(json_string):

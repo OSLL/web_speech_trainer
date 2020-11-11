@@ -24,7 +24,7 @@ class AudioSlide:
         return json.dumps({
             'recognized_words': [repr(recognized_word) for recognized_word in self.recognized_words],
             'audio_slide_stats': json.dumps(self.audio_slide_stats),
-        })
+        }, ensure_ascii=False)
 
     @staticmethod
     def from_json_string(json_string):

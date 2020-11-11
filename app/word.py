@@ -8,7 +8,7 @@ class Word:
     def __repr__(self):
         return json.dumps({
             'value': self.value
-        })
+        }, ensure_ascii=False)
 
     @staticmethod
     def from_json_string(json_string):

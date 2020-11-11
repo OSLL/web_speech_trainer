@@ -31,7 +31,7 @@ class Audio:
         tmp = json.dumps({
             'audio_slides': [repr(audio_slide) for audio_slide in self.audio_slides],
             'audio_stats': json.dumps(self.audio_stats),
-        })
+        }, ensure_ascii=False)
         return tmp
 
     @staticmethod

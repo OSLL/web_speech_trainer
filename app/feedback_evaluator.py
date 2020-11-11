@@ -6,7 +6,7 @@ class Feedback:
         self.score = score
 
     def __repr__(self):
-        return json.dumps(self.to_dict())
+        return json.dumps(self.to_dict(), ensure_ascii=False)
 
     @staticmethod
     def from_json_string(self, json_string):

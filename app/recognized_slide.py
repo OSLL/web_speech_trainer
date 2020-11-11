@@ -8,7 +8,7 @@ class RecognizedSlide:
         self.words = words
 
     def __repr__(self):
-        return json.dumps({'words': [repr(word) for word in self.words]})
+        return json.dumps({'words': [repr(word) for word in self.words]}, ensure_ascii=False)
 
     @staticmethod
     def from_json_string(json_string):
