@@ -46,8 +46,9 @@ function callAddPresentationRecord(blob) {
       processData: false,
       contentType: false,
       type: 'POST',
-      success() {
-          window.location.href = `/training_statistics/${presentationFileId}`;
+      datatype: 'json',
+      success: function (response) {
+          window.location.href = `/training_statistics/${response.trainingId}`;
       }
     });
 }

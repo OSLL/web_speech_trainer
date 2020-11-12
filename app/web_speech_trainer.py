@@ -4,6 +4,7 @@ from flask import Flask, render_template, request, jsonify, send_file
 
 from app.config import Config
 from app.mongo_odm import DBManager
+from app.training_manager import TrainingManager
 from app.utils import file_has_pdf_beginning
 
 app = Flask(__name__)
@@ -36,26 +37,33 @@ def show_page():
 @app.route('/training')
 def training(presentation_file_id):
     app.logger.info('presentation_file_id = {}'.format(presentation_file_id))
-    DBManager().add_training(presentation_file_id)
+    DBManager().add_slide_switch_timestamps(presentation_file_id)
     return render_template('training.html', presentation_file_id=presentation_file_id)
 
 
 @app.route('/training_statistics/<training_id>/')
 def training_statistics(training_id):
-    # TODO get presentation name and training statistics from the database by training_id
-    page_title = f'Статистика тренировки с ID: {training_id}'
-
-    # training_id is the presentation file id for now
-    presentation_file_name = DBManager().get_file_name(training_id)
-    presentation_name = f'Название презентации: {presentation_file_name}'
-
-    presentation_record_file_id = DBManager().get_presentation_record_file_id(training_id)
-
+    page_title = 'Статистика тренировки с ID: {}'.format(training_id)
+    training_db = DBManager().get_training(training_id)
+    presentation_file_id = training_db.presentation_file_id
+    presentation_file_name = DBManager().get_file_name(presentation_file_id)
+    presentation_name = 'Название презентации: {}'.format(presentation_file_name)
+    presentation_record_file_id = training_db.presentation_record_file_id
+    feedback = training_db.feedback
+    if 'score' in feedback:
+        feedback_str = 'feedback.score = {}'.format(feedback['score'])
+    else:
+        feedback_str = 'feedback.score is not ready yet. Please refresh the page'
     return render_template(
         'training_statistics.html',
         page_title=page_title,
+        training_id=training_id,
+        presentation_file_id=presentation_file_id,
         presentation_name=presentation_name,
-        presentation_record_file_id=presentation_record_file_id)
+        presentation_record_file_id=presentation_record_file_id,
+        feedback=feedback_str,
+    )
+
 
 
 BYTES_IN_MEGABYTE = 1024 * 1024
@@ -68,12 +76,14 @@ def presentation_record():
     presentation_file_id = request.form['presentationFileId']
     presentation_record_file = request.files['presentationRecord']
     presentation_record_file_id = DBManager().add_file(presentation_record_file)
-    DBManager().add_presentation(presentation_file_id, presentation_record_file_id)
+    training_id = str(TrainingManager().add_training(presentation_file_id, presentation_record_file_id))
     response_dict = {
+        'trainingId': training_id,
         'presentationFileId': presentation_file_id,
         'presentationRecordFileId': presentation_record_file_id
     }
     response = jsonify(response_dict)
+    app.logger.info('presentation_record: training_id = {}'.format(training_id))
     app.logger.info('presentation_record: response = {}'.format(response_dict))
     return response
 
