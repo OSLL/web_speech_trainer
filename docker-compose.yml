@@ -11,12 +11,19 @@ services:
       - db
       - training_processor
 
+  vosk:
+    build:
+      context: .
+      dockerfile: Dockerfile.kaldi-ru
+    restart: always
+
   audio_processor:
     build: .
     command: python -m audio_processor
     restart: always
     depends_on:
       - db
+      - vosk
 
   recognized_audio_processor:
     build: .

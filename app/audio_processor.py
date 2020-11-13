@@ -30,7 +30,7 @@ class AudioProcessor:
 if __name__ == "__main__":
     Config.init_config('config.ini')
     #DBManager().add_audio_to_recognize(file_id='5fabc2b9244920579b65a3ed')
-    audio_recognizer = SimpleAudioRecognizer()
-    #audio_recognizer = VoskAudioRecognizer(host='ws://localhost:2700')
+    #audio_recognizer = SimpleAudioRecognizer()
+    audio_recognizer = VoskAudioRecognizer(host=Config.c.vosk.url)
     audio_processor = AudioProcessor(audio_recognizer)
     audio_processor.run()

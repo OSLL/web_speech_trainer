@@ -34,7 +34,8 @@ class Presentation:
         else:
             duration = self.slides[-1].slide_stats['end_timestamp'] - self.slides[0].slide_stats['begin_timestamp']
         return {
-            'duration': duration
+            'duration': duration,
+
         }
 
     def __repr__(self):
@@ -45,11 +46,6 @@ class Presentation:
 
     @staticmethod
     def from_json_file(json_file):
-        '''
-        import sys
-        with open('tmp.txt', 'wb+') as file:
-            json_file.gridfs.download_to_stream(json_file.file_id, file)
-        '''
         presentation = Presentation()
         json_obj = json.load(json_file)
         json_slides = json_obj['slides']
