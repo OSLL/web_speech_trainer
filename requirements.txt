@@ -1,6 +1,8 @@
 flask
 Flask-Reuploaded
+pydub
 pymongo
 pymodm
 vext
 vext.gi
+websockets
