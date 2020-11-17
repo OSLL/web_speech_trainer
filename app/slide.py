@@ -20,16 +20,13 @@ class Slide:
 
     def __repr__(self):
         return json.dumps({
-            'words': [repr(word) for word in self.words],
+            'words': self.words,
             'slide_stats': json.dumps(self.slide_stats),
         }, ensure_ascii=False)
 
     @staticmethod
     def from_json_string(json_string):
         json_obj = json.loads(json_string)
-        json_words = json_obj['words']
-        words = [
-            Word.from_json_string(json_word) for json_word in json_words
-        ]
+        words = json_obj['words']
         slide_stats = json.loads(json_obj['slide_stats'])
         return Slide(words, slide_stats)
