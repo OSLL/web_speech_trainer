@@ -228,3 +228,6 @@ class DBManager:
         obj = Trainings.objects.get({'_id': ObjectId(training_id)})
         obj.feedback = feedback
         return obj.save()
+
+    def get_trainings(self):
+        return Trainings.objects.all()

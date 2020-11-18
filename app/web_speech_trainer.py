@@ -103,6 +103,30 @@ def upload():
     else:
         return render_template('upload.html')
 
+@app.route('/get_all_trainings')
+def get_all_trainings():
+    trainings = DBManager().get_trainings()
+    dict_trainings = {}
+    for training in trainings:
+        dict_training = {
+            'presentation_file_id': training.presentation_file_id,
+            'recognized_presentation_id': training.recognized_presentation_id,
+            'presentation_id': training.presentation_id,
+            'presentation_record_file_id': training.presentation_record_file_id,
+            'recognized_audio_id': training.recognized_audio_id,
+            'audio_id': training.audio_id,
+            'status': training.status,
+            'audio_status': training.audio_status,
+            'presentation_status': training.presentation_status,
+            'feedback': training.feedback,
+        }
+        dict_trainings[str(training._id)] = dict_training
+    return dict_trainings
+
+@app.route('/all_trainings')
+def all_trainings():
+    return render_template('all_trainings.html')
+
 
 if __name__ == '__main__':
     Config.init_config('config.ini')
