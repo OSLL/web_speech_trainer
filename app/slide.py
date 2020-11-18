@@ -27,9 +27,6 @@ class Slide:
     @staticmethod
     def from_json_string(json_string):
         json_obj = json.loads(json_string)
-        json_words = json_obj['words']
-        words = [
-            Word.from_json_string(json_word) for json_word in json_words
-        ]
+        words = json_obj['words']
         slide_stats = json.loads(json_obj['slide_stats'])
         return Slide(words, slide_stats)

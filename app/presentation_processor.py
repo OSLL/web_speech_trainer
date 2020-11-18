@@ -18,13 +18,11 @@ class PresentationProcessor:
                 presentation_file = DBManager().get_file(presentation_file_id)
                 recognized_presentation = self.presentation_recognizer.recognize(presentation_file)
                 recognized_presentation_id = DBManager().add_file(repr(recognized_presentation))
-                print('recognized_presentation_id =', recognized_presentation_id)
                 DBManager().add_recognized_presentation_id(presentation_file_id, recognized_presentation_id)
                 DBManager().change_presentation_status(presentation_file_id, PresentationStatus.RECOGNIZED)
                 DBManager().add_recognized_presentation_to_process(recognized_presentation_id)
             else:
-                print('sleeping...')
-                sleep(1)
+                sleep(10)
 
 
 if __name__ == "__main__":

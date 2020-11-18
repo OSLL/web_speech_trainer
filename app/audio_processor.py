@@ -18,13 +18,11 @@ class AudioProcessor:
                 presentation_record_file = DBManager().get_file(presentation_record_file_id)
                 recognized_audio = self.audio_recognizer.recognize(presentation_record_file)
                 recognized_audio_id = DBManager().add_file(repr(recognized_audio))
-                print('recognized_audio_id =', recognized_audio_id)
                 DBManager().add_recognized_audio_id(presentation_record_file_id, recognized_audio_id)
                 DBManager().change_audio_status(presentation_record_file_id, AudioStatus.RECOGNIZED)
                 DBManager().add_recognized_audio_to_process(recognized_audio_id)
             else:
-                print('sleeping...')
-                sleep(1)
+                sleep(10)
 
 
 if __name__ == "__main__":

@@ -33,7 +33,7 @@ class TrainingProcessor:
                 DBManager().add_feedback(training_id, feedback.to_dict())
                 print(feedback.score)
             else:
-                sleep(1)
+                sleep(10)
 
 
 if __name__ == "__main__":
