@@ -61,6 +61,7 @@ def parse_pdf(pdf_path, extract_dir):
         os.mkdir(extract_dir)
 
     pdf_doc = fitz.open(pdf_path)
+    print(pdf_doc)
     slide_dict = []
 
     for page in pdf_doc:
