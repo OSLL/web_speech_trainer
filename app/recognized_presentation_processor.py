@@ -24,7 +24,7 @@ class RecognizedPresentationProcessor:
                 DBManager().add_presentation_id(recognized_presentation_id, presentation_id)
                 DBManager().change_presentation_status(recognized_presentation_id, PresentationStatus.PROCESSED)
             else:
-                sleep(1)
+                sleep(10)
 
 
 if __name__ == "__main__":

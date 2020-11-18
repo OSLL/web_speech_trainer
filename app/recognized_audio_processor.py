@@ -24,7 +24,7 @@ class RecognizedAudioProcessor:
                 DBManager().add_audio_id(recognized_audio_id, audio_id)
                 DBManager().change_audio_status(recognized_audio_id, AudioStatus.PROCESSED)
             else:
-                sleep(1)
+                sleep(10)
 
 
 if __name__ == "__main__":

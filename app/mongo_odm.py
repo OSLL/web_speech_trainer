@@ -108,7 +108,6 @@ class DBManager:
             sort=[('_id', pymongo.ASCENDING)]
         )
         if obj is None:
-            print('extract_presentation_record_file_id_to_recognize None')
             return None
         print('extract_presentation_record_file_id_to_recognize', obj['file_id'])
         return obj['file_id']
@@ -138,15 +137,11 @@ class DBManager:
         ).save()
 
     def extract_recognized_audio_id_to_process(self):
-        for x in RecognizedAudioToProcess.objects.all():
-            print(x.file_id)
-
         obj = RecognizedAudioToProcess.objects.model._mongometa.collection.find_one_and_delete(
             filter={},
             sort=[('_id', pymongo.ASCENDING)]
         )
         if obj is None:
-            print('extract_recognized_audio_id_to_process None')
             return None
         print('extract_recognized_audio_id_to_process', obj['file_id'])
         return obj['file_id']
@@ -166,7 +161,6 @@ class DBManager:
             sort=[('_id', pymongo.ASCENDING)]
         )
         if obj is None:
-            print('extract_presentation_file_id_to_recognize None')
             return None
         print('extract_presentation_file_id_to_recognize', obj['file_id'])
         return obj['file_id']
@@ -202,7 +196,6 @@ class DBManager:
             sort=[('_id', pymongo.ASCENDING)]
         )
         if obj is None:
-            print('extract_recognized_presentation_id_to_process None')
             return None
         print('extract_recognized_presentation_id_to_process', obj['file_id'])
         return obj['file_id']
@@ -224,7 +217,6 @@ class DBManager:
             sort=[('_id', pymongo.ASCENDING)]
         )
         if obj is None:
-            print('extract_training_id_to_process None')
             return None
         print('extract_training_id_to_process', obj['training_id'])
         return obj['training_id']
