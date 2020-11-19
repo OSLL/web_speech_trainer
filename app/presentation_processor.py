@@ -23,6 +23,8 @@ class PresentationProcessor:
                 TrainingsDBManager().change_presentation_status(presentation_file_id, PresentationStatus.RECOGNIZED)
                 RecognizedPresentationsToProcessDBManager().add_recognized_presentation_to_process(
                     recognized_presentation_id)
+            else:
+
                 sleep(10)
 
 
