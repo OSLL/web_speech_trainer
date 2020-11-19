@@ -104,6 +104,29 @@ def upload():
         return render_template('upload.html')
 
 
+@app.route('/get_all_trainings')
+def get_all_trainings():
+    #fields = ['datetime', 'score']
+    trainings = TrainingsDBManager().get_trainings()
+    trainings_json = {}
+    for current_training in trainings:
+            _id = current_training._id
+            print(_id.generation_time)
+            datetime = current_training._id.generation_time
+            score = current_training.feedback.get('score')
+            current_training_json = {
+                'datetime': datetime,
+                'score': score
+            }
+            trainings_json[str(_id)] = current_training_json
+    return trainings_json
+
+
+@app.route('/show_all_trainings')
+def show_all_trainings():
+    return render_template('show_all_trainings.html')
+
+
 if __name__ == '__main__':
     Config.init_config('config.ini')
     app.logger.setLevel(logging.INFO)

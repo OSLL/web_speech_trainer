@@ -63,6 +63,9 @@ class TrainingsDBManager:
             presentation_status=presentation_status,
         ).save()
 
+    def get_trainings(self):
+        return Trainings.objects.all()
+
     def get_training(self, training_id):
         return Trainings.objects.get({'_id': ObjectId(training_id)})
 

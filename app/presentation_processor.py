@@ -24,7 +24,6 @@ class PresentationProcessor:
                 RecognizedPresentationsToProcessDBManager().add_recognized_presentation_to_process(
                     recognized_presentation_id)
             else:
-
                 sleep(10)
 
 

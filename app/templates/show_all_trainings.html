@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<link rel="stylesheet" href="static/css/show_all_trainings.css">
+{% endblock %}
+
+{% block content %}
+<table id="all-trainings-table" class="table"></table>
+<script src="static/js/show_all_trainings.js"></script>
+<script type="text/javascript">
+    call_get_all_trainings();
+</script>
+{% endblock %}
