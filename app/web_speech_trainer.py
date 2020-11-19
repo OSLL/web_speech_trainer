@@ -110,15 +110,15 @@ def get_all_trainings():
     trainings = TrainingsDBManager().get_trainings()
     trainings_json = {}
     for current_training in trainings:
-            _id = current_training._id
-            print(_id.generation_time)
-            datetime = current_training._id.generation_time
-            score = current_training.feedback.get('score')
-            current_training_json = {
-                'datetime': datetime,
-                'score': score
-            }
-            trainings_json[str(_id)] = current_training_json
+        _id = current_training._id
+        print(_id.generation_time)
+        datetime = current_training._id.generation_time
+        score = current_training.feedback.get('score')
+        current_training_json = {
+            'datetime': datetime,
+            'score': score
+        }
+        trainings_json[str(_id)] = current_training_json
     return trainings_json
 
 
