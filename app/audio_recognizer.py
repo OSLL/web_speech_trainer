@@ -1,6 +1,5 @@
 import asyncio
 import json
-import tempfile
 import wave
 
 import websockets
@@ -9,7 +8,6 @@ from app import utils
 from app.recognized_audio import RecognizedAudio
 from app.recognized_word import RecognizedWord
 from app.word import Word
-from pydub import AudioSegment
 
 
 class AudioRecognizer:

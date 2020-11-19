@@ -1,4 +1,4 @@
-from app.mongo_odm import DBManager
+from app.mongo_odm import DBManager, TrainingsDBManager, PresentationsToRecognizeDBManager, AudioToRecognizeDBManager
 
 
 class TrainingManager:
@@ -10,7 +10,7 @@ class TrainingManager:
     def add_training(self, presentation_file_id, presentation_record_file_id):
         print('presentation_file_id        =', presentation_file_id)
         print('presentation_record_file_id =', presentation_record_file_id)
-        training_id = DBManager().add_training(presentation_file_id, presentation_record_file_id)._id
-        DBManager().add_presentation_to_recognize(presentation_file_id)
-        DBManager().add_audio_to_recognize(presentation_record_file_id)
+        training_id = TrainingsDBManager().add_training(presentation_file_id, presentation_record_file_id)._id
+        PresentationsToRecognizeDBManager().add_presentation_to_recognize(presentation_file_id)
+        AudioToRecognizeDBManager().add_audio_to_recognize(presentation_record_file_id)
         return training_id

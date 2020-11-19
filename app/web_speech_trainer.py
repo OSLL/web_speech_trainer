@@ -3,7 +3,7 @@ import logging
 from flask import Flask, render_template, request, jsonify, send_file
 
 from app.config import Config
-from app.mongo_odm import DBManager
+from app.mongo_odm import DBManager, SlideSwitchTimestampsDBManager, TrainingsDBManager
 from app.training_manager import TrainingManager
 from app.utils import file_has_pdf_beginning
 
@@ -14,7 +14,8 @@ app = Flask(__name__)
 def get_presentation_record():
     presentation_record_file_id = request.args.get('presentationRecordFileId')
     presentation_record_file = DBManager().get_file(presentation_record_file_id)
-    return send_file(presentation_record_file, attachment_filename='{}.mp3'.format(presentation_record_file_id), as_attachment=True)
+    return send_file(presentation_record_file, attachment_filename='{}.mp3'.format(presentation_record_file_id),
+                     as_attachment=True)
 
 
 @app.route('/get_presentation_file')
@@ -27,7 +28,7 @@ def get_presentation_file():
 @app.route('/show_page')
 def show_page():
     presentation_file_id = request.args.get('presentationFileId')
-    updated_presentation_file_id = DBManager().append_timestamp_to_training(presentation_file_id)
+    updated_presentation_file_id = SlideSwitchTimestampsDBManager().append_timestamp_to_training(presentation_file_id)
     if updated_presentation_file_id is None:
         return jsonify({'presentationFileId': None}), 404
     else:
@@ -37,14 +38,14 @@ def show_page():
 @app.route('/training')
 def training(presentation_file_id):
     app.logger.info('presentation_file_id = {}'.format(presentation_file_id))
-    DBManager().add_slide_switch_timestamps(presentation_file_id)
+    SlideSwitchTimestampsDBManager().add_slide_switch_timestamps(presentation_file_id)
     return render_template('training.html', presentation_file_id=presentation_file_id)
 
 
 @app.route('/training_statistics/<training_id>/')
 def training_statistics(training_id):
     page_title = 'Статистика тренировки с ID: {}'.format(training_id)
-    training_db = DBManager().get_training(training_id)
+    training_db = TrainingsDBManager().get_training(training_id)
     presentation_file_id = training_db.presentation_file_id
     presentation_file_name = DBManager().get_file_name(presentation_file_id)
     presentation_name = 'Название презентации: {}'.format(presentation_file_name)
@@ -63,7 +64,6 @@ def training_statistics(training_id):
         presentation_record_file_id=presentation_record_file_id,
         feedback=feedback_str,
     )
-
 
 
 BYTES_IN_MEGABYTE = 1024 * 1024
@@ -93,7 +93,7 @@ def presentation_record():
 def upload():
     if request.method == 'POST' and 'presentation' in request.files:
         if request.content_length > int(Config.c.constants.presentation_file_max_size_in_megabytes) * BYTES_IN_MEGABYTE:
-            return 'Presentation file should not exceed {}MB'\
+            return 'Presentation file should not exceed {}MB' \
                        .format(Config.c.constants.presentation_file_max_size_in_megabytes), 413
         presentation_file = request.files['presentation']
         if not file_has_pdf_beginning(presentation_file):

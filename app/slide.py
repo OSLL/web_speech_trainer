@@ -20,7 +20,7 @@ class Slide:
 
     def __repr__(self):
         return json.dumps({
-            'words': [repr(word) for word in self.words],
+            'words': self.words,
             'slide_stats': json.dumps(self.slide_stats),
         }, ensure_ascii=False)
 
