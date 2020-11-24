@@ -21,7 +21,7 @@ def exec_by_files(audio_file, noise_file, out_file):
 
 
 def add_noise(audio_clip, rate):
-    noise_len = 2
+    noise_len = 3
     noise = band_limited_noise(
         4000,
         12000,

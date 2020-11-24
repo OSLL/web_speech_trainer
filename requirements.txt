@@ -4,3 +4,11 @@ pymongo
 pymodm
 vext
 vext.gi
+websockets
+wheel
+pydub
+librosa
+noisereduce
+numpy
+python_speech_features
+pysndfx

@@ -10,6 +10,7 @@ from app.recognized_audio import RecognizedAudio
 from app.recognized_word import RecognizedWord
 from app.word import Word
 from pydub import AudioSegment
+from playground.noise_reduction.denoiser import Denoiser
 
 
 class AudioRecognizer:
@@ -40,6 +41,8 @@ class VoskAudioRecognizer(AudioRecognizer):
 
     def recognize(self, audio):
         temp_wav_file = utils.convert_from_mp3_to_wav(audio)
+        Denoiser.process_file_to_file(temp_wav_file.name, temp_wav_file.name)
+
         recognizer_results = asyncio.get_event_loop().run_until_complete(
             self.send_audio_to_recognizer(temp_wav_file.name)
         )
