@@ -2,7 +2,6 @@ from pymodm import MongoModel, fields
 
 
 class SlideSwitchTimestamps(MongoModel):
-    presentation_file_id = fields.CharField()
     timestamps = fields.ListField()
 
 
@@ -17,6 +16,13 @@ class Trainings(MongoModel):
     audio_status = fields.IntegerField()
     presentation_status = fields.IntegerField()
     feedback = fields.DictField()
+    slide_switch_timestamps_id = fields.CharField()
+
+
+class PresentationFiles(MongoModel):
+    file_id = fields.CharField()
+    filename = fields.CharField()
+    preview_id = fields.CharField()
 
 
 class Criterias(MongoModel):

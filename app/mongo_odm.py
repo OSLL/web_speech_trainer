@@ -11,16 +11,18 @@ from pymodm.files import GridFSStorage
 
 from app.config import Config
 from app.mongo_models import SlideSwitchTimestamps, Trainings, AudioToRecognize, TrainingsToProcess, \
-    PresentationsToRecognize, RecognizedAudioToProcess, RecognizedPresentationsToProcess, FeedbackEvaluators
+    PresentationsToRecognize, RecognizedAudioToProcess, RecognizedPresentationsToProcess, FeedbackEvaluators, \
+    PresentationFiles
 from app.status import AudioStatus, PresentationStatus, TrainingStatus
 
 
 class DBManager:
     def __new__(cls):
-        if not hasattr(cls, 'instance'):
+        if not hasattr(cls, 'init_done'):
             cls.instance = super(DBManager, cls).__new__(cls)
             connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
             cls.instance.storage = GridFSStorage(GridFSBucket(_get_db()))
+            cls.init_done = True
         return cls.instance
 
     def add_file(self, file, filename=uuid.uuid4()):
@@ -48,20 +50,32 @@ class DBManager:
 
 class TrainingsDBManager:
     def __new__(cls):
-        if not hasattr(cls, 'instance'):
+        if not hasattr(cls, 'init_done'):
             cls.instance = super(TrainingsDBManager, cls).__new__(cls)
             connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
         return cls.instance
 
-    def add_training(self, presentation_file_id, presentation_record_file_id, status=TrainingStatus.PREPARING,
-                     audio_status=AudioStatus.NEW, presentation_status=PresentationStatus.NEW):
+    def add_training(
+            self,
+            presentation_file_id,
+            presentation_record_file_id,
+            slide_switch_timestamps_id,
+            status=TrainingStatus.PREPARING,
+            audio_status=AudioStatus.NEW,
+            presentation_status=PresentationStatus.NEW
+    ):
         return Trainings(
             presentation_file_id=presentation_file_id,
             presentation_record_file_id=presentation_record_file_id,
+            slide_switch_timestamps_id=slide_switch_timestamps_id,
             status=status,
             audio_status=audio_status,
             presentation_status=presentation_status,
         ).save()
+
+    def get_trainings(self):
+        return Trainings.objects.all()
 
     def get_training(self, training_id):
         return Trainings.objects.get({'_id': ObjectId(training_id)})
@@ -139,9 +153,10 @@ class TrainingsDBManager:
 
 class TrainingsToProcessDBManager:
     def __new__(cls):
-        if not hasattr(cls, 'instance'):
+        if not hasattr(cls, 'init_done'):
             cls.instance = super(TrainingsToProcessDBManager, cls).__new__(cls)
             connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
         return cls.instance
 
     def add_training_to_process(self, training_id):
@@ -161,45 +176,47 @@ class TrainingsToProcessDBManager:
 
 class SlideSwitchTimestampsDBManager:
     def __new__(cls):
-        if not hasattr(cls, 'instance'):
+        if not hasattr(cls, 'init_done'):
             cls.instance = super(SlideSwitchTimestampsDBManager, cls).__new__(cls)
             connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
         return cls.instance
 
-    def get_slide_switch_timestamps_by_presentation_file_id(self, presentation_file_id):
-        return SlideSwitchTimestamps.objects.get({'presentation_file_id': presentation_file_id})
+    def get_slide_switch_timestamps(self, slide_switch_timestamps_id):
+        return SlideSwitchTimestamps.objects.get({'_id': ObjectId(slide_switch_timestamps_id)})
 
-    def append_timestamp_to_training(self, presentation_file_id, timestamp=None):
+    def append_timestamp(self, slide_switch_timestamps_id, timestamp=None):
         if timestamp is None:
             timestamp = time.time()
-        slide_switch_timestamps = self.get_slide_switch_timestamps_by_presentation_file_id(presentation_file_id)
+        slide_switch_timestamps = self.get_slide_switch_timestamps(slide_switch_timestamps_id)
         slide_switch_timestamps.timestamps.append(timestamp)
         slide_switch_timestamps.save()
-        return slide_switch_timestamps.presentation_file_id
+        return slide_switch_timestamps_id
 
-    def add_slide_switch_timestamps(self, presentation_file_id, timestamp=None):
+    def add_slide_switch_timestamps(self, timestamp=None):
         if timestamp is None:
             timestamp = time.time()
-        return SlideSwitchTimestamps(presentation_file_id=presentation_file_id, timestamps=[timestamp]).save()
+        return SlideSwitchTimestamps(timestamps=[timestamp]).save()
 
     def get_slide_switch_timestamps_by_recognized_audio_id(self, recognized_audio_id):
         training = TrainingsDBManager().get_training_by_recognized_audio_id(recognized_audio_id)
-        presentation_file_id = training.presentation_file_id
-        slide_switch_timestamps = self.get_slide_switch_timestamps_by_presentation_file_id(presentation_file_id)
+        slide_switch_timestamps_id = training.slide_switch_timestamps_id
+        slide_switch_timestamps = self.get_slide_switch_timestamps(slide_switch_timestamps_id)
         return slide_switch_timestamps.timestamps
 
     def get_slide_switch_timestamps_by_recognized_presentation_id(self, recognized_presentation_id):
         training = TrainingsDBManager().get_training_by_recognized_presentation_id(recognized_presentation_id)
-        presentation_file_id = training.presentation_file_id
-        slide_switch_timestamps = self.get_slide_switch_timestamps_by_presentation_file_id(presentation_file_id)
+        slide_switch_timestamps_id = training.slide_switch_timestamps_id
+        slide_switch_timestamps = self.get_slide_switch_timestamps(slide_switch_timestamps_id)
         return slide_switch_timestamps.timestamps
 
 
 class AudioToRecognizeDBManager:
     def __new__(cls):
-        if not hasattr(cls, 'instance'):
+        if not hasattr(cls, 'init_done'):
             cls.instance = super(AudioToRecognizeDBManager, cls).__new__(cls)
             connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
         return cls.instance
 
     def add_audio_to_recognize(self, file_id):
@@ -219,9 +236,10 @@ class AudioToRecognizeDBManager:
 
 class RecognizedAudioToProcessDBManager:
     def __new__(cls):
-        if not hasattr(cls, 'instance'):
+        if not hasattr(cls, 'init_done'):
             cls.instance = super(RecognizedAudioToProcessDBManager, cls).__new__(cls)
             connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
         return cls.instance
 
     def add_recognized_audio_to_process(self, file_id):
@@ -241,9 +259,10 @@ class RecognizedAudioToProcessDBManager:
 
 class RecognizedPresentationsToProcessDBManager:
     def __new__(cls):
-        if not hasattr(cls, 'instance'):
+        if not hasattr(cls, 'init_done'):
             cls.instance = super(RecognizedPresentationsToProcessDBManager, cls).__new__(cls)
             connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
         return cls.instance
 
     def add_recognized_presentation_to_process(self, file_id):
@@ -263,9 +282,10 @@ class RecognizedPresentationsToProcessDBManager:
 
 class PresentationsToRecognizeDBManager:
     def __new__(cls):
-        if not hasattr(cls, 'instance'):
+        if not hasattr(cls, 'init_done'):
             cls.instance = super(PresentationsToRecognizeDBManager, cls).__new__(cls)
             connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
         return cls.instance
 
     def add_presentation_to_recognize(self, file_id):
@@ -281,3 +301,26 @@ class PresentationsToRecognizeDBManager:
         if obj is None:
             return None
         return obj['file_id']
+
+
+class PresentationFilesDBManager:
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super(PresentationFilesDBManager, cls).__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
+        return cls.instance
+
+    def add_presentation_file(self,  file_id, filename, preview_id):
+        return PresentationFiles(
+            file_id=file_id,
+            filename=filename,
+            preview_id=preview_id
+        ).save()
+
+    def get_presentation_files(self):
+        return PresentationFiles.objects.all()
+
+    def get_preview_id_by_file_id(self, file_id):
+        presentation_file = PresentationFiles.objects.get({'file_id': file_id})
+        return presentation_file.preview_id
