@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<link rel="stylesheet" href="static/css/index.css">
+{% endblock %}
+
+{% block content %}
+<form method=POST enctype=multipart/form-data action="{{ url_for('upload_pdf') }}?to={{ url_for('show_all_presentations')}}">
+    <input type=file name=presentation>
+    <input type="submit" value="Добавить презентацию">
+</form>
+
+<table id="all-presentations-table" class="table"></table>
+<script src="static/js/utils.js"></script>
+<script src="static/js/show_all_presentations.js"></script>
+<script type="text/javascript">
+    call_get_all_presentations();
+</script>
+{% endblock %}

@@ -1,6 +1,7 @@
 .table {
     border-collapse: collapse;
     text-align: center;
+    margin-top: 5px;
 }
 .table > tr > td,
 .table > tr > th {

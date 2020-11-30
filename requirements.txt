@@ -1,5 +1,7 @@
+fitz
 flask
 Flask-Reuploaded
+preview-generator
 pydub
 pymongo
 pymodm

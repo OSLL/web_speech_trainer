@@ -24,28 +24,9 @@ function buildCurrentTrainingRow(trainingId, trainingJson) {
     return currentTrainingRowElement;
 }
 
-function buildTitleRow() {
-    const titleRowElement = document.createElement('tr');
-
-    const trainingIdElement = document.createElement('th');
-    trainingIdElement.textContent = 'id';
-    titleRowElement.appendChild(trainingIdElement);
-
-    const trainingDatetimeElement = document.createElement('th');
-    trainingDatetimeElement.textContent = 'Время';
-    titleRowElement.appendChild(trainingDatetimeElement);
-
-    const trainingScoreElement = document.createElement('th');
-    trainingScoreElement.textContent = 'Результат';
-    titleRowElement.appendChild(trainingScoreElement);
-
-    return titleRowElement;
-
-}
-
 function buildAllTrainingsTable(trainingsJson) {
     const allTrainingsTable = document.getElementById('all-trainings-table');
-    const titleRow = buildTitleRow();
+    const titleRow = buildTitleRow(['id', 'Время', 'Результат']);
     allTrainingsTable.appendChild(titleRow);
 
     Object.keys(trainingsJson).forEach(trainingId => {
