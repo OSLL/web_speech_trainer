@@ -5,6 +5,7 @@ preview-generator
 pydub
 pymongo
 pymodm
+PyMuPDF
 vext
 vext.gi
 websockets
