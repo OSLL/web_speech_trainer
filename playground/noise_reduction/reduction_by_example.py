@@ -44,4 +44,4 @@ if __name__ == '__main__':
         'Enter result file path (All libs in path should already exist): '
     )
     # reduce_by_example_to_mp3(audio_file, noise_file, out_file)
-    Denoiser.process_file_to_file(audio_file, out_file, noise_length=1)
+    Denoiser.process_file_to_file(audio_file, out_file, noise_length=3)

@@ -9,7 +9,6 @@ from app import utils
 from app.recognized_audio import RecognizedAudio
 from app.recognized_word import RecognizedWord
 from app.word import Word
-from pydub import AudioSegment
 from playground.noise_reduction.denoiser import Denoiser
 
 
