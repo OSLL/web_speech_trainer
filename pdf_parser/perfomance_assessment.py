@@ -6,11 +6,12 @@ import os
 
 
 def check_headder(slide, opt):
-    for headder in opt:
-        if base_cmp(headder, slide[:len(headder)]) > 92:
-            print("Пропускаем слайд с заголовком:", headder)
-            return True
-
+    print(opt)
+    if opt is not None:
+        for headder in opt:
+            if base_cmp(headder, slide[:len(headder)]) > 92:
+                print("Пропускаем слайд с заголовком:", headder)
+                return True
     return False
 
 
@@ -19,13 +20,15 @@ def perfomance_score(slide_dict, txt_dict, opt):
     assessment = 0
     m = len(min(slide_dict, txt_dict))
     n = m
-
+    print(m)
     for i in range(m):
         # Проверяем заголовки слайдов на совпадение с теми, что нужно пропустить
         if check_headder(slide_dict[i], opt):
             n -= 1
             continue
-        assessment += base_cmp(slide_dict[i], txt_dict[i])
+        slide_assessment = base_cmp(slide_dict[i], txt_dict[i])
+        print("Оценка за слайд %i - %i/100" % (i, slide_assessment))
+        assessment += slide_assessment
 
     return assessment / n
 
