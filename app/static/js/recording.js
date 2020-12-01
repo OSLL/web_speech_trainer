@@ -9,7 +9,7 @@ function startRecording() {
         gumStream = stream;
         input = audioContext.createMediaStreamSource(stream);
         recorder = new WebAudioRecorder(input, {
-            workerDir: "static/js/libraries/WebAudioRecorder.js/",
+            workerDir: "/static/js/libraries/WebAudioRecorder.js/",
             encoding: "mp3",
         });
         recorder.onComplete = function(recorder, blob) {
@@ -39,6 +39,7 @@ function callAddPresentationRecord(blob) {
     let fd = new FormData();
     fd.append('presentationRecord', blob);
     fd.append('presentationFileId', presentationFileId);
+    fd.append('slideSwitchTimestampsId', slideSwitchTimestampsId);
 
     $.ajax({
       url: '/presentation_record',

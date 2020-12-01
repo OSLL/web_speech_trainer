@@ -1,14 +1,13 @@
 import asyncio
 import json
-import tempfile
 import wave
 
 import websockets
 
+from app import utils
 from app.recognized_audio import RecognizedAudio
 from app.recognized_word import RecognizedWord
 from app.word import Word
-from pydub import AudioSegment
 
 
 class AudioRecognizer:
@@ -29,14 +28,6 @@ class VoskAudioRecognizer(AudioRecognizer):
     def __init__(self, host):
         self.host = host
 
-    def convert_from_mp3_to_wav(self, audio):
-        sound = AudioSegment.from_mp3(audio) \
-            .set_frame_rate(8000) \
-            .set_channels(1)
-        temp_file = tempfile.NamedTemporaryFile()
-        sound.export(temp_file.name, format="wav")
-        return temp_file.name
-
     def parse_recognizer_result(self, recognizer_result):
         return RecognizedWord(
             word=Word(recognizer_result['word']),
@@ -46,9 +37,9 @@ class VoskAudioRecognizer(AudioRecognizer):
         )
 
     def recognize(self, audio):
-        temp_wav_file_name = self.convert_from_mp3_to_wav(audio)
+        temp_wav_file = utils.convert_from_mp3_to_wav(audio)
         recognizer_results = asyncio.get_event_loop().run_until_complete(
-            self.send_audio_to_recognizer(temp_wav_file_name)
+            self.send_audio_to_recognizer(temp_wav_file.name)
         )
         recognized_words = list(map(self.parse_recognizer_result, recognizer_results))
         return RecognizedAudio(recognized_words)
@@ -67,4 +58,5 @@ class VoskAudioRecognizer(AudioRecognizer):
                 if 'result' in json_data:
                     recognizer_results += json_data['result']
             await websocket.send('{"eof" : 1}')
+            await websocket.recv()
             return recognizer_results
