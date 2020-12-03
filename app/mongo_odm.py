@@ -10,7 +10,7 @@ from pymodm.connection import _get_db
 from pymodm.files import GridFSStorage
 
 from app.config import Config
-from app.mongo_models import SlideSwitchTimestamps, Trainings, AudioToRecognize, TrainingsToProcess, \
+from app.mongo_models import Trainings, AudioToRecognize, TrainingsToProcess, \
     PresentationsToRecognize, RecognizedAudioToProcess, RecognizedPresentationsToProcess, FeedbackEvaluators, \
     PresentationFiles
 from app.status import AudioStatus, PresentationStatus, TrainingStatus
@@ -59,16 +59,16 @@ class TrainingsDBManager:
     def add_training(
             self,
             presentation_file_id,
-            presentation_record_file_id,
-            slide_switch_timestamps_id,
+            slide_switch_timestamps=None,
             status=TrainingStatus.PREPARING,
             audio_status=AudioStatus.NEW,
             presentation_status=PresentationStatus.NEW
     ):
+        if slide_switch_timestamps is None:
+            slide_switch_timestamps = []
         return Trainings(
             presentation_file_id=presentation_file_id,
-            presentation_record_file_id=presentation_record_file_id,
-            slide_switch_timestamps_id=slide_switch_timestamps_id,
+            slide_switch_timestamps=slide_switch_timestamps,
             status=status,
             audio_status=audio_status,
             presentation_status=presentation_status,
@@ -150,6 +150,26 @@ class TrainingsDBManager:
         obj.presentation_id = presentation_id
         return obj.save()
 
+    def append_timestamp(self, training_id, timestamp=None):
+        if timestamp is None:
+            timestamp = time.time()
+        training = self.get_training(training_id)
+        training.slide_switch_timestamps.append(timestamp)
+        return training.save()
+
+    def add_presentation_record_file_id(self, training_id, presentation_record_file_id):
+        training = self.get_training(training_id)
+        training.presentation_record_file_id = presentation_record_file_id
+        return training.save()
+
+    def get_slide_switch_timestamps_by_recognized_audio_id(self, recognized_audio_id):
+        training = self.get_training_by_recognized_audio_id(recognized_audio_id)
+        return training.slide_switch_timestamps
+
+    def get_slide_switch_timestamps_by_recognized_presentation_id(self, recognized_presentation_id):
+        training = self.get_training_by_recognized_presentation_id(recognized_presentation_id)
+        return training.slide_switch_timestamps
+
 
 class TrainingsToProcessDBManager:
     def __new__(cls):
@@ -172,43 +192,6 @@ class TrainingsToProcessDBManager:
         if obj is None:
             return None
         return obj['training_id']
-
-
-class SlideSwitchTimestampsDBManager:
-    def __new__(cls):
-        if not hasattr(cls, 'init_done'):
-            cls.instance = super(SlideSwitchTimestampsDBManager, cls).__new__(cls)
-            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
-            cls.init_done = True
-        return cls.instance
-
-    def get_slide_switch_timestamps(self, slide_switch_timestamps_id):
-        return SlideSwitchTimestamps.objects.get({'_id': ObjectId(slide_switch_timestamps_id)})
-
-    def append_timestamp(self, slide_switch_timestamps_id, timestamp=None):
-        if timestamp is None:
-            timestamp = time.time()
-        slide_switch_timestamps = self.get_slide_switch_timestamps(slide_switch_timestamps_id)
-        slide_switch_timestamps.timestamps.append(timestamp)
-        slide_switch_timestamps.save()
-        return slide_switch_timestamps_id
-
-    def add_slide_switch_timestamps(self, timestamp=None):
-        if timestamp is None:
-            timestamp = time.time()
-        return SlideSwitchTimestamps(timestamps=[timestamp]).save()
-
-    def get_slide_switch_timestamps_by_recognized_audio_id(self, recognized_audio_id):
-        training = TrainingsDBManager().get_training_by_recognized_audio_id(recognized_audio_id)
-        slide_switch_timestamps_id = training.slide_switch_timestamps_id
-        slide_switch_timestamps = self.get_slide_switch_timestamps(slide_switch_timestamps_id)
-        return slide_switch_timestamps.timestamps
-
-    def get_slide_switch_timestamps_by_recognized_presentation_id(self, recognized_presentation_id):
-        training = TrainingsDBManager().get_training_by_recognized_presentation_id(recognized_presentation_id)
-        slide_switch_timestamps_id = training.slide_switch_timestamps_id
-        slide_switch_timestamps = self.get_slide_switch_timestamps(slide_switch_timestamps_id)
-        return slide_switch_timestamps.timestamps
 
 
 class AudioToRecognizeDBManager:

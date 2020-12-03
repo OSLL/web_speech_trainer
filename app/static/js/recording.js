@@ -5,7 +5,8 @@ let gumStream,
 
 function startRecording() {
     navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(function(stream) {
-        audioContext = new window.AudioContext();
+        callShowPage();
+        let audioContext = new window.AudioContext();
         gumStream = stream;
         input = audioContext.createMediaStreamSource(stream);
         recorder = new WebAudioRecorder(input, {
@@ -38,8 +39,7 @@ function stopRecording() {
 function callAddPresentationRecord(blob) {
     let fd = new FormData();
     fd.append('presentationRecord', blob);
-    fd.append('presentationFileId', presentationFileId);
-    fd.append('slideSwitchTimestampsId', slideSwitchTimestampsId);
+    fd.append('trainingId', trainingId);
 
     $.ajax({
       url: '/presentation_record',
@@ -48,8 +48,8 @@ function callAddPresentationRecord(blob) {
       contentType: false,
       type: 'POST',
       datatype: 'json',
-      success: function (response) {
-          window.location.href = `/training_statistics/${response.trainingId}`;
+      success: function() {
+          window.location.href = `/training_statistics/${trainingId}`;
       }
     });
 }
