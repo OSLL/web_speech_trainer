@@ -2,8 +2,7 @@ from time import sleep
 
 from app.presentation import Presentation
 from app.config import Config
-from app.mongo_odm import DBManager, RecognizedPresentationsToProcessDBManager, TrainingsDBManager, \
-    SlideSwitchTimestampsDBManager
+from app.mongo_odm import DBManager, RecognizedPresentationsToProcessDBManager, TrainingsDBManager
 from app.recognized_presentation import RecognizedPresentation
 from app.status import PresentationStatus
 
@@ -19,7 +18,7 @@ class RecognizedPresentationProcessor:
                 json_file = DBManager().get_file(recognized_presentation_id)
                 recognized_presentation = RecognizedPresentation.from_json_file(json_file)
                 json_file.close()
-                slide_switch_timestamps = SlideSwitchTimestampsDBManager() \
+                slide_switch_timestamps = TrainingsDBManager()\
                     .get_slide_switch_timestamps_by_recognized_presentation_id(recognized_presentation_id)
                 presentation = Presentation(recognized_presentation, slide_switch_timestamps)
                 presentation_id = DBManager().add_file(repr(presentation))

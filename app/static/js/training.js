@@ -6,7 +6,7 @@ let pdfDoc,
     canvas,
     ctx,
     presentationFileId,
-    slideSwitchTimestampsId;
+    trainingId;
 
 function renderPage(num) {
   pageRendering = true;
@@ -45,7 +45,7 @@ function callShowPage() {
     type: 'GET',
     url: '/show_page',
     data: {
-      slideSwitchTimestampsId: slideSwitchTimestampsId
+      trainingId: trainingId
     }
   });
 }
@@ -63,9 +63,9 @@ function onNextPage() {
   queueRenderPage(pageNum);
 }
 
-function setupPresentationViewer(fileId, timestampsId) {
-    presentationFileId = fileId;
-    slideSwitchTimestampsId = timestampsId;
+function setupPresentationViewer(presentationFileId_, trainingId_) {
+    presentationFileId = presentationFileId_;
+    trainingId = trainingId_;
     let loadingTask = pdfjsLib.getDocument(`/get_presentation_file?presentationFileId=${presentationFileId}`);
     loadingTask.promise.then(function(pdfDoc_) {
       pdfDoc = pdfDoc_;

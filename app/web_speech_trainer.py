@@ -1,13 +1,11 @@
 import logging
-import tempfile
 
-import fitz
 from flask import Flask, render_template, request, jsonify, send_file, redirect
 
 from app.config import Config
-from app.mongo_odm import DBManager, SlideSwitchTimestampsDBManager, TrainingsDBManager, PresentationFilesDBManager
+from app.mongo_odm import DBManager, TrainingsDBManager, PresentationFilesDBManager
 from app.training_manager import TrainingManager
-from app.utils import file_has_pdf_beginning
+from app.utils import file_has_pdf_beginning, get_presentation_file_preview
 
 app = Flask(__name__)
 
@@ -29,21 +27,22 @@ def get_presentation_file():
 
 @app.route('/show_page')
 def show_page():
-    slide_switch_timestamps_id = request.args.get('slideSwitchTimestampsId')
-    app.logger.info('slide_switch_timestamps_id = {}'.format(slide_switch_timestamps_id))
-    SlideSwitchTimestampsDBManager().append_timestamp(slide_switch_timestamps_id)
+    training_id = request.args.get('trainingId')
+    app.logger.info('training_id = {}'.format(training_id))
+    TrainingsDBManager().append_timestamp(training_id)
     return jsonify('OK')
 
 
 @app.route('/training/<presentation_file_id>/')
 def training(presentation_file_id):
     app.logger.info('presentation_file_id = {}'.format(presentation_file_id))
-    slide_switch_timestamps_id = SlideSwitchTimestampsDBManager().add_slide_switch_timestamps()._id
-    app.logger.info('slide_switch_timestamps_id = {}'.format(slide_switch_timestamps_id))
+    training_id = TrainingsDBManager().add_training(
+        presentation_file_id=presentation_file_id
+    )._id
     return render_template(
         'training.html',
         presentation_file_id=presentation_file_id,
-        slide_switch_timestamps_id=slide_switch_timestamps_id,
+        training_id=training_id,
     )
 
 
@@ -78,54 +77,25 @@ BYTES_IN_MEGABYTE = 1024 * 1024
 def presentation_record():
     if 'presentationRecord' not in request.files:
         return 'Presentation record file should be present', 400
-    presentation_file_id = request.form['presentationFileId']
+    training_id = request.form['trainingId']
     presentation_record_file = request.files['presentationRecord']
-    slide_switch_timestamps_id = request.form['slideSwitchTimestampsId']
     presentation_record_file_id = DBManager().add_file(presentation_record_file)
-    training_id = str(TrainingManager().add_training(
-        presentation_file_id,
-        presentation_record_file_id,
-        slide_switch_timestamps_id,
-    ))
-    response_dict = {
-        'trainingId': training_id,
-        'presentationFileId': presentation_file_id,
-        'presentationRecordFileId': presentation_record_file_id,
-        'slideSwitchTimestampsId': slide_switch_timestamps_id,
-    }
-    response = jsonify(response_dict)
-    app.logger.info('presentation_record: response = {}'.format(response_dict))
-    return response
+    TrainingsDBManager().add_presentation_record_file_id(training_id, presentation_record_file_id)
+    TrainingManager().add_training(training_id)
+    return jsonify('OK')
 
 
 @app.route('/get_presentation_preview')
 def get_presentation_preview():
     presentation_file_id = request.args.get('presentationFileId')
-    print('presentation_file_id =', presentation_file_id)
     preview_id = PresentationFilesDBManager().get_preview_id_by_file_id(presentation_file_id)
-    print(preview_id)
     presentation_preview_file = DBManager().get_file(preview_id)
     return send_file(presentation_preview_file, mimetype='image/png')
-
-def get_presentation_file_preview(presentation_file):
-    temp_file = tempfile.NamedTemporaryFile()
-    temp_file.write(presentation_file.file.read())
-    pdf_doc = fitz.open(temp_file.name)
-    start_page = pdf_doc.loadPage(0)
-    pixmap = start_page.getPixmap()
-    output_temp_file = tempfile.NamedTemporaryFile(delete=False)
-    pixmap.writePNG(output_temp_file.name)
-    return output_temp_file
-
-
-@app.route('/add_presentation_file', methods=['POST'])
-def add_presentation_file():
-    pass
 
 
 @app.route('/upload_pdf', methods=['POST'])
 def upload_pdf():
-    redirectTo = request.args.get('to')
+    redirect_to = request.args.get('to')
     if request.content_length > int(Config.c.constants.presentation_file_max_size_in_megabytes) * BYTES_IN_MEGABYTE:
         return 'Presentation file should not exceed {}MB' \
                    .format(Config.c.constants.presentation_file_max_size_in_megabytes), 413
@@ -144,10 +114,10 @@ def upload_pdf():
         presentation_file.filename,
         presentation_file_preview_id
     )
-    if redirectTo is None:
+    if redirect_to is None:
         return presentation_file_id, 200
     else:
-        return redirect(redirectTo)
+        return redirect(redirect_to)
 
 
 @app.route('/', methods=['GET', 'POST'])
