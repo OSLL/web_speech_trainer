@@ -4,6 +4,7 @@ import fitz
 from pydub import AudioSegment
 
 PDF_HEX_START = ['25', '50', '44', '46']
+SECONDS_PER_MINUTE = 60
 
 
 def file_has_pdf_beginning(file):

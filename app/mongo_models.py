@@ -13,6 +13,7 @@ class Trainings(MongoModel):
     presentation_status = fields.IntegerField()
     feedback = fields.DictField()
     slide_switch_timestamps = fields.ListField(blank=True)
+    criteria_pack_id = fields.ObjectIdField()
 
 
 class PresentationFiles(MongoModel):
@@ -21,15 +22,16 @@ class PresentationFiles(MongoModel):
     preview_id = fields.ObjectIdField()
 
 
-class Criterias(MongoModel):
+class Criterion(MongoModel):
     name = fields.CharField()
-    dependant_criterias = fields.ListField()
+    dependant_criterion = fields.ListField()
     parameters = fields.CharField()
 
 
 class CriteriaPacks(MongoModel):
     name = fields.CharField()
-    criterias = fields.ListField()
+    criterion = fields.ListField()
+
 
 class PresentationsToRecognize(MongoModel):
     file_id = fields.ObjectIdField()

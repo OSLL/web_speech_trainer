@@ -1,26 +1,29 @@
+from app.mongo_odm import CriterionDBManager
+
+
 class CriteriaResult:
     def __init__(self, result):
         self.result = result
 
 
 class Criteria:
-    def __init__(self, name, parameters, dependant_criterias):
+    def __init__(self, name, parameters, dependant_criterion):
         self.name = name
         self.parameters = parameters
-        self.dependant_criterias = dependant_criterias
+        self.dependant_criterion = dependant_criterion
 
     def apply(self, audio, presentation, criteria_results):
         pass
 
 
 class SpeechIsNotTooLongCriteria(Criteria):
-    def __init__(self):
+    CLASS_NAME = 'SpeechIsNotTooLongCriteria'
+
+    def __init__(self, parameters, dependant_criterion):
         super().__init__(
-            name=self.__class__.__name__,
-            parameters={
-                'maximal_allowed_duration': 7 * 60
-            },
-            dependant_criterias=[],
+            name=SpeechIsNotTooLongCriteria.CLASS_NAME,
+            parameters=parameters,
+            dependant_criterion=dependant_criterion,
         )
 
     def apply(self, audio, presentation, criteria_results):
@@ -29,3 +32,42 @@ class SpeechIsNotTooLongCriteria(Criteria):
             return CriteriaResult(result=1)
         else:
             return CriteriaResult(result=0)
+
+
+class SpeechPaceCriteria(Criteria):
+    CLASS_NAME = 'SpeechPaceCriteria'
+
+    def __init__(self, parameters, dependant_criterion):
+        super().__init__(
+            name=SpeechPaceCriteria.CLASS_NAME,
+            parameters=parameters,
+            dependant_criterion=dependant_criterion,
+        )
+
+    def apply(self, audio, presentation, criteria_results):
+        minimal_allowed_pace = self.parameters['minimal_allowed_pace']
+        maximal_allowed_pace = self.parameters['maximal_allowed_pace']
+        pace = audio.audio_stats['words_per_minute']
+        if minimal_allowed_pace <= pace <= maximal_allowed_pace:
+            result = 1
+        elif pace < minimal_allowed_pace:
+            result = 1 - pace / minimal_allowed_pace
+        else:
+            result = 1 - pace / maximal_allowed_pace
+        return CriteriaResult(result)
+
+
+CRITERIA_CLASS_BY_NAME = {
+    SpeechIsNotTooLongCriteria.CLASS_NAME: SpeechIsNotTooLongCriteria,
+    SpeechPaceCriteria.CLASS_NAME: SpeechPaceCriteria,
+}
+
+
+class CriteriaDBReaderFactory:
+    def read_criteria(self, criteria_id):
+        criteria_db = CriterionDBManager().read_criteria(criteria_id)
+        name = criteria_db.name
+        parameters = criteria_db.parameters
+        dependant_criterion = criteria_db.dependant_criterion
+        class_name = CRITERIA_CLASS_BY_NAME[name]
+        return class_name(parameters, dependant_criterion)

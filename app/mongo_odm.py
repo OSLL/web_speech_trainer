@@ -12,7 +12,7 @@ from pymodm.files import GridFSStorage
 from app.config import Config
 from app.mongo_models import Trainings, AudioToRecognize, TrainingsToProcess, \
     PresentationsToRecognize, RecognizedAudioToProcess, RecognizedPresentationsToProcess, FeedbackEvaluators, \
-    PresentationFiles
+    PresentationFiles, Criterion, CriteriaPacks
 from app.status import AudioStatus, PresentationStatus, TrainingStatus
 
 
@@ -48,6 +48,33 @@ class DBManager:
         return self.storage.open(file_id)
 
 
+class CriterionDBManager:
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super(CriterionDBManager, cls).__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
+        return cls.instance
+
+    def get_criteria(self, criteria_id):
+        return Criterion.objects.get({'_id': ObjectId(criteria_id)})
+
+
+class CriteriaPacksDBManager:
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super(CriteriaPacksDBManager, cls).__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.instance.default_criteria_pack_id = CriteriaPacks.objects.get({'name': 'SimpleCriteriaPack'})._id
+            cls.init_done = True
+        return cls.instance
+
+    def get_criteria_pack(self, criteria_pack_id):
+        return CriteriaPacks.objects.get({'_id': ObjectId(criteria_pack_id)})
+
+    def get_criteria_pack_by_name(self, criteria_pack_name):
+        return CriteriaPacks.objects.get({'name': criteria_pack_name})
+
 class TrainingsDBManager:
     def __new__(cls):
         if not hasattr(cls, 'init_done'):
@@ -62,7 +89,8 @@ class TrainingsDBManager:
             slide_switch_timestamps=None,
             status=TrainingStatus.PREPARING,
             audio_status=AudioStatus.NEW,
-            presentation_status=PresentationStatus.NEW
+            presentation_status=PresentationStatus.NEW,
+            criteria_pack_id=CriteriaPacksDBManager().default_criteria_pack_id,
     ):
         if slide_switch_timestamps is None:
             slide_switch_timestamps = []
@@ -72,6 +100,7 @@ class TrainingsDBManager:
             status=status,
             audio_status=audio_status,
             presentation_status=presentation_status,
+            criteria_pack_id=criteria_pack_id,
         ).save()
 
     def get_trainings(self):
