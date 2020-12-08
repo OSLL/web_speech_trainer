@@ -1,12 +1,12 @@
-from text_comorator import base_cmp
+from text_comorator import base_cmp, weight_cmp, value_slide_checking
 from slide_splitter import parse_txt, parse_pdf
+
 
 import argparse
 import os
 
 
 def check_headder(slide, opt):
-    print(opt)
     if opt is not None:
         for headder in opt:
             if base_cmp(headder, slide[:len(headder)]) > 92:
@@ -16,7 +16,6 @@ def check_headder(slide, opt):
 
 
 def perfomance_score(slide_dict, txt_dict, opt):
-    print(opt)
     assessment = 0
     m = len(min(slide_dict, txt_dict))
     n = m
@@ -26,8 +25,14 @@ def perfomance_score(slide_dict, txt_dict, opt):
         if check_headder(slide_dict[i], opt):
             n -= 1
             continue
-        slide_assessment = base_cmp(slide_dict[i], txt_dict[i])
-        print("Оценка за слайд %i - %i/100" % (i, slide_assessment))
+
+        # Если есть "ЗНАЧИМЫЕ" слова, то проводим оценку слайда методом взвешивания
+        if value_slide_checking(slide_dict[i]):
+            slide_assessment = weight_cmp(slide_dict[i], txt_dict[i])
+            print("Оценка за взвешенный слайд %i - %i/100" % (i, slide_assessment))
+        else:
+            slide_assessment = base_cmp(slide_dict[i], txt_dict[i])
+            print("Оценка за слайд %i - %i/100" % (i, slide_assessment))
         assessment += slide_assessment
 
     return assessment / n
