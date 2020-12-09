@@ -70,8 +70,8 @@ class Encoder:
             for embedding in embeddings.values():
                 mutual_similarities.append(np.inner(embedding, ref_embedding))
 
-        ref_quantile = sorted(ref_pairwise_similarities)[int(len(ref_pairwise_similarities) * 0.1)]
-        mutual_quantile = sorted(mutual_similarities)[int(len(mutual_similarities) * 0.9)]
+        ref_quantile = min(ref_pairwise_similarities)
+        mutual_quantile = max(mutual_similarities)
 
         diff = np.median(ref_pairwise_similarities) - np.median(mutual_similarities)
 
