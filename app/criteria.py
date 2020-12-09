@@ -4,6 +4,7 @@ import scipy
 from scipy.spatial.distance import cosine
 
 from app.mongo_odm import DBManager, TrainingsDBManager
+from app.utils import convert_from_mp3_to_wav
 
 
 class CriteriaResult:
@@ -48,6 +49,7 @@ class SpeechIsNotInDatabaseCriteria(Criteria):
         super().__init__(
             name = self.__class__.__name__,
             parameters={
+                'sample_rate': 22050,
                 'window_size': 1,
                 'window_step': 0.5,
                 'sample_rate_decrease_ratio': 10,
@@ -75,18 +77,18 @@ class SpeechIsNotInDatabaseCriteria(Criteria):
         return fft_max
 
     def align(self, signal1, sample_rate_1, signal2, sample_rate_2, window_size_s, step_s):
-        '''Выровнять второй сигнал относительно первого'''
+        '''Выровнять первый сигнал относительно второго'''
         freq1 = self.prepare(signal1, sample_rate_1, window_size_s, step_s)
         freq2 = self.prepare(signal2, sample_rate_2, window_size_s, step_s)
 
         min_len = min(len(freq1), len(freq2))
         dist = [
-            cosine(freq1[:min_len], np.roll(freq2, -shift)[:min_len])
+            cosine(freq2[:min_len], np.roll(freq1, -shift)[:min_len])
             for shift in range(min_len)
         ]
 
-        offset = np.argmin(dist) * len(signal1) // len(dist)
-        return np.roll(signal2, -offset)
+        offset = np.argmin(dist) * len(signal2) // len(dist)
+        return np.roll(signal1, -offset)
 
     def downsample(self, signal, reference_signal=None):
         if reference_signal is None:
@@ -119,32 +121,28 @@ class SpeechIsNotInDatabaseCriteria(Criteria):
         return length / min_len
 
     def apply(self, audio, presentation, criteria_results):
-        training_ids = TrainingsDBManager().get_trainings()
-        audio_ids = [
-            DBManager().get_file(training_id).presentation_record_file_id
-            for training_id in training_ids
+        audio = convert_from_mp3_to_wav(audio, frame_rate=self.parameters['sample_rate'])
+
+        db_audio_ids = [
+            training.presentation_record_file_id
+            for training in TrainingsDBManager().get_trainings()
         ]
-        db_audios = {
-            audio_id: DBManager().get_file(audio_id)
-            for audio_id in audio_ids
-        }
+        for db_audio_id in db_audios_ids:
+            db_audio_mp3 = DBManager().get_file(db_audio_id)
+            db_audio = convert_from_mp3_to_wav(db_audio_mp3, frame_rate=self.parameters['sample_rate'])
 
-        db_audio_sample_rate = 8000
-        audio_sample_rate = 8000
+            aligned_audio = self.align(audio,
+                                       self.parameters['sample_rate'],
+                                       db_audio,
+                                       self.parameters['sample_rate'],
+                                       self.parameters['window_size'],
+                                       self.parameters['window_step'])
+            aligned_audio = self.downsample(aligned_audio)
+            db_audio = self.downsample(db_audio, aligned_audio)
 
-        for db_audio_id, db_audio in db_audios.items():
-            audio = self.align(db_audio,
-                               db_audio_sample_rate,
-                               audio,
-                               audio_sample_rate,
-                               self.parameters['window_size'],
-                               self.parameters['window_step'])
-            audio = SpeechIsNotInDatabaseCriteria().downsample(audio)
-            db_audio = SpeechIsNotInDatabaseCriteria().downsample(db_audio, audio)
-
-            audio_mfcc = librosa.feature.mfcc(y=audio, sr=audio_sample_rate)
+            audio_mfcc = librosa.feature.mfcc(y=aligned_audio, sr=audio_sample_rate)
             db_audio_mfcc = librosa.feature.mfcc(y=db_audio, sr=db_audio_sample_rate)
-            common_length_ratio = SpeechIsNotInDatabaseCriteria().common_length(audio_mfcc, db_audio_mfcc)
+            common_length_ratio = self.common_length(audio_mfcc, db_audio_mfcc)
 
             if common_length_ratio > self.parameters['common_ratio_threshold']:
                 return CriteriaResult(result=0)
