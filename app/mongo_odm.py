@@ -12,7 +12,7 @@ from pymodm.files import GridFSStorage
 from app.config import Config
 from app.mongo_models import Trainings, AudioToRecognize, TrainingsToProcess, \
     PresentationsToRecognize, RecognizedAudioToProcess, RecognizedPresentationsToProcess, FeedbackEvaluators, \
-    PresentationFiles, Criterion, CriteriaPacks
+    PresentationFiles, Criterion, CriteriaPacks, ParametrizedCriterion
 from app.status import AudioStatus, PresentationStatus, TrainingStatus
 
 
@@ -59,21 +59,96 @@ class CriterionDBManager:
     def get_criteria(self, criteria_id):
         return Criterion.objects.get({'_id': ObjectId(criteria_id)})
 
+    def add_or_get_criteria(self, name, dependant_criterion):
+        try:
+            return Criterion.objects.get({
+                'name': name,
+                'dependant_criterion': dependant_criterion,
+            })
+        except Criterion.DoesNotExist:
+            return Criterion(
+                name=name,
+                dependant_criterion=dependant_criterion
+            ).save()
+
+
+class ParametrizedCriterionDBManager:
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super(ParametrizedCriterionDBManager, cls).__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
+        return cls.instance
+
+    def get_parametrized_criteria(self, parametrized_criteria_id):
+        return ParametrizedCriterion.objects.get({'_id': ObjectId(parametrized_criteria_id)})
+
+    def get_parametrized_criteria_by_name(self, parametrized_criteria_name):
+        return ParametrizedCriterion.objects.get({'name': parametrized_criteria_name})
+
+    def add_or_get_parametrized_criteria(self, criteria_id, parameters):
+        try:
+            return ParametrizedCriterion.objects.get({
+                'criteria_id': ObjectId(criteria_id),
+                'parameters': parameters,
+            })
+        except ParametrizedCriterion.DoesNotExist:
+            return ParametrizedCriterion(
+                criteria_id=criteria_id,
+                parameters=parameters,
+            ).save()
+
 
 class CriteriaPacksDBManager:
     def __new__(cls):
         if not hasattr(cls, 'init_done'):
             cls.instance = super(CriteriaPacksDBManager, cls).__new__(cls)
             connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
-            cls.instance.default_criteria_pack_id = CriteriaPacks.objects.get({'name': 'SimpleCriteriaPack'})._id
             cls.init_done = True
         return cls.instance
 
     def get_criteria_pack(self, criteria_pack_id):
         return CriteriaPacks.objects.get({'_id': ObjectId(criteria_pack_id)})
 
-    def get_criteria_pack_by_name(self, criteria_pack_name):
-        return CriteriaPacks.objects.get({'name': criteria_pack_name})
+    def get_criteria_pack_by_name(self, name):
+        return CriteriaPacks.objects.get({'name': name})
+
+    def add_or_get_criteria_pack(self, name, parametrized_criterion):
+        try:
+            return CriteriaPacks.objects.get({
+                'name': name,
+                'parametrized_criterion': parametrized_criterion,
+            })
+        except CriteriaPacks.DoesNotExist:
+            return CriteriaPacks(
+                name=name,
+                parametrized_criterion=parametrized_criterion,
+            ).save()
+
+
+class FeedbackEvaluatorsDBManager:
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super(FeedbackEvaluatorsDBManager, cls).__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
+        return cls.instance
+
+    def get_feedback_evaluator(self, feedback_evaluator_id):
+        return FeedbackEvaluators.objects.get({'_id': ObjectId(feedback_evaluator_id)})
+
+    def add_or_get_feedback_evaluator(self, name, weights):
+        try:
+            return FeedbackEvaluators.objects.get({
+                'name': name,
+                'weights': weights,
+            })
+        except FeedbackEvaluators.DoesNotExist:
+            return FeedbackEvaluators(
+                name=name,
+                weights=weights,
+            ).save()
+
 
 class TrainingsDBManager:
     def __new__(cls):
@@ -90,7 +165,7 @@ class TrainingsDBManager:
             status=TrainingStatus.PREPARING,
             audio_status=AudioStatus.NEW,
             presentation_status=PresentationStatus.NEW,
-            criteria_pack_id=CriteriaPacksDBManager().default_criteria_pack_id,
+            criteria_pack_id=None,
     ):
         if slide_switch_timestamps is None:
             slide_switch_timestamps = []

@@ -2,8 +2,11 @@ from time import sleep
 
 from app.audio import Audio
 from app.config import Config
-from app.criteria_pack import SimpleCriteriaPack
-from app.feedback_evaluator import SimpleFeedbackEvaluator
+from app.criteria import CriteriaFactory
+from app.criteria_pack import CriteriaPackDBReaderFactory, CRITERIA_PACK_ID_BY_NAME, SimpleCriteriaPack, \
+    CriteriaPackFactory
+from app.feedback_evaluator import FeedbackEvaluatorDBReaderFactory, FEEDBACK_EVALUATOR_ID_BY_NAME, \
+    SimpleFeedbackEvaluator, FeedbackEvaluatorFactory
 from app.mongo_odm import DBManager, TrainingsToProcessDBManager, TrainingsDBManager
 from app.presentation import Presentation
 from app.status import PresentationStatus, TrainingStatus
@@ -11,10 +14,6 @@ from app.training import Training
 
 
 class TrainingProcessor:
-    def __init__(self, criteria_pack, feedback_evaluator):
-        self.criteria_pack = criteria_pack
-        self.feedback_evaluator = feedback_evaluator
-
     def run(self):
         while True:
             training_id = TrainingsToProcessDBManager().extract_training_id_to_process()
@@ -27,17 +26,26 @@ class TrainingProcessor:
                 presentation_file = DBManager().get_file(training_db.presentation_id)
                 presentation = Presentation.from_json_file(presentation_file)
                 presentation_file.close()
-                training = Training(audio, presentation, self.criteria_pack, self.feedback_evaluator)
+                criteria_pack_id = training_db.criteria_pack_id \
+                                   or CRITERIA_PACK_ID_BY_NAME[SimpleCriteriaPack.CLASS_NAME]
+                criteria_pack = CriteriaPackDBReaderFactory().read_criteria_pack(criteria_pack_id)
+                feedback_evaluator_id = training_db.feedback_evaluator_id \
+                                        or FEEDBACK_EVALUATOR_ID_BY_NAME[SimpleFeedbackEvaluator.CLASS_NAME]
+                feedback_evaluator = FeedbackEvaluatorDBReaderFactory().read_feedback_evaluator(feedback_evaluator_id)
+                training = Training(audio, presentation, criteria_pack, feedback_evaluator)
                 feedback = training.evaluate_feedback()
                 TrainingsDBManager().change_training_status(training_id, PresentationStatus.PROCESSED)
                 TrainingsDBManager().add_feedback(training_id, feedback.to_dict())
-                print(feedback.score)
+                print(feedback)
             else:
                 sleep(10)
 
 
 if __name__ == "__main__":
     Config.init_config('config.ini')
-    #TrainingsToProcessDBManager().add_training_to_process(training_id='5fb441e4c60c1facf693030b')
-    training_processor = TrainingProcessor(SimpleCriteriaPack(), SimpleFeedbackEvaluator())
+    CriteriaFactory().register_criterion()
+    CriteriaPackFactory().register_criteria_packs()
+    FeedbackEvaluatorFactory().register_feedback_evaluators()
+    #TrainingsToProcessDBManager().add_training_to_process(training_id='5fd012a731bfeb78fdd1ac51')
+    training_processor = TrainingProcessor()
     training_processor.run()
