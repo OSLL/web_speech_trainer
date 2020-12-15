@@ -38,7 +38,7 @@ class Denoiser:
     def numpy_to_seg_like_seg(cls, data, audiosegment):
         data_array = array.array(
             audiosegment.array_type, (
-                data * np.iinfo(
+                (data / data.max()) * np.iinfo(
                     audiosegment.array_type
                 ).max
             ).astype(np.int)

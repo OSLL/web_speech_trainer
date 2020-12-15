@@ -38,10 +38,12 @@ def add_leading_noise(audio_file, out_file):
 
 
 if __name__ == '__main__':
-    audio_file = input('Enter audio file path: ')
-    # noise_file = input('Enter noise file path: ')
-    out_file = input(
-        'Enter result file path (All libs in path should already exist): '
-    )
+    # audio_file = input('Enter audio file path: ')
+    # # noise_file = input('Enter noise file path: ')
+    # out_file = input(
+    #     'Enter result file path (All libs in path should already exist): '
+    # )
+    audio_file = '/home/chernogor/Workspace/audio/noised_sample2.wav'
+    out_file = '/home/chernogor/Workspace/audio/noised_sample2.wav'
     # reduce_by_example_to_mp3(audio_file, noise_file, out_file)
     Denoiser.process_file_to_file(audio_file, out_file, noise_length=3)

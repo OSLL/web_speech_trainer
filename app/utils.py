@@ -20,4 +20,5 @@ def convert_from_mp3_to_wav(audio, frame_rate=8000, channels=1):
         .set_channels(channels)
     temp_file = tempfile.NamedTemporaryFile()
     sound.export(temp_file.name, format="wav")
+    sound.export('/home/sample1.wav')
     return temp_file
