@@ -1,4 +1,4 @@
-from app.mongo_odm import DBManager, TrainingsDBManager, PresentationsToRecognizeDBManager, AudioToRecognizeDBManager
+from app.mongo_odm import TrainingsDBManager, PresentationsToRecognizeDBManager, AudioToRecognizeDBManager
 
 
 class TrainingManager:

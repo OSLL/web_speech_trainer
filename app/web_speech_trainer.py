@@ -163,7 +163,7 @@ def get_all_presentations():
     for current_presentation_file in presentation_files:
         file_id = current_presentation_file.file_id
         filename = current_presentation_file.filename
-        preview_id = current_presentation_file.preview_id
+        preview_id = str(current_presentation_file.preview_id)
         current_presentation_file_json = {
             'filename': filename,
             'preview_id': preview_id

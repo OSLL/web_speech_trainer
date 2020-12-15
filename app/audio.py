@@ -1,6 +1,7 @@
 import json
 
 from app.audio_slide import AudioSlide
+from app.utils import SECONDS_PER_MINUTE
 
 
 class Audio:
@@ -10,21 +11,29 @@ class Audio:
             self.audio_stats = None
         else:
             self.audio_slides = self.split_into_slides(recognized_audio, slide_switch_timestamps)
-            self.audio_stats = self.calculate_audio_slides_stats(recognized_audio, slide_switch_timestamps)
-
+            self.audio_stats = self.calculate_audio_stats(recognized_audio, slide_switch_timestamps)
 
     def split_into_slides(self, recognized_audio, slide_switch_timestamps):
         return [AudioSlide([recognized_word]) for recognized_word in recognized_audio.recognized_words]
 
-    def calculate_audio_slides_stats(self, recognized_audio, slide_switch_timestamps):
+    def calculate_audio_stats(self, recognized_audio, slide_switch_timestamps):
         if len(recognized_audio.recognized_words) == 0:
             duration = 0
         else:
             begin = recognized_audio.recognized_words[0].begin_timestamp
             end = recognized_audio.recognized_words[-1].end_timestamp
             duration = end - begin
+
+        total_words = 0
+        for audio_slide in self.audio_slides:
+            total_words += audio_slide.audio_slide_stats['total_words']
+
+        words_per_minute = total_words / duration / SECONDS_PER_MINUTE
+
         return {
-            'duration': duration
+            'duration': duration,
+            'total_words': total_words,
+            'words_per_minute': words_per_minute,
         }
 
     def __repr__(self):
