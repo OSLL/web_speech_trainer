@@ -14,7 +14,21 @@ class Audio:
             self.audio_stats = self.calculate_audio_stats(recognized_audio, slide_switch_timestamps)
 
     def split_into_slides(self, recognized_audio, slide_switch_timestamps):
-        return [AudioSlide([recognized_word]) for recognized_word in recognized_audio.recognized_words]
+        if len(recognized_audio.recognized_words) == 0:
+            return []
+        current_slide_number = 0
+        slides = []
+        current_slide = []
+        delta_time = slide_switch_timestamps[0]
+        for recognized_word in recognized_audio.recognized_words:
+            if recognized_word.begin_timestamp + delta_time < slide_switch_timestamps[current_slide_number + 1]:
+                current_slide.append(recognized_word)
+            else:
+                slides.append(AudioSlide(current_slide))
+                current_slide = [recognized_word]
+                current_slide_number += 1
+        slides.append(AudioSlide(current_slide))
+        return slides
 
     def calculate_audio_stats(self, recognized_audio, slide_switch_timestamps):
         if len(recognized_audio.recognized_words) == 0:
