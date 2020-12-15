@@ -1,7 +1,6 @@
 import json
 
 from app.criteria import SpeechIsNotTooLongCriteria, SpeechPaceCriteria
-from app.mongo_odm import FeedbackEvaluatorsDBManager
 
 
 class Feedback:
@@ -38,7 +37,12 @@ class FeedbackEvaluator:
 class SimpleFeedbackEvaluator(FeedbackEvaluator):
     CLASS_NAME = 'SimpleFeedbackEvaluator'
 
-    def __init__(self, weights):
+    def __init__(self, weights=None):
+        if weights is None:
+            weights = {
+                SpeechIsNotTooLongCriteria.CLASS_NAME: 1,
+            }
+
         super().__init__(name=SimpleFeedbackEvaluator.CLASS_NAME, weights=weights)
 
     def evaluate_feedback(self, criteria_results):
@@ -50,7 +54,13 @@ class SimpleFeedbackEvaluator(FeedbackEvaluator):
 class PaceAndDurationFeedbackEvaluator(FeedbackEvaluator):
     CLASS_NAME = 'PaceAndDurationFeedbackEvaluator'
 
-    def __init__(self, weights):
+    def __init__(self, weights=None):
+        if weights is None:
+            weights = {
+                SpeechIsNotTooLongCriteria.CLASS_NAME: 0.5,
+                SpeechPaceCriteria.CLASS_NAME: 0.5,
+            }
+
         super().__init__(name=PaceAndDurationFeedbackEvaluator.CLASS_NAME, weights=weights)
 
     def evaluate_feedback(self, criteria_results):
@@ -61,43 +71,15 @@ class PaceAndDurationFeedbackEvaluator(FeedbackEvaluator):
         return Feedback(score)
 
 
-FEEDBACK_EVALUATOR_CLASS_BY_NAME = {
-    SimpleFeedbackEvaluator.CLASS_NAME: SimpleFeedbackEvaluator
+FEEDBACK_EVALUATOR_CLASS_BY_ID = {
+    1: SimpleFeedbackEvaluator,
+    2: PaceAndDurationFeedbackEvaluator,
 }
-
-FEEDBACK_EVALUATOR_ID_BY_NAME = {}
-
-
-class FeedbackEvaluatorDBReaderFactory:
-    def read_feedback_evaluator(self, feedback_evaluator_id):
-        feedback_evaluator_db = FeedbackEvaluatorsDBManager().get_feedback_evaluator(feedback_evaluator_id)
-        weights = feedback_evaluator_db.weights
-        name = feedback_evaluator_db.name
-        class_name = FEEDBACK_EVALUATOR_CLASS_BY_NAME[name]
-        return class_name(weights)
 
 
 class FeedbackEvaluatorFactory:
-    def register_feedback_evaluators(self):
-        self.register_simple_feedback_evaluator()
-        self.register_pace_and_duration_feedback_evaluator()
-
-    def register_simple_feedback_evaluator(self):
-        name = SimpleFeedbackEvaluator.CLASS_NAME
-        weights = {
-            SpeechIsNotTooLongCriteria.CLASS_NAME: 1,
-        }
-        simple_feedback_evaluator_id = FeedbackEvaluatorsDBManager().add_or_get_feedback_evaluator(name, weights)._id
-        FEEDBACK_EVALUATOR_ID_BY_NAME[SimpleFeedbackEvaluator.CLASS_NAME] = simple_feedback_evaluator_id
-
-    def register_pace_and_duration_feedback_evaluator(self):
-        name = PaceAndDurationFeedbackEvaluator.CLASS_NAME
-        weights = {
-            SpeechIsNotTooLongCriteria.CLASS_NAME: 0.5,
-            SpeechPaceCriteria.CLASS_NAME: 0.5,
-        }
-        pace_and_duration_feedback_evaluator_id = FeedbackEvaluatorsDBManager().add_or_get_feedback_evaluator(
-            name, weights
-        )._id
-        FEEDBACK_EVALUATOR_ID_BY_NAME[PaceAndDurationFeedbackEvaluator.CLASS_NAME] \
-            = pace_and_duration_feedback_evaluator_id
+    def get_feedback_evaluator(self, feedback_evaluator_id):
+        if feedback_evaluator_id is None:
+            return SimpleFeedbackEvaluator()
+        feedback_evaluator_class = FEEDBACK_EVALUATOR_CLASS_BY_ID[feedback_evaluator_id]
+        return feedback_evaluator_class()

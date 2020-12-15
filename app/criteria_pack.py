@@ -1,6 +1,4 @@
-from app.criteria import ParametrizedCriteriaDBReaderFactory, CRITERIA_ID_BY_NAME, SpeechIsNotTooLongCriteria, \
-    SpeechPaceCriteria
-from app.mongo_odm import CriteriaPacksDBManager, CriterionDBManager, ParametrizedCriterionDBManager
+from app.criteria import SpeechIsNotTooLongCriteria, SpeechPaceCriteria
 
 
 class CriteriaPack:
@@ -21,84 +19,56 @@ class CriteriaPack:
 
 class SimpleCriteriaPack(CriteriaPack):
     CLASS_NAME = 'SimpleCriteriaPack'
+    CRITERIA_PACK_ID = 1
 
-    def __init__(self, criterion):
+    def __init__(self):
+        speech_is_not_too_long_criteria = SpeechIsNotTooLongCriteria(
+            parameters={'maximal_allowed_duration': 7 * 60},
+            dependant_criterion=[],
+        )
+
         super().__init__(
             name=SimpleCriteriaPack.CLASS_NAME,
-            criterion=criterion,
+            criterion=[speech_is_not_too_long_criteria],
         )
 
 
 class PaceAndDurationCriteriaPack(CriteriaPack):
     CLASS_NAME = 'PaceAndDurationCriteriaPack'
+    CRITERIA_PACK_ID = 2
 
-    def __init__(self, criterion):
-        super().__init__(
-            name=PaceAndDurationCriteriaPack.CLASS_NAME,
-            criterion=criterion,
+    def __init__(self):
+        speech_is_not_too_long_criteria = SpeechIsNotTooLongCriteria(
+            parameters={'maximal_allowed_duration': 7 * 60},
+            dependant_criterion=[],
         )
 
-
-CRITERIA_PACK_CLASS_BY_NAME = {
-    SimpleCriteriaPack.CLASS_NAME: SimpleCriteriaPack,
-    PaceAndDurationCriteriaPack.CLASS_NAME: PaceAndDurationCriteriaPack,
-}
-
-CRITERIA_PACK_ID_BY_NAME = {}
-
-
-class CriteriaPackDBReaderFactory:
-    def read_criteria_pack(self, criteria_pack_id):
-        criteria_pack_db = CriteriaPacksDBManager().get_criteria_pack(criteria_pack_id)
-        name = criteria_pack_db.name
-        parametrized_criteria_ids = criteria_pack_db.parametrized_criterion
-        criterion = []
-        for criteria_id in parametrized_criteria_ids:
-            criteria = ParametrizedCriteriaDBReaderFactory().read_criteria(criteria_id)
-            criterion.append(criteria)
-        class_name = CRITERIA_PACK_CLASS_BY_NAME[name]
-        return class_name(criterion)
-
-
-class CriteriaPackFactory:
-    def register_criteria_packs(self):
-        self.register_simple_criteria_pack()
-        self.register_pace_and_duration_criteria_pack()
-
-    def register_simple_criteria_pack(self):
-        speech_is_not_too_long_criteria_id = ParametrizedCriterionDBManager().add_or_get_parametrized_criteria(
-            criteria_id=CRITERIA_ID_BY_NAME[SpeechIsNotTooLongCriteria.CLASS_NAME],
-            parameters={
-                'maximal_allowed_duration': 7 * 60,
-            },
-        )._id
-        simple_criteria_pack_id = CriteriaPacksDBManager().add_or_get_criteria_pack(
-            name=SimpleCriteriaPack.CLASS_NAME,
-            parametrized_criterion=[
-                speech_is_not_too_long_criteria_id,
-            ],
-        )._id
-        CRITERIA_PACK_ID_BY_NAME[SimpleCriteriaPack.CLASS_NAME] = simple_criteria_pack_id
-
-    def register_pace_and_duration_criteria_pack(self):
-        speech_is_not_too_long_criteria_id = ParametrizedCriterionDBManager().add_or_get_parametrized_criteria(
-            criteria_id=CRITERIA_ID_BY_NAME[SpeechIsNotTooLongCriteria.CLASS_NAME],
-            parameters={
-                'maximal_allowed_duration': 7 * 60,
-            },
-        )._id
-        speech_pace_criteria_id = ParametrizedCriterionDBManager().add_or_get_parametrized_criteria(
-            criteria_id=CRITERIA_ID_BY_NAME[SpeechPaceCriteria.CLASS_NAME],
+        speech_pace_criteria = SpeechPaceCriteria(
             parameters={
                 'minimal_allowed_pace': 50,
                 'maximal_allowed_pace': 100,
             },
-        )._id
-        pace_and_duration_criteria_pack_id = CriteriaPacksDBManager().add_or_get_criteria_pack(
+            dependant_criterion=[],
+        )
+
+        super().__init__(
             name=PaceAndDurationCriteriaPack.CLASS_NAME,
-            parametrized_criterion=[
-                speech_is_not_too_long_criteria_id,
-                speech_pace_criteria_id
+            criterion=[
+                speech_is_not_too_long_criteria,
+                speech_pace_criteria,
             ],
-        )._id
-        CRITERIA_PACK_ID_BY_NAME[PaceAndDurationCriteriaPack.CLASS_NAME] = pace_and_duration_criteria_pack_id
+        )
+
+
+CRITERIA_PACK_CLASS_BY_ID = {
+    1: SimpleCriteriaPack,
+    2: PaceAndDurationCriteriaPack,
+}
+
+
+class CriteriaPackFactory:
+    def get_criteria_pack(self, criteria_pack_id):
+        if criteria_pack_id is None:
+            return SimpleCriteriaPack()
+        criteria_pack_class = CRITERIA_PACK_CLASS_BY_ID[criteria_pack_id]
+        return criteria_pack_class()

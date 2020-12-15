@@ -3,9 +3,6 @@ import logging
 from flask import Flask, render_template, request, jsonify, send_file, redirect
 
 from app.config import Config
-from app.criteria import CriteriaFactory
-from app.criteria_pack import CriteriaPackFactory
-from app.feedback_evaluator import FeedbackEvaluatorFactory
 from app.mongo_odm import DBManager, TrainingsDBManager, PresentationFilesDBManager
 from app.training_manager import TrainingManager
 from app.utils import file_has_pdf_beginning, get_presentation_file_preview
@@ -166,7 +163,7 @@ def get_all_presentations():
     for current_presentation_file in presentation_files:
         file_id = current_presentation_file.file_id
         filename = current_presentation_file.filename
-        preview_id = current_presentation_file.preview_id
+        preview_id = str(current_presentation_file.preview_id)
         current_presentation_file_json = {
             'filename': filename,
             'preview_id': preview_id
@@ -182,8 +179,5 @@ def show_all_presentations():
 
 if __name__ == '__main__':
     Config.init_config('config.ini')
-    CriteriaFactory().register_criterion()
-    CriteriaPackFactory().register_criteria_packs()
-    FeedbackEvaluatorFactory().register_feedback_evaluators()
     app.logger.setLevel(logging.INFO)
     app.run(host='0.0.0.0')

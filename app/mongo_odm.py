@@ -11,8 +11,7 @@ from pymodm.files import GridFSStorage
 
 from app.config import Config
 from app.mongo_models import Trainings, AudioToRecognize, TrainingsToProcess, \
-    PresentationsToRecognize, RecognizedAudioToProcess, RecognizedPresentationsToProcess, FeedbackEvaluators, \
-    PresentationFiles, Criterion, CriteriaPacks, ParametrizedCriterion
+    PresentationsToRecognize, RecognizedAudioToProcess, RecognizedPresentationsToProcess, PresentationFiles
 from app.status import AudioStatus, PresentationStatus, TrainingStatus
 
 
@@ -47,7 +46,7 @@ class DBManager:
         file_id = ObjectId(file_id)
         return self.storage.open(file_id)
 
-
+'''
 class CriterionDBManager:
     def __new__(cls):
         if not hasattr(cls, 'init_done'):
@@ -148,7 +147,7 @@ class FeedbackEvaluatorsDBManager:
                 name=name,
                 weights=weights,
             ).save()
-
+'''
 
 class TrainingsDBManager:
     def __new__(cls):
@@ -409,5 +408,5 @@ class PresentationFilesDBManager:
         return PresentationFiles.objects.all()
 
     def get_preview_id_by_file_id(self, file_id):
-        presentation_file = PresentationFiles.objects.get({'file_id': file_id})
+        presentation_file = PresentationFiles.objects.get({'file_id': ObjectId(file_id)})
         return presentation_file.preview_id

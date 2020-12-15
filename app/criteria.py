@@ -1,6 +1,3 @@
-from app.mongo_odm import CriterionDBManager, ParametrizedCriterionDBManager
-
-
 class CriteriaResult:
     def __init__(self, result):
         self.result = result
@@ -55,39 +52,3 @@ class SpeechPaceCriteria(Criteria):
         else:
             result = 1 - pace / maximal_allowed_pace
         return CriteriaResult(result)
-
-
-CRITERIA_CLASS_BY_NAME = {
-    SpeechIsNotTooLongCriteria.CLASS_NAME: SpeechIsNotTooLongCriteria,
-    SpeechPaceCriteria.CLASS_NAME: SpeechPaceCriteria,
-}
-
-CRITERIA_ID_BY_NAME = {}
-
-
-class CriteriaFactory:
-    def register_criterion(self):
-        self.register_speech_is_not_too_long_criteria()
-        self.register_speech_pace_criteria()
-
-    def register_speech_is_not_too_long_criteria(self):
-        criteria_id = CriterionDBManager().add_or_get_criteria(SpeechIsNotTooLongCriteria.CLASS_NAME, [])._id
-        CRITERIA_ID_BY_NAME[SpeechIsNotTooLongCriteria.CLASS_NAME] = criteria_id
-
-    def register_speech_pace_criteria(self):
-        criteria_id = CriterionDBManager().add_or_get_criteria(SpeechPaceCriteria.CLASS_NAME, [])._id
-        CRITERIA_ID_BY_NAME[SpeechPaceCriteria.CLASS_NAME] = criteria_id
-
-
-class ParametrizedCriteriaDBReaderFactory:
-    def read_criteria(self, parametrized_criteria_id):
-        parametrized_criteria_db = ParametrizedCriterionDBManager().get_parametrized_criteria(
-            parametrized_criteria_id
-        )
-        criteria_id = parametrized_criteria_db.criteria_id
-        parameters = parametrized_criteria_db.parameters
-        criteria_db = CriterionDBManager().get_criteria(criteria_id)
-        name = criteria_db.name
-        dependant_criterion = criteria_db.dependant_criterion
-        class_name = CRITERIA_CLASS_BY_NAME[name]
-        return class_name(parameters, dependant_criterion)
