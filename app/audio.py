@@ -42,7 +42,10 @@ class Audio:
         for audio_slide in self.audio_slides:
             total_words += audio_slide.audio_slide_stats['total_words']
 
-        words_per_minute = total_words / duration / SECONDS_PER_MINUTE
+        if duration == 0:
+            words_per_minute = 0
+        else:
+            words_per_minute = total_words / duration / SECONDS_PER_MINUTE
 
         return {
             'duration': duration,

@@ -3,7 +3,7 @@ version: '2'
 services:
   web:
     image: base_image
-    command: python -m web_speech_trainer
+    command: python3 -m web_speech_trainer
     restart: always
     ports:
       - "5000:5000"
@@ -12,14 +12,12 @@ services:
       - training_processor
 
   vosk:
-    build:
-      context: .
-      dockerfile: Dockerfile.kaldi-ru
+    image: "plyushchenko/vosk:latest"
     restart: always
 
   audio_processor:
     image: base_image
-    command: python -m audio_processor
+    command: python3 -m audio_processor
     restart: always
     depends_on:
       - db
@@ -28,7 +26,7 @@ services:
 
   recognized_audio_processor:
     image: base_image
-    command: python -m recognized_audio_processor
+    command: python3 -m recognized_audio_processor
     restart: always
     depends_on:
       - db
@@ -38,14 +36,14 @@ services:
   presentation_processor:
     image: base_image
     build: .
-    command: python -m presentation_processor
+    command: python3 -m presentation_processor
     restart: always
     depends_on:
       - db
 
   recognized_presentation_processor:
     image: base_image
-    command: python -m recognized_presentation_processor
+    command: python3 -m recognized_presentation_processor
     restart: always
     depends_on:
       - db
@@ -53,7 +51,7 @@ services:
 
   training_processor:
     image: base_image
-    command: python -m training_processor
+    command: python3 -m training_processor
     restart: always
     depends_on:
       - db
