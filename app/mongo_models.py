@@ -1,58 +1,46 @@
 from pymodm import MongoModel, fields
 
 
-class SlideSwitchTimestamps(MongoModel):
-    presentation_file_id = fields.CharField()
-    timestamps = fields.ListField()
-
-
 class Trainings(MongoModel):
-    presentation_file_id = fields.CharField()
-    recognized_presentation_id = fields.CharField()
-    presentation_id = fields.CharField()
-    presentation_record_file_id = fields.CharField()
-    recognized_audio_id = fields.CharField()
-    audio_id = fields.CharField()
+    presentation_file_id = fields.ObjectIdField()
+    recognized_presentation_id = fields.ObjectIdField()
+    presentation_id = fields.ObjectIdField()
+    presentation_record_file_id = fields.ObjectIdField()
+    recognized_audio_id = fields.ObjectIdField()
+    audio_id = fields.ObjectIdField()
     status = fields.IntegerField()
     audio_status = fields.IntegerField()
     presentation_status = fields.IntegerField()
     feedback = fields.DictField()
+    slide_switch_timestamps = fields.ListField(blank=True)
+    criteria_pack_id = fields.IntegerField(blank=True)
+    feedback_evaluator_id = fields.IntegerField(blank=True)
 
 
-class Criterias(MongoModel):
-    name = fields.CharField()
-    dependant_criterias = fields.ListField()
-    parameters = fields.CharField()
-
-
-class CriteriaPack(MongoModel):
-    name = fields.CharField()
-    criterias = fields.ListField()
-
-
-class FeedbackEvaluator(MongoModel):
-    name = fields.CharField()
-    weights = fields.ListField()
+class PresentationFiles(MongoModel):
+    file_id = fields.ObjectIdField()
+    filename = fields.CharField()
+    preview_id = fields.ObjectIdField()
 
 
 class PresentationsToRecognize(MongoModel):
-    file_id = fields.CharField()
+    file_id = fields.ObjectIdField()
 
 
 class RecognizedPresentationsToProcess(MongoModel):
-    file_id = fields.CharField()
+    file_id = fields.ObjectIdField()
 
 
 class AudioToRecognize(MongoModel):
-    file_id = fields.CharField()
+    file_id = fields.ObjectIdField()
 
 
 class RecognizedAudioToProcess(MongoModel):
-    file_id = fields.CharField()
+    file_id = fields.ObjectIdField()
 
 
 class TrainingsToProcess(MongoModel):
-    training_id = fields.CharField()
+    training_id = fields.ObjectIdField()
 
 
 class FeedbackEvaluators(MongoModel):

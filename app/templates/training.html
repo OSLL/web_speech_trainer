@@ -15,13 +15,13 @@
   <canvas id="the-canvas" style="border: 1px solid #000000; direction: ltr;"></canvas>
 </div>
 
-<script src="static/js/libraries/jquery.min.js"></script>
-<script src="static/js/libraries/pdf.js/build/pdf.js"></script>
-<script src="static/js/libraries/WebAudioRecorder.js/WebAudioRecorder.min.js"></script>
-<script src="static/js/training.js"></script>
+<script src="{{ url_for('static', filename='js/libraries/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/libraries/pdf.js/build/pdf.js') }}"></script>
+<script src="{{ url_for('static', filename='js/libraries/WebAudioRecorder.js/WebAudioRecorder.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/training.js') }}"></script>
 <script type="text/javascript">
-    setPresentationFileId("{{ presentation_file_id }}");
+    setupPresentationViewer("{{ presentation_file_id }}", "{{ training_id }}");
 </script>
-<script src="static/js/recording.js"></script>
+<script src="{{ url_for('static', filename='js/recording.js') }}"></script>
 
 {% endblock %}

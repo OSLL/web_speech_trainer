@@ -10,17 +10,18 @@ from pymodm.connection import _get_db
 from pymodm.files import GridFSStorage
 
 from app.config import Config
-from app.mongo_models import SlideSwitchTimestamps, Trainings, AudioToRecognize, TrainingsToProcess, \
-    PresentationsToRecognize, RecognizedAudioToProcess, RecognizedPresentationsToProcess, FeedbackEvaluators
+from app.mongo_models import Trainings, AudioToRecognize, TrainingsToProcess, \
+    PresentationsToRecognize, RecognizedAudioToProcess, RecognizedPresentationsToProcess, PresentationFiles
 from app.status import AudioStatus, PresentationStatus, TrainingStatus
 
 
 class DBManager:
     def __new__(cls):
-        if not hasattr(cls, 'instance'):
+        if not hasattr(cls, 'init_done'):
             cls.instance = super(DBManager, cls).__new__(cls)
             connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
             cls.instance.storage = GridFSStorage(GridFSBucket(_get_db()))
+            cls.init_done = True
         return cls.instance
 
     def add_file(self, file, filename=uuid.uuid4()):
@@ -34,22 +35,6 @@ class DBManager:
         file.close()
         return _id
 
-    def add_slide_switch_timestamps(self, presentation_file_id, timestamp=None):
-        if timestamp is None:
-            timestamp = time.time()
-        return SlideSwitchTimestamps(presentation_file_id=presentation_file_id, timestamps=[timestamp]).save()
-
-    def append_timestamp_to_training(self, presentation_file_id, timestamp=None):
-        if timestamp is None:
-            timestamp = time.time()
-        try:
-            training = SlideSwitchTimestamps.objects.get({'presentation_file_id': presentation_file_id})
-            training.timestamps.append(timestamp)
-            training.save()
-            return training.presentation_file_id
-        except SlideSwitchTimestamps.DoesNotExist:
-            return None
-
     def get_file_name(self, file_id):
         file_id = ObjectId(file_id)
         file = self.storage.open(file_id)
@@ -61,45 +46,268 @@ class DBManager:
         file_id = ObjectId(file_id)
         return self.storage.open(file_id)
 
-    def add_training(self, presentation_file_id, presentation_record_file_id, status=TrainingStatus.PREPARING,
-                     audio_status=AudioStatus.NEW, presentation_status=PresentationStatus.NEW):
+'''
+class CriterionDBManager:
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super(CriterionDBManager, cls).__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
+        return cls.instance
+
+    def get_criteria(self, criteria_id):
+        return Criterion.objects.get({'_id': ObjectId(criteria_id)})
+
+    def add_or_get_criteria(self, name, dependant_criterion):
+        try:
+            return Criterion.objects.get({
+                'name': name,
+                'dependant_criterion': dependant_criterion,
+            })
+        except Criterion.DoesNotExist:
+            return Criterion(
+                name=name,
+                dependant_criterion=dependant_criterion
+            ).save()
+
+
+class ParametrizedCriterionDBManager:
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super(ParametrizedCriterionDBManager, cls).__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
+        return cls.instance
+
+    def get_parametrized_criteria(self, parametrized_criteria_id):
+        return ParametrizedCriterion.objects.get({'_id': ObjectId(parametrized_criteria_id)})
+
+    def get_parametrized_criteria_by_name(self, parametrized_criteria_name):
+        return ParametrizedCriterion.objects.get({'name': parametrized_criteria_name})
+
+    def add_or_get_parametrized_criteria(self, criteria_id, parameters):
+        try:
+            return ParametrizedCriterion.objects.get({
+                'criteria_id': ObjectId(criteria_id),
+                'parameters': parameters,
+            })
+        except ParametrizedCriterion.DoesNotExist:
+            return ParametrizedCriterion(
+                criteria_id=criteria_id,
+                parameters=parameters,
+            ).save()
+
+
+class CriteriaPacksDBManager:
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super(CriteriaPacksDBManager, cls).__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
+        return cls.instance
+
+    def get_criteria_pack(self, criteria_pack_id):
+        return CriteriaPacks.objects.get({'_id': ObjectId(criteria_pack_id)})
+
+    def get_criteria_pack_by_name(self, name):
+        return CriteriaPacks.objects.get({'name': name})
+
+    def add_or_get_criteria_pack(self, name, parametrized_criterion):
+        try:
+            return CriteriaPacks.objects.get({
+                'name': name,
+                'parametrized_criterion': parametrized_criterion,
+            })
+        except CriteriaPacks.DoesNotExist:
+            return CriteriaPacks(
+                name=name,
+                parametrized_criterion=parametrized_criterion,
+            ).save()
+
+
+class FeedbackEvaluatorsDBManager:
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super(FeedbackEvaluatorsDBManager, cls).__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
+        return cls.instance
+
+    def get_feedback_evaluator(self, feedback_evaluator_id):
+        return FeedbackEvaluators.objects.get({'_id': ObjectId(feedback_evaluator_id)})
+
+    def add_or_get_feedback_evaluator(self, name, weights):
+        try:
+            return FeedbackEvaluators.objects.get({
+                'name': name,
+                'weights': weights,
+            })
+        except FeedbackEvaluators.DoesNotExist:
+            return FeedbackEvaluators(
+                name=name,
+                weights=weights,
+            ).save()
+'''
+
+class TrainingsDBManager:
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super(TrainingsDBManager, cls).__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
+        return cls.instance
+
+    def add_training(
+            self,
+            presentation_file_id,
+            slide_switch_timestamps=None,
+            status=TrainingStatus.PREPARING,
+            audio_status=AudioStatus.NEW,
+            presentation_status=PresentationStatus.NEW,
+            criteria_pack_id=None,
+    ):
+        if slide_switch_timestamps is None:
+            slide_switch_timestamps = []
         return Trainings(
             presentation_file_id=presentation_file_id,
-            presentation_record_file_id=presentation_record_file_id,
+            slide_switch_timestamps=slide_switch_timestamps,
             status=status,
             audio_status=audio_status,
             presentation_status=presentation_status,
+            criteria_pack_id=criteria_pack_id,
         ).save()
+
+    def get_trainings(self):
+        return Trainings.objects.all()
+
+    def get_training(self, training_id):
+        return Trainings.objects.get({'_id': ObjectId(training_id)})
+
+    def get_training_by_presentation_file_id(self, presentation_file_id):
+        return Trainings.objects.get({'presentation_file_id': presentation_file_id})
+
+    def get_training_by_presentation_record_file_id(self, presentation_record_file_id):
+        return Trainings.objects.get({'presentation_record_file_id': presentation_record_file_id})
+
+    def get_training_by_recognized_audio_id(self, recognized_audio_id):
+        return Trainings.objects.get({'recognized_audio_id': recognized_audio_id})
+
+    def get_training_by_recognized_presentation_id(self, recognized_presentation_id):
+        return Trainings.objects.get({'recognized_presentation_id': recognized_presentation_id})
+
+    def change_training_status(self, training_id, status):
+        obj = self.get_training(training_id)
+        obj.status = status
+        return obj.save()
+
+    def check_training_ready_for_processing(self, training):
+        if training.presentation_status == PresentationStatus.PROCESSED \
+                and training.audio_status == AudioStatus.PROCESSED:
+            self.change_training_status(training._id, TrainingStatus.PREPARED)
+            TrainingsToProcessDBManager().add_training_to_process(training._id)
+
+    def add_feedback(self, training_id, feedback):
+        obj = self.get_training(training_id)
+        obj.feedback = feedback
+        return obj.save()
 
     def get_presentation_record_file_id(self, presentation_file_id):
-        presentation = Trainings.objects.get({'presentation_file_id': presentation_file_id})
-        return presentation.presentation_record_file_id
+        training = self.get_training_by_presentation_file_id(presentation_file_id)
+        return training.presentation_record_file_id
 
-    def add_criteria(self, name, parameters, dependant_criterias):
-        pass
+    def add_recognized_audio_id(self, presentation_record_file_id, recognized_audio_id):
+        training = self.get_training_by_presentation_record_file_id(presentation_record_file_id)
+        training.recognized_audio_id = recognized_audio_id
+        return training.save()
 
-    def get_criteria_by_name(self, name):
-        pass
+    def add_audio_id(self, recognized_audio_id, audio_id):
+        training = self.get_training_by_recognized_audio_id(recognized_audio_id)
+        training.audio_id = audio_id
+        return training.save()
 
-    def get_criteria_by_id(self, id):
-        pass
+    def change_audio_status(self, audio_id, status):
+        if status == AudioStatus.RECOGNIZING or status == AudioStatus.RECOGNIZED:
+            training = self.get_training_by_presentation_record_file_id(audio_id)
+        elif status == AudioStatus.PROCESSING or status == AudioStatus.PROCESSED:
+            training = self.get_training_by_recognized_audio_id(audio_id)
+        training.audio_status = status
+        training.save()
+        TrainingsDBManager().check_training_ready_for_processing(training)
 
-    def get_criteria_parameters(self, name):
-        pass
+    def change_presentation_status(self, presentation_file_id, status):
+        if status == PresentationStatus.RECOGNIZING or status == PresentationStatus.RECOGNIZED:
+            training = self.get_training_by_presentation_file_id(presentation_file_id)
+        elif status == PresentationStatus.PROCESSING or status == PresentationStatus.PROCESSED:
+            training = self.get_training_by_recognized_presentation_id(presentation_file_id)
+        training.presentation_status = status
+        training.save()
+        TrainingsDBManager().check_training_ready_for_processing(training)
 
-    def add_presentation_to_recognize(self, file_id):
-        return PresentationsToRecognize(
-            file_id=file_id
-        ).save()
+    def add_recognized_presentation_id(self, presentation_file_id, recognized_presentation_id):
+        obj = self.get_training_by_presentation_file_id(presentation_file_id)
+        obj.recognized_presentation_id = recognized_presentation_id
+        return obj.save()
 
-    def add_audio_to_recognize(self, file_id):
-        return AudioToRecognize(
-            file_id=file_id
-        ).save()
+    def add_presentation_id(self, recognized_presentation_id, presentation_id):
+        obj = self.get_training_by_recognized_presentation_id(recognized_presentation_id)
+        obj.presentation_id = presentation_id
+        return obj.save()
+
+    def append_timestamp(self, training_id, timestamp=None):
+        if timestamp is None:
+            timestamp = time.time()
+        training = self.get_training(training_id)
+        training.slide_switch_timestamps.append(timestamp)
+        return training.save()
+
+    def add_presentation_record_file_id(self, training_id, presentation_record_file_id):
+        training = self.get_training(training_id)
+        training.presentation_record_file_id = presentation_record_file_id
+        return training.save()
+
+    def get_slide_switch_timestamps_by_recognized_audio_id(self, recognized_audio_id):
+        training = self.get_training_by_recognized_audio_id(recognized_audio_id)
+        return training.slide_switch_timestamps
+
+    def get_slide_switch_timestamps_by_recognized_presentation_id(self, recognized_presentation_id):
+        training = self.get_training_by_recognized_presentation_id(recognized_presentation_id)
+        return training.slide_switch_timestamps
+
+
+class TrainingsToProcessDBManager:
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super(TrainingsToProcessDBManager, cls).__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
+        return cls.instance
 
     def add_training_to_process(self, training_id):
         return TrainingsToProcess(
             training_id=training_id
+        ).save()
+
+    def extract_training_id_to_process(self):
+        obj = TrainingsToProcess.objects.model._mongometa.collection.find_one_and_delete(
+            filter={},
+            sort=[('_id', pymongo.ASCENDING)]
+        )
+        if obj is None:
+            return None
+        return obj['training_id']
+
+
+class AudioToRecognizeDBManager:
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super(AudioToRecognizeDBManager, cls).__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
+        return cls.instance
+
+    def add_audio_to_recognize(self, file_id):
+        return AudioToRecognize(
+            file_id=file_id
         ).save()
 
     def extract_presentation_record_file_id_to_recognize(self):
@@ -108,29 +316,17 @@ class DBManager:
             sort=[('_id', pymongo.ASCENDING)]
         )
         if obj is None:
-            print('extract_presentation_record_file_id_to_recognize None')
             return None
-        print('extract_presentation_record_file_id_to_recognize', obj['file_id'])
         return obj['file_id']
 
-    def add_recognized_audio_id(self, presentation_record_file_id, recognized_audio_id):
-        obj = Trainings.objects.get({'presentation_record_file_id': presentation_record_file_id})
-        obj.recognized_audio_id = recognized_audio_id
-        return obj.save()
 
-    def add_audio_id(self, recognized_audio_id, audio_id):
-        obj = Trainings.objects.get({'recognized_audio_id': recognized_audio_id})
-        obj.audio_id = audio_id
-        return obj.save()
-
-    def change_audio_status(self, audio_id, status):
-        if status == AudioStatus.RECOGNIZING or status == AudioStatus.RECOGNIZED:
-            training = Trainings.objects.get({'presentation_record_file_id': audio_id})
-        elif status == AudioStatus.PROCESSING or status == AudioStatus.PROCESSED:
-            training = Trainings.objects.get({'recognized_audio_id': audio_id})
-        training.audio_status = status
-        training.save()
-        self.check_training_ready_for_processing(training)
+class RecognizedAudioToProcessDBManager:
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super(RecognizedAudioToProcessDBManager, cls).__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
+        return cls.instance
 
     def add_recognized_audio_to_process(self, file_id):
         return RecognizedAudioToProcess(
@@ -138,58 +334,22 @@ class DBManager:
         ).save()
 
     def extract_recognized_audio_id_to_process(self):
-        for x in RecognizedAudioToProcess.objects.all():
-            print(x.file_id)
-
         obj = RecognizedAudioToProcess.objects.model._mongometa.collection.find_one_and_delete(
             filter={},
             sort=[('_id', pymongo.ASCENDING)]
         )
         if obj is None:
-            print('extract_recognized_audio_id_to_process None')
             return None
-        print('extract_recognized_audio_id_to_process', obj['file_id'])
         return obj['file_id']
 
-    def get_slide_switch_timestamps_by_recognized_audio_id(self, recognized_audio_id):
-        presentation_file_id = Trainings.objects.get({'recognized_audio_id': recognized_audio_id}).presentation_file_id
-        return SlideSwitchTimestamps.objects.get({'presentation_file_id': presentation_file_id}).timestamps
 
-    def change_training_status(self, training_id, status):
-        obj = Trainings.objects.get({'_id': ObjectId(training_id)})
-        obj.status = status
-        return obj.save()
-
-    def extract_presentation_file_id_to_recognize(self):
-        obj = PresentationsToRecognize.objects.model._mongometa.collection.find_one_and_delete(
-            filter={},
-            sort=[('_id', pymongo.ASCENDING)]
-        )
-        if obj is None:
-            print('extract_presentation_file_id_to_recognize None')
-            return None
-        print('extract_presentation_file_id_to_recognize', obj['file_id'])
-        return obj['file_id']
-
-    def check_training_ready_for_processing(self, training):
-        if training.presentation_status == PresentationStatus.PROCESSED \
-                and training.audio_status == AudioStatus.PROCESSED:
-            DBManager().change_training_status(training._id, TrainingStatus.PREPARED)
-            DBManager().add_training_to_process(training._id)
-
-    def change_presentation_status(self, presentation_file_id, status):
-        if status == PresentationStatus.RECOGNIZING or status == PresentationStatus.RECOGNIZED:
-            training = Trainings.objects.get({'presentation_file_id': presentation_file_id})
-        elif status == AudioStatus.PROCESSING or status == AudioStatus.PROCESSED:
-            training = Trainings.objects.get({'recognized_presentation_id': presentation_file_id})
-        training.presentation_status = status
-        training.save()
-        self.check_training_ready_for_processing(training)
-
-    def add_recognized_presentation_id(self, presentation_file_id, recognized_presentation_id):
-        obj = Trainings.objects.get({'presentation_file_id': presentation_file_id})
-        obj.recognized_presentation_id = recognized_presentation_id
-        return obj.save()
+class RecognizedPresentationsToProcessDBManager:
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super(RecognizedPresentationsToProcessDBManager, cls).__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
+        return cls.instance
 
     def add_recognized_presentation_to_process(self, file_id):
         return RecognizedPresentationsToProcess(
@@ -202,37 +362,51 @@ class DBManager:
             sort=[('_id', pymongo.ASCENDING)]
         )
         if obj is None:
-            print('extract_recognized_presentation_id_to_process None')
             return None
-        print('extract_recognized_presentation_id_to_process', obj['file_id'])
         return obj['file_id']
 
-    def get_slide_switch_timestamps_by_recognized_presentation_id(self, recognized_presentation_id):
-        presentation_file_id = Trainings.objects.get({
-            'recognized_presentation_id': recognized_presentation_id
-        }).presentation_file_id
-        return SlideSwitchTimestamps.objects.get({'presentation_file_id': presentation_file_id}).timestamps
 
-    def add_presentation_id(self, recognized_presentation_id, presentation_id):
-        obj = Trainings.objects.get({'recognized_presentation_id': recognized_presentation_id})
-        obj.presentation_id = presentation_id
-        return obj.save()
+class PresentationsToRecognizeDBManager:
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super(PresentationsToRecognizeDBManager, cls).__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
+        return cls.instance
 
-    def extract_training_id_to_process(self):
-        obj = TrainingsToProcess.objects.model._mongometa.collection.find_one_and_delete(
+    def add_presentation_to_recognize(self, file_id):
+        return PresentationsToRecognize(
+            file_id=file_id
+        ).save()
+
+    def extract_presentation_file_id_to_recognize(self):
+        obj = PresentationsToRecognize.objects.model._mongometa.collection.find_one_and_delete(
             filter={},
             sort=[('_id', pymongo.ASCENDING)]
         )
         if obj is None:
-            print('extract_training_id_to_process None')
             return None
-        print('extract_training_id_to_process', obj['training_id'])
-        return obj['training_id']
+        return obj['file_id']
 
-    def get_training(self, training_id):
-        return Trainings.objects.get({'_id': ObjectId(training_id)})
 
-    def add_feedback(self, training_id, feedback):
-        obj = Trainings.objects.get({'_id': ObjectId(training_id)})
-        obj.feedback = feedback
-        return obj.save()
+class PresentationFilesDBManager:
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super(PresentationFilesDBManager, cls).__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
+        return cls.instance
+
+    def add_presentation_file(self,  file_id, filename, preview_id):
+        return PresentationFiles(
+            file_id=file_id,
+            filename=filename,
+            preview_id=preview_id
+        ).save()
+
+    def get_presentation_files(self):
+        return PresentationFiles.objects.all()
+
+    def get_preview_id_by_file_id(self, file_id):
+        presentation_file = PresentationFiles.objects.get({'file_id': ObjectId(file_id)})
+        return presentation_file.preview_id

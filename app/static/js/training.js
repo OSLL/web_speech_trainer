@@ -5,7 +5,8 @@ let pdfDoc,
     scale,
     canvas,
     ctx,
-    presentationFileId;
+    presentationFileId,
+    trainingId;
 
 function renderPage(num) {
   pageRendering = true;
@@ -44,7 +45,7 @@ function callShowPage() {
     type: 'GET',
     url: '/show_page',
     data: {
-      presentationFileId: presentationFileId
+      trainingId: trainingId
     }
   });
 }
@@ -62,8 +63,9 @@ function onNextPage() {
   queueRenderPage(pageNum);
 }
 
-function setPresentationFileId(fileId) {
-    presentationFileId = fileId;
+function setupPresentationViewer(presentationFileId_, trainingId_) {
+    presentationFileId = presentationFileId_;
+    trainingId = trainingId_;
     let loadingTask = pdfjsLib.getDocument(`/get_presentation_file?presentationFileId=${presentationFileId}`);
     loadingTask.promise.then(function(pdfDoc_) {
       pdfDoc = pdfDoc_;
@@ -77,7 +79,7 @@ $(document).ready(function() {
     pageNum = 1;
     pageRendering = false;
     pageNumPending = null;
-    scale = 0.9;
+    scale = 1.1;
     canvas = $('#the-canvas')[0];
     ctx = canvas.getContext('2d');
     $('#done').click(callShowPage);

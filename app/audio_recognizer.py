@@ -1,6 +1,5 @@
 import asyncio
 import json
-import tempfile
 import wave
 
 import websockets
