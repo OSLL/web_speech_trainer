@@ -45,7 +45,7 @@ class Audio:
         if duration == 0:
             words_per_minute = 0
         else:
-            words_per_minute = total_words / duration / SECONDS_PER_MINUTE
+            words_per_minute = total_words / duration * SECONDS_PER_MINUTE
 
         return {
             'duration': duration,

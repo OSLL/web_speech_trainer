@@ -36,13 +36,16 @@ class VoskAudioRecognizer(AudioRecognizer):
             probability=recognizer_result['conf'],
         )
 
-    def recognize(self, audio):
-        temp_wav_file = utils.convert_from_mp3_to_wav(audio)
+    def recognize_wav(self, audio):
         recognizer_results = asyncio.get_event_loop().run_until_complete(
-            self.send_audio_to_recognizer(temp_wav_file.name)
+            self.send_audio_to_recognizer(audio.name)
         )
         recognized_words = list(map(self.parse_recognizer_result, recognizer_results))
         return RecognizedAudio(recognized_words)
+
+    def recognize(self, audio):
+        temp_wav_file = utils.convert_from_mp3_to_wav(audio)
+        return self.recognize_wav(temp_wav_file)
 
     async def send_audio_to_recognizer(self, file_name):
         recognizer_results = []

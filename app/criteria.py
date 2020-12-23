@@ -1,13 +1,20 @@
 class CriteriaResult:
-    def __init__(self, result):
+    def __init__(self, result, verdict=None):
         self.result = result
+        self.verdict = verdict
+
+    def __repr__(self):
+        if self.verdict is not None:
+            return 'Verdict: {}, result = {} points'.format(self.verdict, self.result)
+        else:
+            return 'Result = {:.3f} points'.format(self.result)
 
 
 class Criteria:
-    def __init__(self, name, parameters, dependant_criterion):
+    def __init__(self, name, parameters, dependent_criterion):
         self.name = name
         self.parameters = parameters
-        self.dependant_criterion = dependant_criterion
+        self.dependent_criterion = dependent_criterion
 
     def apply(self, audio, presentation, criteria_results):
         pass
@@ -16,11 +23,11 @@ class Criteria:
 class SpeechIsNotTooLongCriteria(Criteria):
     CLASS_NAME = 'SpeechIsNotTooLongCriteria'
 
-    def __init__(self, parameters, dependant_criterion):
+    def __init__(self, parameters, dependent_criterion):
         super().__init__(
             name=SpeechIsNotTooLongCriteria.CLASS_NAME,
             parameters=parameters,
-            dependant_criterion=dependant_criterion,
+            dependent_criterion=dependent_criterion,
         )
 
     def apply(self, audio, presentation, criteria_results):
@@ -34,11 +41,11 @@ class SpeechIsNotTooLongCriteria(Criteria):
 class SpeechPaceCriteria(Criteria):
     CLASS_NAME = 'SpeechPaceCriteria'
 
-    def __init__(self, parameters, dependant_criterion):
+    def __init__(self, parameters, dependent_criterion):
         super().__init__(
             name=SpeechPaceCriteria.CLASS_NAME,
             parameters=parameters,
-            dependant_criterion=dependant_criterion,
+            dependent_criterion=dependent_criterion,
         )
 
     def apply(self, audio, presentation, criteria_results):
@@ -52,3 +59,27 @@ class SpeechPaceCriteria(Criteria):
         else:
             result = 1 - pace / maximal_allowed_pace
         return CriteriaResult(result)
+
+
+class FillersRatioCriteria(Criteria):
+    CLASS_NAME = 'FillersRatioCriteria'
+
+    def __init__(self, parameters, dependent_criterion):
+        super().__init__(
+            name=FillersRatioCriteria.CLASS_NAME,
+            parameters=parameters,
+            dependent_criterion=dependent_criterion,
+        )
+
+    def apply(self, audio, presentation, criteria_results):
+        fillers = self.parameters['fillers']
+        total_words = audio.audio_stats['total_words']
+        if total_words == 0:
+            return CriteriaResult(1)
+        fillers_count = 0
+        for audio_slide in audio.audio_slides:
+            audio_slide_words = audio_slide.recognized_words
+            for recognized_word in audio_slide_words:
+                if recognized_word.word.value in fillers:
+                    fillers_count += 1
+        return CriteriaResult(1 - fillers_count / total_words)

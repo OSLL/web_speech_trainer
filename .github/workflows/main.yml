@@ -22,4 +22,4 @@ jobs:
       run: |
         docker ps -a
         docker-compose logs
-        docker exec web_speech_trainer_web_1 bash -c 'pytest -s /app/test/test.py'
+        docker exec web_speech_trainer_web_1 bash -c 'cd /app/test && pytest -s test_app.py'
