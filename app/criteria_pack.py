@@ -1,4 +1,4 @@
-from app.criteria import SpeechIsNotTooLongCriteria
+from app.criteria import SpeechIsNotTooLongCriteria, VoiceSilenceRatioCriteria
 
 
 class CriteriaPack:
@@ -22,4 +22,12 @@ class SimpleCriteriaPack(CriteriaPack):
         super().__init__(
             name=self.__class__.__name__,
             criterias=[SpeechIsNotTooLongCriteria()]
+        )
+
+
+class SilenceLengthCriteriaPack(CriteriaPack):
+    def __init__(self):
+        super().__init__(
+            name=self.__class__.__name__,
+            criterias=[VoiceSilenceRatioCriteria()]
         )
