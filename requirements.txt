@@ -16,3 +16,8 @@ pytest
 vext
 vext.gi
 websockets
+wheel
+librosa
+noisereduce
+python_speech_features
+pysndfx
