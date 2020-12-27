@@ -1,6 +1,6 @@
 import json
 
-from app.criteria import SpeechIsNotTooLongCriteria, SpeechPaceCriteria
+from app.criteria import SpeechIsNotTooLongCriteria, SpeechPaceCriteria, FillersRatioCriteria
 
 
 class Feedback:
@@ -11,7 +11,7 @@ class Feedback:
         return json.dumps(self.to_dict(), ensure_ascii=False)
 
     @staticmethod
-    def from_json_string(self, json_string):
+    def from_json_string(json_string):
         json_obj = json.loads(json_string)
         return Feedback(score=json_obj['score'])
 
@@ -36,6 +36,7 @@ class FeedbackEvaluator:
 
 class SimpleFeedbackEvaluator(FeedbackEvaluator):
     CLASS_NAME = 'SimpleFeedbackEvaluator'
+    FEEDBACK_EVALUATOR_ID = 1
 
     def __init__(self, weights=None):
         if weights is None:
@@ -53,6 +54,7 @@ class SimpleFeedbackEvaluator(FeedbackEvaluator):
 
 class PaceAndDurationFeedbackEvaluator(FeedbackEvaluator):
     CLASS_NAME = 'PaceAndDurationFeedbackEvaluator'
+    FEEDBACK_EVALUATOR_ID = 2
 
     def __init__(self, weights=None):
         if weights is None:
@@ -71,9 +73,25 @@ class PaceAndDurationFeedbackEvaluator(FeedbackEvaluator):
         return Feedback(score)
 
 
+class FillersRatioFeedbackEvaluator(FeedbackEvaluator):
+    CLASS_NAME = 'FillersRatioFeedbackEvaluator'
+    FEEDBACK_EVALUATOR_ID = 3
+
+    def __init__(self, weights=None):
+        if weights is None:
+            weights = {FillersRatioFeedbackEvaluator: 1}
+        super().__init__(name=FillersRatioFeedbackEvaluator.CLASS_NAME, weights=weights)
+
+    def evaluate_feedback(self, criteria_results):
+        score = criteria_results[FillersRatioCriteria.CLASS_NAME].result \
+                * self.weights[FillersRatioCriteria.CLASS_NAME]
+        return Feedback(score)
+
+
 FEEDBACK_EVALUATOR_CLASS_BY_ID = {
-    1: SimpleFeedbackEvaluator,
-    2: PaceAndDurationFeedbackEvaluator,
+    SimpleFeedbackEvaluator.FEEDBACK_EVALUATOR_ID: SimpleFeedbackEvaluator,
+    PaceAndDurationFeedbackEvaluator.FEEDBACK_EVALUATOR_ID: PaceAndDurationFeedbackEvaluator,
+    FillersRatioFeedbackEvaluator.FEEDBACK_EVALUATOR_ID: FillersRatioFeedbackEvaluator,
 }
 
 

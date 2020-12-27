@@ -1,4 +1,4 @@
-from app.criteria import SpeechIsNotTooLongCriteria, SpeechPaceCriteria
+from app.criteria import SpeechIsNotTooLongCriteria, SpeechPaceCriteria, FillersRatioCriteria
 
 
 class CriteriaPack:
@@ -24,7 +24,7 @@ class SimpleCriteriaPack(CriteriaPack):
     def __init__(self):
         speech_is_not_too_long_criteria = SpeechIsNotTooLongCriteria(
             parameters={'maximal_allowed_duration': 7 * 60},
-            dependant_criterion=[],
+            dependent_criterion=[],
         )
 
         super().__init__(
@@ -40,7 +40,7 @@ class PaceAndDurationCriteriaPack(CriteriaPack):
     def __init__(self):
         speech_is_not_too_long_criteria = SpeechIsNotTooLongCriteria(
             parameters={'maximal_allowed_duration': 7 * 60},
-            dependant_criterion=[],
+            dependent_criterion=[],
         )
 
         speech_pace_criteria = SpeechPaceCriteria(
@@ -48,7 +48,7 @@ class PaceAndDurationCriteriaPack(CriteriaPack):
                 'minimal_allowed_pace': 50,
                 'maximal_allowed_pace': 100,
             },
-            dependant_criterion=[],
+            dependent_criterion=[],
         )
 
         super().__init__(
@@ -60,9 +60,26 @@ class PaceAndDurationCriteriaPack(CriteriaPack):
         )
 
 
+class FillersRatioCriteriaPack(CriteriaPack):
+    CLASS_NAME = 'FillersRatioCriteriaPack'
+    CRITERIA_PACK_ID = 3
+
+    def __init__(self):
+        fillers_ratio_criteria = FillersRatioCriteria(
+            parameters={'fillers': ['а', 'ну', 'вот']},
+            dependent_criterion=[],
+        )
+
+        super().__init__(
+            name=FillersRatioCriteriaPack.CLASS_NAME,
+            criterion=[fillers_ratio_criteria],
+        )
+
+
 CRITERIA_PACK_CLASS_BY_ID = {
-    1: SimpleCriteriaPack,
-    2: PaceAndDurationCriteriaPack,
+    SimpleCriteriaPack.CRITERIA_PACK_ID: SimpleCriteriaPack,
+    PaceAndDurationCriteriaPack.CRITERIA_PACK_ID: PaceAndDurationCriteriaPack,
+    FillersRatioCriteriaPack.CRITERIA_PACK_ID: FillersRatioCriteriaPack,
 }
 
 
