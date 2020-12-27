@@ -1,0 +1,8 @@
+wheel
+pydub
+soundfile
+librosa
+noisereduce
+numpy
+python_speech_features
+pysndfx
