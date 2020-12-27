@@ -1,6 +1,5 @@
 from app.audio import Audio
 from app.criteria import FillersRatioCriteria
-from app.criteria_pack import FillersRatioCriteriaPack
 from app.web_speech_trainer import app
 
 

@@ -8,7 +8,7 @@ from app import utils
 from app.recognized_audio import RecognizedAudio
 from app.recognized_word import RecognizedWord
 from app.word import Word
-
+from playground.noise_reduction.denoiser import Denoiser
 
 class AudioRecognizer:
     def recognize(self, audio):
@@ -45,6 +45,7 @@ class VoskAudioRecognizer(AudioRecognizer):
 
     def recognize(self, audio):
         temp_wav_file = utils.convert_from_mp3_to_wav(audio)
+        Denoiser.process_wav_to_wav(temp_wav_file, temp_wav_file, noise_length=3)
         return self.recognize_wav(temp_wav_file)
 
     async def send_audio_to_recognizer(self, file_name):
