@@ -2,14 +2,62 @@ version: '2'
 
 services:
   web:
-    build: .
-    command: python -m web_speech_trainer
+    image: base_image
+    command: python3 -m web_speech_trainer
     restart: always
     ports:
       - "5000:5000"
     depends_on:
       - db
+      - training_processor
+
+  vosk:
+    image: "plyushchenko/vosk:latest"
+    restart: always
+
+  audio_processor:
+    image: base_image
+    command: python3 -m audio_processor
+    restart: always
+    depends_on:
+      - db
+      - vosk
+      - presentation_processor
+
+  recognized_audio_processor:
+    image: base_image
+    command: python3 -m recognized_audio_processor
+    restart: always
+    depends_on:
+      - db
+      - audio_processor
+      - presentation_processor
+
+  presentation_processor:
+    image: base_image
+    build: .
+    command: python3 -m presentation_processor
+    restart: always
+    depends_on:
+      - db
+
+  recognized_presentation_processor:
+    image: base_image
+    command: python3 -m recognized_presentation_processor
+    restart: always
+    depends_on:
+      - db
+      - presentation_processor
+
+  training_processor:
+    image: base_image
+    command: python3 -m training_processor
+    restart: always
+    depends_on:
+      - db
+      - recognized_audio_processor
+      - recognized_presentation_processor
+
   db:
     image: "mongo:4.4.1"
     restart: always
-

@@ -1,0 +1,25 @@
+name: CI
+
+on: pull_request
+
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Build docker-compose
+      run: |
+        cd app
+        docker-compose build
+
+    - name: Run docker-compose
+      run:
+        docker-compose up -d
+
+    - name: Run tests
+      run: |
+        docker ps -a
+        docker-compose logs
+        docker exec web_speech_trainer_web_1 bash -c 'cd /app/test && pytest -s test_app.py'

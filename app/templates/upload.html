@@ -1,11 +1,8 @@
-<!DOCTYPE html>
-<head>
-    <title>Upload</title>
-</head>
-<body>
+{% extends 'base.html' %} {% block content %}
+
 <form method=POST enctype=multipart/form-data action="{{ url_for('upload') }}">
     <input type=file name=presentation>
-    <input type="submit">
+    <input type="submit" value="Начать тренировку">
 </form>
-</body>
-</html>
+
+{% endblock %}

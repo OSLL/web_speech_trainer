@@ -1,0 +1,6 @@
+venv
+.idea
+__pycache__
+audio_sources
+.git
+

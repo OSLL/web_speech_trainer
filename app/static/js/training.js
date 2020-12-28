@@ -1,25 +1,25 @@
-var pdfDoc,
+let pdfDoc,
     pageNum,
     pageRendering,
     pageNumPending,
     scale,
     canvas,
     ctx,
-    presentationFileId;
+    presentationFileId,
+    trainingId;
 
 function renderPage(num) {
   pageRendering = true;
-  // Using promise to fetch the page
   pdfDoc.getPage(num).then(function(page) {
-    var viewport = page.getViewport({ scale: scale, });
+    let viewport = page.getViewport({ scale: scale });
     canvas.height = viewport.height;
     canvas.width = viewport.width;
 
-    var renderContext = {
+    let renderContext = {
       canvasContext: ctx,
       viewport: viewport,
     };
-    var renderTask = page.render(renderContext);
+    let renderTask = page.render(renderContext);
 
     renderTask.promise.then(function () {
       pageRendering = false;
@@ -29,8 +29,6 @@ function renderPage(num) {
       }
     });
   });
-
-  // Update page counters
   $('#page_num')[0].textContent = num;
 }
 
@@ -47,7 +45,7 @@ function callShowPage() {
     type: 'GET',
     url: '/show_page',
     data: {
-      presentationFileId: presentationFileId
+      trainingId: trainingId
     }
   });
 }
@@ -65,9 +63,10 @@ function onNextPage() {
   queueRenderPage(pageNum);
 }
 
-function setPresentationFileId(fileId) {
-    presentationFileId = fileId;
-    var loadingTask = pdfjsLib.getDocument(`/get_presentation_file?presentationFileId=${presentationFileId}`);
+function setupPresentationViewer(presentationFileId_, trainingId_) {
+    presentationFileId = presentationFileId_;
+    trainingId = trainingId_;
+    let loadingTask = pdfjsLib.getDocument(`/get_presentation_file?presentationFileId=${presentationFileId}`);
     loadingTask.promise.then(function(pdfDoc_) {
       pdfDoc = pdfDoc_;
       $('#page_count')[0].textContent = pdfDoc.numPages;
@@ -83,8 +82,6 @@ $(document).ready(function() {
     scale = 1.1;
     canvas = $('#the-canvas')[0];
     ctx = canvas.getContext('2d');
-    presentationFileId = null;
     $('#done').click(callShowPage);
-    $('#done').click(returnToUploadPage);
     $('#next').click(onNextPage);
 });
