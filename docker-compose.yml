@@ -61,3 +61,5 @@ services:
   db:
     image: "mongo:4.4.1"
     restart: always
+    volumes:
+      - ../mongo_data:/data/db
