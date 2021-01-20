@@ -13,6 +13,6 @@ ln -s /etc/apache2/sites-available/${config} /etc/apache2/sites-enabled/${config
 
 a2ensite ${site_name}
 
-a2enmod proxy proxy_http proxy_wstunnel rewrite ${ssl_mod}
+a2enmod proxy proxy_http rewrite ${ssl_mod}
 
 service apache2 restart
