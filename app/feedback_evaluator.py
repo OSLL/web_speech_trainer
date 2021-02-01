@@ -1,6 +1,6 @@
 import json
 
-from app.criteria import SpeechIsNotTooLongCriteria, SpeechPaceCriteria, FillersRatioCriteria
+from app.criteria import SpeechIsNotTooLongCriterion, SpeechPaceCriterion, FillersRatioCriterion
 
 
 class Feedback:
@@ -41,14 +41,14 @@ class SimpleFeedbackEvaluator(FeedbackEvaluator):
     def __init__(self, weights=None):
         if weights is None:
             weights = {
-                SpeechIsNotTooLongCriteria.CLASS_NAME: 1,
+                SpeechIsNotTooLongCriterion.CLASS_NAME: 1,
             }
 
         super().__init__(name=SimpleFeedbackEvaluator.CLASS_NAME, weights=weights)
 
     def evaluate_feedback(self, criteria_results):
-        score = criteria_results[SpeechIsNotTooLongCriteria.CLASS_NAME].result \
-                * self.weights[SpeechIsNotTooLongCriteria.CLASS_NAME]
+        score = criteria_results[SpeechIsNotTooLongCriterion.CLASS_NAME].result \
+                * self.weights[SpeechIsNotTooLongCriterion.CLASS_NAME]
         return Feedback(score)
 
 
@@ -59,15 +59,15 @@ class PaceAndDurationFeedbackEvaluator(FeedbackEvaluator):
     def __init__(self, weights=None):
         if weights is None:
             weights = {
-                SpeechIsNotTooLongCriteria.CLASS_NAME: 0.5,
-                SpeechPaceCriteria.CLASS_NAME: 0.5,
+                SpeechIsNotTooLongCriterion.CLASS_NAME: 0.5,
+                SpeechPaceCriterion.CLASS_NAME: 0.5,
             }
 
         super().__init__(name=PaceAndDurationFeedbackEvaluator.CLASS_NAME, weights=weights)
 
     def evaluate_feedback(self, criteria_results):
-        score = criteria_results[SpeechIsNotTooLongCriteria.CLASS_NAME].result \
-                * self.weights[SpeechIsNotTooLongCriteria.CLASS_NAME] \
+        score = criteria_results[SpeechIsNotTooLongCriterion.CLASS_NAME].result \
+                * self.weights[SpeechIsNotTooLongCriterion.CLASS_NAME] \
             + criteria_results[PaceAndDurationFeedbackEvaluator.CLASS_NAME].result \
                 * self.weights[PaceAndDurationFeedbackEvaluator.CLASS_NAME]
         return Feedback(score)
@@ -83,8 +83,8 @@ class FillersRatioFeedbackEvaluator(FeedbackEvaluator):
         super().__init__(name=FillersRatioFeedbackEvaluator.CLASS_NAME, weights=weights)
 
     def evaluate_feedback(self, criteria_results):
-        score = criteria_results[FillersRatioCriteria.CLASS_NAME].result \
-                * self.weights[FillersRatioCriteria.CLASS_NAME]
+        score = criteria_results[FillersRatioCriterion.CLASS_NAME].result \
+                * self.weights[FillersRatioCriterion.CLASS_NAME]
         return Feedback(score)
 
 
