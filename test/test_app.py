@@ -1,5 +1,5 @@
 from app.audio import Audio
-from app.criteria import FillersRatioCriteria
+from app.criteria import FillersRatioCriterion
 from app.web_speech_trainer import app
 
 
@@ -17,9 +17,9 @@ def test_home_page():
 
 
 def test_fillers_ratio_criteria():
-    criteria = FillersRatioCriteria(
+    criteria = FillersRatioCriterion(
         parameters={'fillers': ['а', 'ну']},
-        dependent_criterion=[],
+        dependent_criteria=[],
     )
     with open('test_audio.json', 'rb') as test_audio_file:
         test_audio = Audio.from_json_file(test_audio_file)

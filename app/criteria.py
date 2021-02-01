@@ -7,7 +7,7 @@ from app.mongo_odm import DBManager, TrainingsDBManager
 from app.utils import convert_from_mp3_to_wav
 
 
-class CriteriaResult:
+class CriterionResult:
     def __init__(self, result, verdict=None):
         self.result = result
         self.verdict = verdict
@@ -19,51 +19,46 @@ class CriteriaResult:
             return 'Result = {:.3f} points'.format(self.result)
 
 
-class Criteria:
-    def __init__(self, name, parameters, dependent_criterion):
+class Criterion:
+    def __init__(self, name, parameters, dependent_criteria):
         self.name = name
         self.parameters = parameters
-        self.dependent_criterion = dependent_criterion
+        self.dependent_criteria = dependent_criteria
 
     def apply(self, audio, presentation, criteria_results):
         pass
 
 
-class SpeechIsNotTooLongCriteria(Criteria):
-    CLASS_NAME = 'SpeechIsNotTooLongCriteria'
+class SpeechIsNotTooLongCriterion(Criterion):
+    CLASS_NAME = 'SpeechIsNotTooLongCriterion'
 
-    def __init__(self, parameters, dependent_criterion):
+    def __init__(self, parameters, dependent_criteria):
         super().__init__(
-            name=SpeechIsNotTooLongCriteria.CLASS_NAME,
+            name=SpeechIsNotTooLongCriterion.CLASS_NAME,
             parameters=parameters,
-            dependent_criterion=dependent_criterion,
+            dependent_criteria=dependent_criteria,
         )
 
     def apply(self, audio, presentation, criteria_results):
         maximal_allowed_duration = self.parameters['maximal_allowed_duration']
         if audio.audio_stats['duration'] <= maximal_allowed_duration:
-            return CriteriaResult(result=1)
+            return CriterionResult(result=1)
         else:
-            return CriteriaResult(result=0)
+            return CriterionResult(result=0)
 
 
-class SpeechIsNotInDatabaseCriteria(Criteria):
+class SpeechIsNotInDatabaseCriterion(Criterion):
+    CLASS_NAME = 'SpeechIsNotTooLongCriterion'
+
     '''
     Критерий проверяет, не является ли аудиофайл нечеткой копией
     одного из имеющихся в базе от этого пользователя.
     '''
-    def __init__(self):
+    def __init__(self, parameters, dependent_criteria):
         super().__init__(
-            name = self.__class__.__name__,
-            parameters={
-                'sample_rate': 22050,
-                'window_size': 1,
-                'window_step': 0.5,
-                'sample_rate_decrease_ratio': 10,
-                'dist_threshold': 0.06,
-                'common_ratio_threshold': 0.7
-            },
-            dependant_criterias=[],
+            name=SpeechIsNotInDatabaseCriterion.CLASS_NAME,
+            parameters=parameters,
+            dependent_criteria=dependent_criteria,
         )
 
     def prepare(self, signal, sample_rate, window_size_s, step_s):
@@ -116,7 +111,6 @@ class SpeechIsNotInDatabaseCriteria(Criteria):
         mfcc2 = mfcc2[:, :min_len].T
 
         length = 10
-        dist = []
         for length in range(10, min_len + 1, 10):
             dist = []
             for d1, d2 in zip(mfcc1[:length, :], mfcc2[:length, :]):
@@ -134,7 +128,7 @@ class SpeechIsNotInDatabaseCriteria(Criteria):
             training.presentation_record_file_id
             for training in TrainingsDBManager().get_trainings()
         ]
-        for db_audio_id in db_audios_ids:
+        for db_audio_id in db_audio_ids:
             db_audio_mp3 = DBManager().get_file(db_audio_id)
             db_audio = convert_from_mp3_to_wav(db_audio_mp3, frame_rate=self.parameters['sample_rate'])
 
@@ -147,24 +141,24 @@ class SpeechIsNotInDatabaseCriteria(Criteria):
             aligned_audio = self.downsample(aligned_audio)
             db_audio = self.downsample(db_audio, aligned_audio)
 
-            audio_mfcc = librosa.feature.mfcc(y=aligned_audio, sr=audio_sample_rate)
-            db_audio_mfcc = librosa.feature.mfcc(y=db_audio, sr=db_audio_sample_rate)
+            audio_mfcc = librosa.feature.mfcc(y=aligned_audio, sr=self.parameters['sample_rate'])
+            db_audio_mfcc = librosa.feature.mfcc(y=db_audio, sr=self.parameters['sample_rate'])
             common_length_ratio = self.common_length(audio_mfcc, db_audio_mfcc)
 
             if common_length_ratio > self.parameters['common_ratio_threshold']:
-                return CriteriaResult(result=0)
+                return CriterionResult(result=0)
 
-        return CriteriaResult(result=1)
+        return CriterionResult(result=1)
 
 
-class SpeechPaceCriteria(Criteria):
-    CLASS_NAME = 'SpeechPaceCriteria'
+class SpeechPaceCriterion(Criterion):
+    CLASS_NAME = 'SpeechPaceCriterion'
 
-    def __init__(self, parameters, dependent_criterion):
+    def __init__(self, parameters, dependent_criteria):
         super().__init__(
-            name=SpeechPaceCriteria.CLASS_NAME,
+            name=SpeechPaceCriterion.CLASS_NAME,
             parameters=parameters,
-            dependent_criterion=dependent_criterion,
+            dependent_criteria=dependent_criteria,
         )
 
     def apply(self, audio, presentation, criteria_results):
@@ -177,29 +171,28 @@ class SpeechPaceCriteria(Criteria):
             result = 1 - pace / minimal_allowed_pace
         else:
             result = 1 - pace / maximal_allowed_pace
-        return CriteriaResult(result)
+        return CriterionResult(result)
 
 
-class FillersRatioCriteria(Criteria):
-    CLASS_NAME = 'FillersRatioCriteria'
+class FillersRatioCriterion(Criterion):
+    CLASS_NAME = 'FillersRatioCriterion'
 
-    def __init__(self, parameters, dependent_criterion):
+    def __init__(self, parameters, dependent_criteria):
         super().__init__(
-            name=FillersRatioCriteria.CLASS_NAME,
+            name=FillersRatioCriterion.CLASS_NAME,
             parameters=parameters,
-            dependent_criterion=dependent_criterion,
+            dependent_criteria=dependent_criteria,
         )
 
     def apply(self, audio, presentation, criteria_results):
         fillers = self.parameters['fillers']
         total_words = audio.audio_stats['total_words']
         if total_words == 0:
-            return CriteriaResult(1)
+            return CriterionResult(1)
         fillers_count = 0
         for audio_slide in audio.audio_slides:
             audio_slide_words = audio_slide.recognized_words
             for recognized_word in audio_slide_words:
                 if recognized_word.word.value in fillers:
                     fillers_count += 1
-        return CriteriaResult(1 - fillers_count / total_words)
-
+        return CriterionResult(1 - fillers_count / total_words)
