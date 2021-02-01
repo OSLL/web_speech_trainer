@@ -13,6 +13,7 @@ pymorphy2-dicts    ==    2.4.393442.3710985
 pymorphy2-dicts-ru ==    2.4.417127.4579844
 PyMuPDF
 pytest
+scipy
 vext
 vext.gi
 websockets

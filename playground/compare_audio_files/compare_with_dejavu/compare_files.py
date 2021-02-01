@@ -26,7 +26,12 @@ class Recording:
         self.fingerprints: List[Tuple[object, int]] = []
         self.agg_fingerprints: Dict[object, List[int]] = defaultdict(list)
 
-    def get_fingerprints(self):
+    def aggregate_fingerprints(self):
+        '''Aggregate offsets by hash.'''
+        for fingerprint, offset in self.fingerprints:
+            self.agg_fingerprints[fingerprint].append(offset)
+
+    def get_fingerprints(self, aggregate=False):
         '''Get (hash, offset) pairs for the recording from the database.'''
         with closing(psycopg2.connect(**config['database'])) as conn:
             with conn.cursor() as cursor:
@@ -36,10 +41,8 @@ class Recording:
                                  WHERE s.song_name = \'{self.filename}\';')
                 self.fingerprints = sorted(cursor.fetchall(), key=lambda x: x[1])
 
-    def aggregate_fingerprints(self):
-        '''Aggregate offsets by hash.'''
-        for fingerprint, offset in self.fingerprints:
-            self.agg_fingerprints[fingerprint].append(offset)
+        if aggregate:
+            self.aggregate_fingerprints()
 
     def align(self, other) -> int:
         '''
@@ -56,7 +59,12 @@ class Recording:
         for fingerprint, offsets in common.items():
             diff.extend([f2 - f1 for f1, f2 in itertools.product(offsets[0], offsets[1])])
 
-        offset = Counter(diff).most_common(1)[0][0]
+        most_common_diffs = Counter(diff).most_common(2)
+        if most_common_diffs[0][1] < most_common_diffs[1][1] * 10:
+            offset = 0
+        else:
+            offset = most_common_diffs[0][0]
+
         return offset
 
     def compare(self, other) -> bool:
@@ -84,7 +92,9 @@ class Recording:
             common = [f1 == f2 for f1, f2 in itertools.product(fingerprints1, fingerprints2)]
             common_proportion.append(sum(common) / (len(fingerprints1) + len(fingerprints2) + 1))
 
-        return np.mean(common_proportion) > 1e-4
+        similarity = np.mean(common_proportion)
+
+        return similarity
 
 
 if __name__ == '__main__':
@@ -92,21 +102,18 @@ if __name__ == '__main__':
 
     extension = filename1.split('.')[-1]
 
-    file1, file2 = list(map(lambda s: s[:-(len(extension) + 1)], [filename1, filename2]))
+    file1, file2 = list(map(lambda s: s.split('/')[-1][:-(len(extension) + 1)], [filename1, filename2]))
 
     djv = Dejavu(config)
 
-    djv.fingerprint_directory('demo_audio', [extension])
+    #djv.fingerprint_directory('data', [extension])
 
-    #djv.fingerprint_file(f'./demo_audio/{filename1}')
-    #djv.fingerprint_file(f'./demo_audio/{filename2}')
+    djv.fingerprint_file(f'./data/{file1}.{extension}')
+    djv.fingerprint_file(f'./data/{file2}.{extension}')
 
     rec1, rec2 = Recording(file1), Recording(file2)
 
-    rec1.get_fingerprints()
-    rec2.get_fingerprints()
+    rec1.get_fingerprints(aggregate=True)
+    rec2.get_fingerprints(aggregate=True)
 
-    rec1.aggregate_fingerprints()
-    rec2.aggregate_fingerprints()
-
-    print(f"Files are {'' if rec1.compare(rec2) else 'not '}similar")
+    similarity = rec1.compare(rec2)
