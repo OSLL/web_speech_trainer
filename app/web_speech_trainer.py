@@ -180,4 +180,4 @@ def show_all_presentations():
 if __name__ == '__main__':
     Config.init_config('config.ini')
     app.logger.setLevel(logging.INFO)
-    app.run(host='0.0.0.0')
+    app.run(host='0.0.0.0', ssl_context=('/etc/ssl/certs/apache-selfsigned.crt', '/etc/ssl/private/apache-selfsigned.key'))
