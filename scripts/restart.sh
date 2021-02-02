@@ -6,4 +6,4 @@ source scripts/setup_apache_config.sh $apache_config_filename $apache_ssl_mod
 
 mkdir -p ../mongo_data
 docker-compose build
-docker-compose up
+docker-compose up -d
