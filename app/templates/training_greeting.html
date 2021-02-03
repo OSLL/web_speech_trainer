@@ -1,0 +1,9 @@
+{% extends 'base.html' %} {% block content %}
+<div class='container'>
+    <h2>Пользователь: {{ username }}</h2>
+    <h2>Задание для тренировки: {{ task_id }}</h2>
+    <form method=POST enctype=multipart/form-data action="{{ url_for('upload') }}">
+        <input type="submit" value="Начать">
+    </form>
+</div>
+{% endblock %}

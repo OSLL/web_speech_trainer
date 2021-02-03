@@ -2,6 +2,10 @@ from pymodm import MongoModel, fields
 
 
 class Trainings(MongoModel):
+    username = fields.CharField()
+    task_id = fields.CharField()
+    passback_parameters = fields.DictField()
+    is_passed_back = fields.BooleanField()
     presentation_file_id = fields.ObjectIdField()
     recognized_presentation_id = fields.ObjectIdField()
     presentation_id = fields.ObjectIdField()
@@ -40,6 +44,10 @@ class RecognizedAudioToProcess(MongoModel):
 
 
 class TrainingsToProcess(MongoModel):
+    training_id = fields.ObjectIdField()
+
+
+class TrainingsToPassBack(MongoModel):
     training_id = fields.ObjectIdField()
 
 
