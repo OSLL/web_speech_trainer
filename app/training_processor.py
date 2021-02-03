@@ -4,7 +4,7 @@ from app.audio import Audio
 from app.config import Config
 from app.criteria_pack import CriteriaPackFactory
 from app.feedback_evaluator import FeedbackEvaluatorFactory
-from app.mongo_odm import DBManager, TrainingsToProcessDBManager, TrainingsDBManager
+from app.mongo_odm import DBManager, TrainingsToProcessDBManager, TrainingsDBManager, TrainingsToPassBackDBManager
 from app.presentation import Presentation
 from app.status import PresentationStatus, TrainingStatus
 from app.training import Training
@@ -29,9 +29,9 @@ class TrainingProcessor:
                 feedback_evaluator = FeedbackEvaluatorFactory().get_feedback_evaluator(feedback_evaluator_id)
                 training = Training(audio, presentation, criteria_pack, feedback_evaluator)
                 feedback = training.evaluate_feedback()
-                TrainingsDBManager().change_training_status(training_id, PresentationStatus.PROCESSED)
                 TrainingsDBManager().add_feedback(training_id, feedback.to_dict())
-                print(feedback)
+                TrainingsDBManager().change_training_status(training_id, PresentationStatus.PROCESSED)
+                TrainingsToPassBackDBManager().add_training_to_pass_back(training_id)
             else:
                 sleep(10)
 

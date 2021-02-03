@@ -11,7 +11,8 @@ from pymodm.files import GridFSStorage
 
 from app.config import Config
 from app.mongo_models import Trainings, AudioToRecognize, TrainingsToProcess, \
-    PresentationsToRecognize, RecognizedAudioToProcess, RecognizedPresentationsToProcess, PresentationFiles
+    PresentationsToRecognize, RecognizedAudioToProcess, RecognizedPresentationsToProcess, PresentationFiles, \
+    TrainingsToPassBack
 from app.status import AudioStatus, PresentationStatus, TrainingStatus
 
 
@@ -58,16 +59,26 @@ class TrainingsDBManager:
     def add_training(
             self,
             presentation_file_id,
+            username,
+            task_id,
+            passback_parameters=None,
+            is_passed_back=False,
             slide_switch_timestamps=None,
             status=TrainingStatus.PREPARING,
             audio_status=AudioStatus.NEW,
             presentation_status=PresentationStatus.NEW,
             criteria_pack_id=None,
     ):
+        if passback_parameters is None:
+            passback_parameters = {}
         if slide_switch_timestamps is None:
             slide_switch_timestamps = []
         return Trainings(
             presentation_file_id=presentation_file_id,
+            username=username,
+            task_id=task_id,
+            is_passed_back=is_passed_back,
+            passback_parameters=passback_parameters,
             slide_switch_timestamps=slide_switch_timestamps,
             status=status,
             audio_status=audio_status,
@@ -170,6 +181,33 @@ class TrainingsDBManager:
     def get_slide_switch_timestamps_by_recognized_presentation_id(self, recognized_presentation_id):
         training = self.get_training_by_recognized_presentation_id(recognized_presentation_id)
         return training.slide_switch_timestamps
+
+    def set_passed_back(self, training, value=True):
+        training.is_passed_back = True
+        training.save()
+
+
+class TrainingsToPassBackDBManager:
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super(TrainingsToPassBackDBManager, cls).__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
+        return cls.instance
+
+    def add_training_to_pass_back(self, training_id):
+        return TrainingsToPassBack(
+            training_id=training_id
+        ).save()
+
+    def extract_training_id_to_pass_back(self):
+        obj = TrainingsToPassBack.objects.model._mongometa.collection.find_one_and_delete(
+            filter={},
+            sort=[('_id', pymongo.ASCENDING)]
+        )
+        if obj is None:
+            return None
+        return obj['training_id']
 
 
 class TrainingsToProcessDBManager:
