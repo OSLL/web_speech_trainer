@@ -1,9 +1,6 @@
 FROM ubuntu:18.04
 ENV LANG C.UTF-8
 
-COPY ssl/apache-selfsigned.crt /etc/ssl/certs/apache-selfsigned.crt
-COPY ssl/apache-selfsigned.key /etc/ssl/private/apache-selfsigned.key
-
 WORKDIR /app
 COPY . .
 RUN apt-get update
