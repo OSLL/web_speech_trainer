@@ -200,13 +200,11 @@ class SessionsDBManager:
         new_session = Sessions(
             session_id=session_id,
             consumer_key=consumer_key,
-            task_id=task_id,
-            params_for_passback=params_for_passback,
+            tasks={task_id: {'params_for_passback': params_for_passback}},
             is_admin=is_admin,
         )
         if existing_session:
-            existing_session.task_id = task_id
-            existing_session.params_for_passback = params_for_passback
+            existing_session.tasks[task_id] = {'params_for_passback': params_for_passback}
             existing_session.is_admin = is_admin
             existing_session.save()
         else:
@@ -216,7 +214,7 @@ class SessionsDBManager:
         try:
             return Sessions.objects.get({'$and': [{'session_id': session_id, 'consumer_key': consumer_key}]})
         except Sessions.DoesNotExist:
-            return {}
+            return None
 
 
 class ConsumersDBManager:

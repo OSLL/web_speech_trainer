@@ -3,6 +3,7 @@ import logging
 from flask import Flask, render_template, request, jsonify, send_file, redirect, session, url_for, abort
 
 from app.config import Config
+from app.lti_session_passback.auth_checkers import check_auth
 from app.mongo_odm import DBManager, TrainingsDBManager, PresentationFilesDBManager, SessionsDBManager, \
     ConsumersDBManager
 from app.lti_session_passback.lti_module import utils
@@ -38,15 +39,15 @@ def show_page():
 
 @app.route('/training/<presentation_file_id>/')
 def training(presentation_file_id):
+    user_session = check_auth()
     app.logger.info('presentation_file_id = {}'.format(presentation_file_id))
     username = session.get('session_id', 'guest')
     task_id = session.get('task_id', 'guest_task')
-    consumer_key = session.get('consumer_key', '')
     training_id = TrainingsDBManager().add_training(
         presentation_file_id=presentation_file_id,
         username=username,
         task_id=task_id,
-        passback_parameters=SessionsDBManager().get_session(username, consumer_key)['tasks'][task_id]['passback_params']
+        passback_parameters=user_session.tasks.get(task_id, '').get('params_for_passback', '')
     ).pk
     return render_template(
         'training.html',

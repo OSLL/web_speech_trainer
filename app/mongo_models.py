@@ -24,8 +24,7 @@ class Trainings(MongoModel):
 class Sessions(MongoModel):
     session_id = fields.CharField()
     consumer_key = fields.CharField()
-    task_id = fields.CharField()
-    params_for_passback = fields.DictField()
+    tasks = fields.DictField(blank=True)
     is_admin = fields.BooleanField()
 
 

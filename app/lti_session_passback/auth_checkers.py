@@ -16,10 +16,11 @@ def check_auth():
 
 
 def check_admin():
-    return SessionsDBManager().get_session(
+    user_session = SessionsDBManager().get_session(
         session.get('session_id', None),
         session.get('consumer_key', None),
-    ).get('admin', False)
+    )
+    return user_session and user_session.is_admin
 
 
 def check_task_access(task_id):
