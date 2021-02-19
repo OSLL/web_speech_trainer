@@ -1,10 +1,11 @@
 from flask import abort, session
-from .db import get_session, add_session
+
+from app.mongo_odm import SessionsDBManager
 
 
 def check_auth():
     session_id = session.get('session_id', None)
-    user_session = get_session(session_id)
+    user_session = SessionsDBManager().get_session(session_id)
     if user_session:
         return user_session
     else:
@@ -12,11 +13,11 @@ def check_auth():
 
 
 def check_admin():
-    return get_session(session.get('session_id', None)).get('admin', False)
+    return SessionsDBManager().get_session(session.get('session_id', None)).get('admin', False)
 
 
 def check_task_access(task_id):
-    user_session = get_session(session.get('session_id', None))
+    user_session = SessionsDBManager().get_session(session.get('session_id', None))
     if check_admin():
         return True
     else:

@@ -12,7 +12,7 @@ from pymodm.files import GridFSStorage
 from app.config import Config
 from app.mongo_models import Trainings, AudioToRecognize, TrainingsToProcess, \
     PresentationsToRecognize, RecognizedAudioToProcess, RecognizedPresentationsToProcess, PresentationFiles, \
-    TrainingsToPassBack
+    TrainingsToPassBack, Sessions, Consumers
 from app.status import AudioStatus, PresentationStatus, TrainingStatus
 
 
@@ -185,6 +185,77 @@ class TrainingsDBManager:
     def set_passed_back(self, training, value=True):
         training.is_passed_back = True
         training.save()
+
+
+class SessionsDBManager:
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super(SessionsDBManager, cls).__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
+        return cls.instance
+
+    def add_session(self, session_id, task_id, params_for_passback, is_admin):
+        return Sessions(
+            session_id=session_id,
+            task_id=task_id,
+            params_for_passback=params_for_passback,
+            is_admin=is_admin,
+        ).save()
+
+    def get_session(self, session_id):
+        return Sessions.objects.get({'session_id': session_id})
+
+
+class ConsumersDBManager:
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super(ConsumersDBManager, cls).__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
+        return cls.instance
+
+    def add_consumer(self, consumer_key, consumer_secret, timestamp_and_nonce=None):
+        if timestamp_and_nonce is None:
+            timestamp_and_nonce = []
+        return Consumers(
+            consumer_key=consumer_key,
+            consumer_secret=consumer_secret,
+            timestamp_and_nonce=timestamp_and_nonce,
+        ).save()
+
+    def get_secret(self, key):
+        try:
+            consumer = Consumers.objects.get({'consumer_key': key})
+            return consumer.consumer_secret
+        except Consumers.DoesNotExist:
+            return ''
+        except Exception as e:
+            print(e)
+            return ''
+
+    def is_key_valid(self, key):
+        try:
+            Consumers.objects.get({'consumer_key': key})
+            return True
+        except Consumers.DoesNotExist:
+            return False
+
+    def has_timestamp_and_nonce(self, key, timestamp, nonce):
+        try:
+            consumer = Consumers.objects.get({'consumer_key': key})
+            entries = consumer.timestamp_and_nonce
+            return (timestamp, nonce) in entries
+        except Consumers.DoesNotExist:
+            return False
+
+    def add_timestamp_and_nonce(self, key, timestamp, nonce):
+        try:
+            consumer = Consumers.objects.get({'consumer_key': key})
+            consumer.timestamp_and_nonce.append((timestamp, nonce))
+            return consumer.save()
+        except Consumers.DoesNotExist:
+            return
 
 
 class TrainingsToPassBackDBManager:

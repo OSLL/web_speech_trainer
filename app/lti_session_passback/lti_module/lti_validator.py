@@ -1,5 +1,6 @@
 from oauthlib.oauth1 import RequestValidator
-from ..db import get_secret, is_key_valid, has_timestamp_and_nonce, add_timestamp_and_nonce
+
+from app.mongo_odm import ConsumersDBManager
 
 
 class LTIRequestValidator(RequestValidator):
@@ -19,18 +20,22 @@ class LTIRequestValidator(RequestValidator):
     def enforce_ssl(self):
         return False
 
+    @property
+    def dummy_client(self):
+        return 'dummy_client'
+
     def get_client_secret(self, client_key, request):
-        return get_secret(client_key)
+        print('from get_client_secret')
+        print(client_key)
+        return ConsumersDBManager().get_secret(client_key)
 
     def validate_client_key(self, client_key, request):
-        return is_key_valid(client_key)
+        return ConsumersDBManager().is_key_valid(client_key)
 
     def validate_timestamp_and_nonce(self, client_key, timestamp, nonce, request, request_token=None, access_token=None):
-        if not has_timestamp_and_nonce(client_key, timestamp, nonce):
-            add_timestamp_and_nonce(client_key, timestamp, nonce)
+        if not ConsumersDBManager().has_timestamp_and_nonce(client_key, timestamp, nonce):
+            ConsumersDBManager().add_timestamp_and_nonce(client_key, timestamp, nonce)
             return True
         else:
             return False
 
-    def dummy_client(self):
-        return 'dummy_client'

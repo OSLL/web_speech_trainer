@@ -4,7 +4,7 @@ from .lti_validator import LTIRequestValidator
 
 def check_request(request_info):
     """
-    :request_info: dcit - must include ('headers', 'data', 'secret', 'url') 
+    :request_info: dict - must include ('headers', 'data', 'secret', 'url')
     """
     provider = ToolProvider.from_unpacked_request(
         secret=request_info.get('secret', None),

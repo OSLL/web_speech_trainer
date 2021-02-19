@@ -21,6 +21,19 @@ class Trainings(MongoModel):
     feedback_evaluator_id = fields.IntegerField(blank=True)
 
 
+class Sessions(MongoModel):
+    session_id = fields.CharField()
+    task_id = fields.CharField()
+    params_for_passback = fields.DictField()
+    is_admin = fields.BooleanField()
+
+
+class Consumers(MongoModel):
+    consumer_key = fields.CharField()
+    consumer_secret = fields.CharField()
+    timestamp_and_nonce = fields.ListField(blank=True)
+
+
 class PresentationFiles(MongoModel):
     file_id = fields.ObjectIdField()
     filename = fields.CharField()

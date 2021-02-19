@@ -3,15 +3,14 @@ import logging
 from flask import Flask, render_template, request, jsonify, send_file, redirect, session, url_for, abort
 
 from app.config import Config
-from app.mongo_odm import DBManager, TrainingsDBManager, PresentationFilesDBManager
-from app.lti_session_passback.db import get_secret, add_session, get_session
+from app.mongo_odm import DBManager, TrainingsDBManager, PresentationFilesDBManager, SessionsDBManager, \
+    ConsumersDBManager
 from app.lti_session_passback.lti_module import utils
 from app.lti_session_passback.lti_module.check_request import check_request
 from app.training_manager import TrainingManager
 from app.utils import file_has_pdf_beginning, get_presentation_file_preview
 
 app = Flask(__name__)
-app.secret_key = 'app.secret_key'
 
 
 @app.route('/get_presentation_record')
@@ -46,7 +45,7 @@ def training(presentation_file_id):
         presentation_file_id=presentation_file_id,
         username=username,
         task_id=task_id,
-        passback_parameters=get_session(username)['tasks'][task_id]['passback_params']
+        passback_parameters=SessionsDBManager().get_session(username)['tasks'][task_id]['passback_params']
     )._id
     return render_template(
         'training.html',
@@ -197,7 +196,7 @@ def training_greeting():
 @app.route('/lti', methods=['POST'])
 def lti():
     params = request.form
-    consumer_secret = get_secret(params.get('oauth_consumer_key', ''))
+    consumer_secret = ConsumersDBManager().get_secret(params.get('oauth_consumer_key', ''))
     request_info = dict(
         headers=dict(request.headers),
         data=params,
@@ -212,7 +211,7 @@ def lti():
         role = utils.get_role(params)
         params_for_passback = utils.extract_passback_params(params)
 
-        add_session(username, task_id, params_for_passback, role)
+        SessionsDBManager().add_session(username, task_id, params_for_passback, role)
         session['session_id'] = username
         session['task_id'] = task_id
 
@@ -224,4 +223,7 @@ def lti():
 if __name__ == '__main__':
     Config.init_config('config.ini')
     app.logger.setLevel(logging.INFO)
+    app.secret_key = Config.c.constants.app_secret_key
+    if not ConsumersDBManager().is_key_valid(Config.c.constants.lti_consumer_key):
+        ConsumersDBManager().add_consumer(Config.c.constants.lti_consumer_key, Config.c.constants.lti_consumer_secret)
     app.run(host='0.0.0.0')
