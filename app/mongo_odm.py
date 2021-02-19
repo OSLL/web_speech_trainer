@@ -195,16 +195,28 @@ class SessionsDBManager:
             cls.init_done = True
         return cls.instance
 
-    def add_session(self, session_id, task_id, params_for_passback, is_admin):
-        return Sessions(
+    def add_session(self, session_id, consumer_key, task_id, params_for_passback, is_admin):
+        existing_session = self.get_session(session_id, consumer_key)
+        new_session = Sessions(
             session_id=session_id,
+            consumer_key=consumer_key,
             task_id=task_id,
             params_for_passback=params_for_passback,
             is_admin=is_admin,
-        ).save()
+        )
+        if existing_session:
+            existing_session.task_id = task_id
+            existing_session.params_for_passback = params_for_passback
+            existing_session.is_admin = is_admin
+            existing_session.save()
+        else:
+            new_session.save()
 
-    def get_session(self, session_id):
-        return Sessions.objects.get({'session_id': session_id})
+    def get_session(self, session_id, consumer_key):
+        try:
+            return Sessions.objects.get({'$and': [{'session_id': session_id, 'consumer_key': consumer_key}]})
+        except Sessions.DoesNotExist:
+            return {}
 
 
 class ConsumersDBManager:
@@ -229,9 +241,6 @@ class ConsumersDBManager:
             consumer = Consumers.objects.get({'consumer_key': key})
             return consumer.consumer_secret
         except Consumers.DoesNotExist:
-            return ''
-        except Exception as e:
-            print(e)
             return ''
 
     def is_key_valid(self, key):

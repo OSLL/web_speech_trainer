@@ -5,7 +5,10 @@ from app.mongo_odm import SessionsDBManager
 
 def check_auth():
     session_id = session.get('session_id', None)
-    user_session = SessionsDBManager().get_session(session_id)
+    user_session = SessionsDBManager().get_session(
+        session.get('session_id', None),
+        session.get('consumer_key', None),
+    )
     if user_session:
         return user_session
     else:
@@ -13,11 +16,17 @@ def check_auth():
 
 
 def check_admin():
-    return SessionsDBManager().get_session(session.get('session_id', None)).get('admin', False)
+    return SessionsDBManager().get_session(
+        session.get('session_id', None),
+        session.get('consumer_key', None),
+    ).get('admin', False)
 
 
 def check_task_access(task_id):
-    user_session = SessionsDBManager().get_session(session.get('session_id', None))
+    user_session = SessionsDBManager().get_session(
+        session.get('session_id', None),
+        session.get('consumer_key', None),
+    )
     if check_admin():
         return True
     else:

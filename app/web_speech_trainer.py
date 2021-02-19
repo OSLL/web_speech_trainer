@@ -41,12 +41,13 @@ def training(presentation_file_id):
     app.logger.info('presentation_file_id = {}'.format(presentation_file_id))
     username = session.get('session_id', 'guest')
     task_id = session.get('task_id', 'guest_task')
+    consumer_key = session.get('consumer_key', '')
     training_id = TrainingsDBManager().add_training(
         presentation_file_id=presentation_file_id,
         username=username,
         task_id=task_id,
-        passback_parameters=SessionsDBManager().get_session(username)['tasks'][task_id]['passback_params']
-    )._id
+        passback_parameters=SessionsDBManager().get_session(username, consumer_key)['tasks'][task_id]['passback_params']
+    ).pk
     return render_template(
         'training.html',
         presentation_file_id=presentation_file_id,
@@ -187,7 +188,6 @@ def show_all_presentations():
 
 @app.route('/training_greeting')
 def training_greeting():
-    print(session)
     username = session.get('session_id', 'guest')
     task_id = session.get('task_id', 'guest_task')
     return render_template('training_greeting.html', task_id=task_id, username=username)
@@ -196,7 +196,8 @@ def training_greeting():
 @app.route('/lti', methods=['POST'])
 def lti():
     params = request.form
-    consumer_secret = ConsumersDBManager().get_secret(params.get('oauth_consumer_key', ''))
+    consumer_key = params.get('oauth_consumer_key', '')
+    consumer_secret = ConsumersDBManager().get_secret(consumer_key)
     request_info = dict(
         headers=dict(request.headers),
         data=params,
@@ -211,9 +212,10 @@ def lti():
         role = utils.get_role(params)
         params_for_passback = utils.extract_passback_params(params)
 
-        SessionsDBManager().add_session(username, task_id, params_for_passback, role)
+        SessionsDBManager().add_session(username, consumer_key, task_id, params_for_passback, role)
         session['session_id'] = username
         session['task_id'] = task_id
+        session['consumer_key'] = consumer_key
 
         return training_greeting()
     else:

@@ -25,8 +25,6 @@ class LTIRequestValidator(RequestValidator):
         return 'dummy_client'
 
     def get_client_secret(self, client_key, request):
-        print('from get_client_secret')
-        print(client_key)
         return ConsumersDBManager().get_secret(client_key)
 
     def validate_client_key(self, client_key, request):
