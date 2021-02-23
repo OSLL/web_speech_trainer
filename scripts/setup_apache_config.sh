@@ -15,4 +15,6 @@ a2ensite ${site_name}
 
 a2enmod proxy proxy_http rewrite ${ssl_mod}
 
+a2dissite default-ssl
+
 service apache2 restart
