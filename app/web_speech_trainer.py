@@ -1,9 +1,13 @@
 import logging
 
-from flask import Flask, render_template, request, jsonify, send_file, redirect
+from flask import Flask, render_template, request, jsonify, send_file, redirect, session, url_for, abort
 
 from app.config import Config
-from app.mongo_odm import DBManager, TrainingsDBManager, PresentationFilesDBManager
+from app.lti_session_passback.auth_checkers import check_auth
+from app.mongo_odm import DBManager, TrainingsDBManager, PresentationFilesDBManager, SessionsDBManager, \
+    ConsumersDBManager
+from app.lti_session_passback.lti_module import utils
+from app.lti_session_passback.lti_module.check_request import check_request
 from app.training_manager import TrainingManager
 from app.utils import file_has_pdf_beginning, get_presentation_file_preview
 
@@ -35,10 +39,16 @@ def show_page():
 
 @app.route('/training/<presentation_file_id>/')
 def training(presentation_file_id):
+    user_session = check_auth()
     app.logger.info('presentation_file_id = {}'.format(presentation_file_id))
+    username = session.get('session_id', 'guest')
+    task_id = session.get('task_id', 'guest_task')
     training_id = TrainingsDBManager().add_training(
-        presentation_file_id=presentation_file_id
-    )._id
+        presentation_file_id=presentation_file_id,
+        username=username,
+        task_id=task_id,
+        passback_parameters=user_session.tasks.get(task_id, '').get('params_for_passback', '')
+    ).pk
     return render_template(
         'training.html',
         presentation_file_id=presentation_file_id,
@@ -129,7 +139,7 @@ def upload():
             return upload_pdf_response
         else:
             presentation_file_id = upload_pdf_response[0]
-            return training(presentation_file_id)
+            return redirect(url_for('training', presentation_file_id=presentation_file_id))
     else:
         return render_template('upload.html')
 
@@ -177,7 +187,46 @@ def show_all_presentations():
     return render_template('show_all_presentations.html')
 
 
+@app.route('/training_greeting')
+def training_greeting():
+    username = session.get('session_id', 'guest')
+    task_id = session.get('task_id', 'guest_task')
+    return render_template('training_greeting.html', task_id=task_id, username=username)
+
+
+@app.route('/lti', methods=['POST'])
+def lti():
+    params = request.form
+    consumer_key = params.get('oauth_consumer_key', '')
+    consumer_secret = ConsumersDBManager().get_secret(consumer_key)
+    request_info = dict(
+        headers=dict(request.headers),
+        data=params,
+        url=request.url,
+        secret=consumer_secret
+    )
+
+    if check_request(request_info):
+        username = utils.get_username(params)
+        custom_params = utils.get_custom_params(params)
+        task_id = custom_params.get('task_id', 'default_task_id')
+        role = utils.get_role(params)
+        params_for_passback = utils.extract_passback_params(params)
+
+        SessionsDBManager().add_session(username, consumer_key, task_id, params_for_passback, role)
+        session['session_id'] = username
+        session['task_id'] = task_id
+        session['consumer_key'] = consumer_key
+
+        return training_greeting()
+    else:
+        abort(403)
+
+
 if __name__ == '__main__':
     Config.init_config('config.ini')
     app.logger.setLevel(logging.INFO)
+    app.secret_key = Config.c.constants.app_secret_key
+    if not ConsumersDBManager().is_key_valid(Config.c.constants.lti_consumer_key):
+        ConsumersDBManager().add_consumer(Config.c.constants.lti_consumer_key, Config.c.constants.lti_consumer_secret)
     app.run(host='0.0.0.0')

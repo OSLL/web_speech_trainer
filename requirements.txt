@@ -2,8 +2,10 @@ fitz
 flask
 Flask-Reuploaded
 fuzzywuzzy         == 0.18.0
+lti
 nltk
 numpy              == 1.19.2
+oauthlib
 preview-generator
 pydub
 pymongo
