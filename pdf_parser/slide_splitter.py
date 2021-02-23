@@ -50,14 +50,15 @@ def parse_txt(txt_path, extract_dir):
             f.write(l_text)
 
 
-def parse_pdf(pdf_path, extract_dir):
+def parse_pdf(pdf_path, extract_dir=None):
     '''Функция производит лемматизацию и очищение текста слайдов, сохраняет их в указанную папку
 
     :param pdf_path:
     :param extract_dir:
     :return: ['slide1 - full text', ..., 'slideN - full text]
     '''
-    if not os.path.exists(extract_dir):
+
+    if extract_dir is not None and not os.path.exists(extract_dir):
         os.mkdir(extract_dir)
 
     pdf_doc = fitz.open(pdf_path)
@@ -69,8 +70,9 @@ def parse_pdf(pdf_path, extract_dir):
         slide_dict.append(text)
         l_text = text_processor(text, mode="pdf")
 
-        with open("{}/{}_slide.txt".format(extract_dir, page.number), "w") as f:
-            f.write(l_text)
+        if extract_dir is not None:
+            with open("{}/{}_slide.txt".format(extract_dir, page.number), "w") as f:
+                f.write(l_text)
 
     return slide_dict
 

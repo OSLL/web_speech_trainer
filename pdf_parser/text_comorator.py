@@ -25,7 +25,7 @@ def value_slide_checking(slide_text):
     return False
 
 
-def get_weight_scale(text1, text2):
+def get_weight_scale(slide_text, transcript_text):
     '''Мы получаем частоту слов для обоих параметров, затем, в зависимости
     от совпадающих слов и их частот начисляем коэффициент, на который будут
     умножены результаты функции weight_cmp
@@ -34,29 +34,32 @@ def get_weight_scale(text1, text2):
     :param text2:
     :return:
     '''
-    text_tokens1 = word_tokenize(text1)
-    text_tokens2 = word_tokenize(text2)
-    t1 = Text(text_tokens1)
-    t2 = Text(text_tokens2)
-    fdist1 = FreqDist(t1)
-    fdist2 = FreqDist(t2)
+    slide_tokens1 = word_tokenize(slide_text)
+    transcript_tokens2 = word_tokenize(transcript_text)
+    tokenized_slide = Text(slide_tokens1)
+    tokenized_transcript = Text(transcript_tokens2)
+    slide_freq = FreqDist(tokenized_slide)
+    transcript_freq = FreqDist(tokenized_transcript)
 
-    words1 = fdist1.keys()
-    words2 = fdist2.keys()
-    print(words1)
-    print(words2)
-    n = max(len(words1), len(words2))
+    slide_words = slide_freq.keys()
+    transcript_words = transcript_freq.keys()
+
+    n = len(transcript_words)
     k = 0
     count_value_words = 0
 
-    for w in words1:
-        if w in words2:
-            m = max(fdist1[w], fdist2[w])
-            if m > 1:
+    for w in transcript_words:
+        if w in slide_words:
+            w_slide_freq = slide_freq[w]
+            w_transcript_freq = min(transcript_freq[w], w_slide_freq)
+            if w_slide_freq > 1:
                 count_value_words += 1
-                k += m / n
-                print("Слово", w)
-                print("Промежуточный коэф. k =", k)
+                k += w_transcript_freq / n
+                print("Слово: [%s]" % w)
+                print('Trancript Freq:', transcript_freq[w])
+                print('Slide Freq:', slide_freq[w])
+                print('WEIGHT:', w_transcript_freq / n)
+                print("Промежуточный аддитивный WEIGHT коэф. k =", k)
     print("Результирующий весовой коэффициент:", 1 + k/count_value_words)
     return (1 + k / count_value_words)
 
