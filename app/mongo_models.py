@@ -2,8 +2,7 @@ from pymodm import MongoModel, fields
 
 
 class Trainings(MongoModel):
-    username = fields.CharField()
-    task_id = fields.CharField()
+    task_record = fields.CharField()
     passback_parameters = fields.DictField()
     is_passed_back = fields.BooleanField()
     presentation_file_id = fields.ObjectIdField()
@@ -19,6 +18,19 @@ class Trainings(MongoModel):
     slide_switch_timestamps = fields.ListField(blank=True)
     criteria_pack_id = fields.IntegerField(blank=True)
     feedback_evaluator_id = fields.IntegerField(blank=True)
+
+
+class Tasks(MongoModel):
+    task_id = fields.CharField()
+    task_description = fields.CharField()
+    attempt_count = fields.IntegerField()
+    required_points = fields.FloatField()
+
+
+class TaskRecords(MongoModel):
+    username = fields.CharField()
+    task_id = fields.CharField()
+    trainings = fields.ListField(blank=True)
 
 
 class Sessions(MongoModel):

@@ -5,7 +5,7 @@ from flask import Flask, render_template, request, jsonify, send_file, redirect,
 from app.config import Config
 from app.lti_session_passback.auth_checkers import check_auth
 from app.mongo_odm import DBManager, TrainingsDBManager, PresentationFilesDBManager, SessionsDBManager, \
-    ConsumersDBManager
+    ConsumersDBManager, TasksDBManager, TaskRecordsDBManager
 from app.lti_session_passback.lti_module import utils
 from app.lti_session_passback.lti_module.check_request import check_request
 from app.training_manager import TrainingManager
@@ -41,8 +41,8 @@ def show_page():
 def training(presentation_file_id):
     user_session = check_auth()
     app.logger.info('presentation_file_id = {}'.format(presentation_file_id))
-    username = session.get('session_id', 'guest')
-    task_id = session.get('task_id', 'guest_task')
+    username = session.get('session_id', '')
+    task_id = session.get('task_id', '')
     training_id = TrainingsDBManager().add_training(
         presentation_file_id=presentation_file_id,
         username=username,
@@ -187,11 +187,49 @@ def show_all_presentations():
     return render_template('show_all_presentations.html')
 
 
+def build_current_points_str(training_ids):
+    current_points = '['
+    for training_id in training_ids:
+        training_db = TrainingsDBManager().get_training(training_id)
+        if training_db is not None:
+            current_points += training_db.feedback.get('score', '...')
+        else:
+            current_points += '...'
+        current_points += ', '
+    if current_points == '[':
+        return '[]'
+    else:
+        return '[' + current_points[:-2] + ']'
+
+
 @app.route('/training_greeting')
 def training_greeting():
-    username = session.get('session_id', 'guest')
-    task_id = session.get('task_id', 'guest_task')
-    return render_template('training_greeting.html', task_id=task_id, username=username)
+    username = session.get('session_id', '')
+    task_id = session.get('task_id', '')
+    #consumer_key = session.get('consumer_key', '')
+    task_db = TasksDBManager().get_task(task_id)
+    if task_db is None:
+        return 'No such task with id `{}` found'.format(task_id), 404
+    task_description = task_db.task_description
+    required_points = task_db.required_points
+    attempt_count = task_db.attempt_count
+    task_record_db = TaskRecordsDBManager().add_or_get_task_record(username, task_id)
+    attempt_number = len(task_record_db.trainings[-1]) + 1
+    if attempt_number > attempt_count:
+        task_record_db.trainings.append([])
+        task_record_db.save()
+        attempt_number = 1
+    current_points = build_current_points_str(task_record_db.trainings[-1])
+    return render_template(
+        'training_greeting.html',
+        task_id=task_id,
+        username=username,
+        task_description=task_description,
+        current_points=current_points,
+        required_points=required_points,
+        attempt_number=attempt_number,
+        attempt_count=attempt_count,
+    )
 
 
 @app.route('/lti', methods=['POST'])
@@ -206,21 +244,25 @@ def lti():
         secret=consumer_secret
     )
 
-    if check_request(request_info):
-        username = utils.get_username(params)
-        custom_params = utils.get_custom_params(params)
-        task_id = custom_params.get('task_id', 'default_task_id')
-        role = utils.get_role(params)
-        params_for_passback = utils.extract_passback_params(params)
-
-        SessionsDBManager().add_session(username, consumer_key, task_id, params_for_passback, role)
-        session['session_id'] = username
-        session['task_id'] = task_id
-        session['consumer_key'] = consumer_key
-
-        return training_greeting()
-    else:
+    if not check_request(request_info):
         abort(403)
+    username = utils.get_username(params)
+    custom_params = utils.get_custom_params(params)
+    task_id = custom_params.get('task_id', '')
+    task_description = custom_params.get('task_description', '')
+    attempt_count = int(custom_params.get('attempt_count', 1))
+    required_points = float(custom_params.get('required_points', 0))
+    role = utils.get_role(params)
+    params_for_passback = utils.extract_passback_params(params)
+
+    SessionsDBManager().add_session(username, consumer_key, task_id, params_for_passback, role)
+    session['session_id'] = username
+    session['task_id'] = task_id
+    session['consumer_key'] = consumer_key
+
+    TasksDBManager().add_task_if_absent(task_id, task_description, attempt_count, required_points)
+
+    return training_greeting()
 
 
 if __name__ == '__main__':

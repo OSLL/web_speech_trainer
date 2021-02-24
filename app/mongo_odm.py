@@ -12,7 +12,7 @@ from pymodm.files import GridFSStorage
 from app.config import Config
 from app.mongo_models import Trainings, AudioToRecognize, TrainingsToProcess, \
     PresentationsToRecognize, RecognizedAudioToProcess, RecognizedPresentationsToProcess, PresentationFiles, \
-    TrainingsToPassBack, Sessions, Consumers
+    TrainingsToPassBack, Sessions, Consumers, Tasks, TaskRecords
 from app.status import AudioStatus, PresentationStatus, TrainingStatus
 
 
@@ -90,7 +90,10 @@ class TrainingsDBManager:
         return Trainings.objects.all()
 
     def get_training(self, training_id):
-        return Trainings.objects.get({'_id': ObjectId(training_id)})
+        try:
+            return Trainings.objects.get({'_id': ObjectId(training_id)})
+        except Trainings.DoesNotExist:
+            return None
 
     def get_training_by_presentation_file_id(self, presentation_file_id):
         return Trainings.objects.get({'presentation_file_id': presentation_file_id})
@@ -183,8 +186,67 @@ class TrainingsDBManager:
         return training.slide_switch_timestamps
 
     def set_passed_back(self, training, value=True):
-        training.is_passed_back = True
+        training.is_passed_back = value
         training.save()
+
+
+class TasksDBManager:
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super(TasksDBManager, cls).__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
+        return cls.instance
+
+    def get_task(self, task_id):
+        try:
+            return Tasks.objects.get({'task_id': task_id})
+        except Tasks.DoesNotExist:
+            return None
+
+    def add_task(self, task_id, task_description, attempt_count, required_points):
+        return Tasks(
+            task_id=task_id,
+            task_description=task_description,
+            attempt_count=attempt_count,
+            required_points=required_points,
+        ).save()
+
+    def add_task_if_absent(self, task_id, task_description, attempt_count, required_points):
+        task_db = self.get_task(task_id)
+        if task_db is None:
+            return self.add_task(task_id, task_description, attempt_count, required_points)
+        if task_db.task_description != task_description:
+            task_db.task_description = task_description
+        if task_db.attempt_count != attempt_count:
+            task_db.attempt_count = attempt_count
+        if task_db.required_points != required_points:
+            task_db.required_points = required_points
+        return task_db.save()
+
+
+class TaskRecordsDBManager:
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super(TaskRecordsDBManager, cls).__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
+        return cls.instance
+
+    def add_task_record(self, username, task_id, trainings=None):
+        if trainings is None:
+            trainings = [[]]
+        return TaskRecords(
+            username=username,
+            task_id=task_id,
+            trainings=trainings,
+        )
+
+    def add_or_get_task_record(self, username, task_id):
+        try:
+            return TaskRecords.objects.get({'$and': [{'username': username, 'task_id': task_id}]})
+        except TaskRecords.DoesNotExist:
+            return self.add_task_record(username, task_id)
 
 
 class SessionsDBManager:
