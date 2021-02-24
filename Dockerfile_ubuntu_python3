@@ -1,0 +1,6 @@
+FROM ubuntu:18.04
+ENV LANG C.UTF-8
+RUN apt-get update
+RUN apt-get install -y python3-pip vim ffmpeg exiftool inkscape mupdf mupdf-tools
+RUN pip3 install --upgrade pip
+RUN pip3 install --upgrade setuptools
