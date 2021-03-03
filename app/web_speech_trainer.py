@@ -5,7 +5,7 @@ from flask import Flask, render_template, request, jsonify, send_file, redirect,
 from app.config import Config
 from app.lti_session_passback.auth_checkers import check_auth
 from app.mongo_odm import DBManager, TrainingsDBManager, PresentationFilesDBManager, SessionsDBManager, \
-    ConsumersDBManager, TasksDBManager, TaskRecordsDBManager
+    ConsumersDBManager, TasksDBManager, TaskAttemptsDBManager
 from app.lti_session_passback.lti_module import utils
 from app.lti_session_passback.lti_module.check_request import check_request
 from app.training_manager import TrainingManager
@@ -42,12 +42,13 @@ def training(presentation_file_id):
     user_session = check_auth()
     app.logger.info('presentation_file_id = {}'.format(presentation_file_id))
     username = session.get('session_id', '')
-    task_id = session.get('task_id', '')
+    full_name = session.get('full_name', '')
+    task_attempt_id = session.get('task_attempt_id', '')
     training_id = TrainingsDBManager().add_training(
-        presentation_file_id=presentation_file_id,
+        task_attempt_id=task_attempt_id,
         username=username,
-        task_id=task_id,
-        passback_parameters=user_session.tasks.get(task_id, '').get('params_for_passback', '')
+        full_name=full_name,
+        presentation_file_id=presentation_file_id,
     ).pk
     return render_template(
         'training.html',
@@ -146,16 +147,28 @@ def upload():
 
 @app.route('/get_all_trainings')
 def get_all_trainings():
-    # fields = ['datetime', 'score']
-    trainings = TrainingsDBManager().get_trainings()
+    username = request.args.get('username', '')
+    full_name = request.args.get('full_name', '')
+    trainings = TrainingsDBManager().get_trainings_filtered({'username': username, 'full_name': full_name})
+    print(trainings.count())
     trainings_json = {}
     for current_training in trainings:
-        _id = current_training._id
-        datetime = current_training._id.generation_time
+        _id = current_training.pk
+        datetime = current_training.pk.generation_time
+        try:
+            username = current_training.username
+        except AttributeError:
+            username = None
+        try:
+            full_name = current_training.full_name
+        except AttributeError:
+            full_name = None
         score = current_training.feedback.get('score')
         current_training_json = {
             'datetime': datetime,
-            'score': score
+            'score': score,
+            'username': username,
+            'full_name': full_name,
         }
         trainings_json[str(_id)] = current_training_json
     return trainings_json
@@ -163,7 +176,9 @@ def get_all_trainings():
 
 @app.route('/show_all_trainings')
 def show_all_trainings():
-    return render_template('show_all_trainings.html')
+    username = request.args.get('username', '')
+    full_name = request.args.get('full_name', '')
+    return render_template('show_all_trainings.html', username=username, full_name=full_name)
 
 
 @app.route('/get_all_presentations')
@@ -192,34 +207,45 @@ def build_current_points_str(training_ids):
     for training_id in training_ids:
         training_db = TrainingsDBManager().get_training(training_id)
         if training_db is not None:
-            current_points += training_db.feedback.get('score', '...')
+            current_points += str(training_db.feedback.get('score', '...'))
         else:
             current_points += '...'
         current_points += ', '
     if current_points == '[':
         return '[]'
     else:
-        return '[' + current_points[:-2] + ']'
+        return current_points[:-2] + ']'
 
 
 @app.route('/training_greeting')
 def training_greeting():
+    user_session = check_auth()
     username = session.get('session_id', '')
     task_id = session.get('task_id', '')
-    #consumer_key = session.get('consumer_key', '')
     task_db = TasksDBManager().get_task(task_id)
     if task_db is None:
         return 'No such task with id `{}` found'.format(task_id), 404
     task_description = task_db.task_description
     required_points = task_db.required_points
     attempt_count = task_db.attempt_count
-    task_record_db = TaskRecordsDBManager().add_or_get_task_record(username, task_id)
-    attempt_number = len(task_record_db.trainings[-1]) + 1
-    if attempt_number > attempt_count:
-        task_record_db.trainings.append([])
-        task_record_db.save()
-        attempt_number = 1
-    current_points = build_current_points_str(task_record_db.trainings[-1])
+    current_task_attempt = TaskAttemptsDBManager().get_current_task_attempt(username, task_id)
+    if current_task_attempt is not None:
+        print(current_task_attempt.training_scores)
+        training_number = len(current_task_attempt.training_scores) + 1
+    else:
+        training_number = 1
+    print('num = {}'.format(training_number))
+    if current_task_attempt is None or training_number > attempt_count:
+        current_task_attempt = TaskAttemptsDBManager().add_task_attempt(
+            username,
+            task_id,
+            user_session.tasks.get(task_id, '').get('params_for_passback', ''),
+            attempt_count,
+        )
+        training_number = 1
+    task_attempt_count = TaskAttemptsDBManager().get_attempts_count(username, task_id)
+    current_points = build_current_points_str(current_task_attempt.training_scores.keys())
+    session['task_attempt_id'] = str(current_task_attempt.pk)
     return render_template(
         'training_greeting.html',
         task_id=task_id,
@@ -227,7 +253,8 @@ def training_greeting():
         task_description=task_description,
         current_points=current_points,
         required_points=required_points,
-        attempt_number=attempt_number,
+        attempt_number=task_attempt_count,
+        training_number=training_number,
         attempt_count=attempt_count,
     )
 
@@ -235,6 +262,7 @@ def training_greeting():
 @app.route('/lti', methods=['POST'])
 def lti():
     params = request.form
+    print(params)
     consumer_key = params.get('oauth_consumer_key', '')
     consumer_secret = ConsumersDBManager().get_secret(consumer_key)
     request_info = dict(
@@ -246,6 +274,7 @@ def lti():
 
     if not check_request(request_info):
         abort(403)
+    full_name = utils.get_person_name(params)
     username = utils.get_username(params)
     custom_params = utils.get_custom_params(params)
     task_id = custom_params.get('task_id', '')
@@ -259,6 +288,7 @@ def lti():
     session['session_id'] = username
     session['task_id'] = task_id
     session['consumer_key'] = consumer_key
+    session['full_name'] = full_name
 
     TasksDBManager().add_task_if_absent(task_id, task_description, attempt_count, required_points)
 

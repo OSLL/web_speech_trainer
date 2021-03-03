@@ -4,7 +4,6 @@ from app.mongo_odm import SessionsDBManager
 
 
 def check_auth():
-    session_id = session.get('session_id', None)
     user_session = SessionsDBManager().get_session(
         session.get('session_id', None),
         session.get('consumer_key', None),
