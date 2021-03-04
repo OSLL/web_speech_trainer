@@ -14,6 +14,7 @@ ln -s /etc/apache2/sites-available/${config} /etc/apache2/sites-enabled/${config
 a2ensite ${site_name}
 
 a2enmod proxy proxy_http rewrite ${ssl_mod}
+a2enmod headers
 
 a2dissite default-ssl
 

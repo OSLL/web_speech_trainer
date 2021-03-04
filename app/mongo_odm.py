@@ -270,14 +270,20 @@ class TaskAttemptsDBManager:
         else:
             return None
 
-    def update_scores(self, task_attempt_id, training_id, score):
-        try:
-            task_attempt = TaskAttempts.objects.get({'_id': ObjectId(task_attempt_id)})
-            task_attempt.training_scores[str(training_id)] = score
-            self.submit_scores_for_passback(task_attempt)
-            return task_attempt.save()
-        except TaskAttempts.DoesNotExist:
+    def add_training(self, task_attempt_id, training_id):
+        task_attempt_db = self.get_task_attempt(task_attempt_id)
+        if task_attempt_db is None:
             return
+        task_attempt_db.training_scores[str(training_id)] = None
+        return task_attempt_db.save()
+
+    def update_scores(self, task_attempt_id, training_id, score):
+        task_attempt_db = self.get_task_attempt(task_attempt_id)
+        if task_attempt_db is None:
+            return
+        task_attempt_db.training_scores[str(training_id)] = score
+        self.submit_scores_for_passback(task_attempt_db)
+        return task_attempt_db.save()
 
     def submit_scores_for_passback(self, task_attempt):
         TaskAttemptsToPassBackDBManager().add_task_attempt_to_pass_back(task_attempt.pk)

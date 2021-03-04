@@ -10,18 +10,24 @@ class TaskAttemptToPassBackProcessor:
     def grade_passback(self, task_attempt_db):
         params_for_passback = task_attempt_db.params_for_passback
         consumer_secret = ConsumersDBManager().get_secret(params_for_passback['oauth_consumer_key'])
-        score = sum(task_attempt_db.training_scores.values()) / task_attempt_db.training_count
+        training_count = task_attempt_db.training_count
+        if training_count == 0:
+            normalized_score = 0
+        else:
+            total_score = sum([score if score is not None else 0 for score in task_attempt_db.training_scores.values()])
+            normalized_score = total_score / training_count
         response = ToolProvider.from_unpacked_request(
             secret=consumer_secret,
             params=params_for_passback,
             headers=None,
             url=None
-        ).post_replace_result(score=score)
+        ).post_replace_result(score=normalized_score)
         if response.code_major == 'success' and response.severity == 'status':
             TaskAttemptsDBManager().set_passed_back(task_attempt_db)
-            print('Success: score = {}'.format(score))
+            print('Success: score = {}'.format(normalized_score))
         else:
-            print('Passback fail: {}'.format(task_attempt_db._id))
+            TaskAttemptsDBManager().set_passed_back(task_attempt_db, value=False)
+            print('Passback fail: {}'.format(task_attempt_db.pk))
 
     def run(self):
         while True:

@@ -50,6 +50,7 @@ def training(presentation_file_id):
         full_name=full_name,
         presentation_file_id=presentation_file_id,
     ).pk
+    TaskAttemptsDBManager().add_training(task_attempt_id, training_id)
     return render_template(
         'training.html',
         presentation_file_id=presentation_file_id,
@@ -230,7 +231,6 @@ def training_greeting():
     attempt_count = task_db.attempt_count
     current_task_attempt = TaskAttemptsDBManager().get_current_task_attempt(username, task_id)
     if current_task_attempt is not None:
-        print(current_task_attempt.training_scores)
         training_number = len(current_task_attempt.training_scores) + 1
     else:
         training_number = 1
@@ -262,7 +262,6 @@ def training_greeting():
 @app.route('/lti', methods=['POST'])
 def lti():
     params = request.form
-    print(params)
     consumer_key = params.get('oauth_consumer_key', '')
     consumer_secret = ConsumersDBManager().get_secret(consumer_key)
     request_info = dict(
@@ -295,8 +294,21 @@ def lti():
     return training_greeting()
 
 
+class ReverseProxied(object):
+    def __init__(self, app):
+        self.app = app
+
+    def __call__(self, environ, start_response):
+        forwarded_scheme = environ.get("HTTP_X_FORWARDED_PROTO", None)
+        preferred_scheme = app.config.get("PREFERRED_URL_SCHEME", None)
+        if "https" in [forwarded_scheme, preferred_scheme]:
+            environ["wsgi.url_scheme"] = "https"
+        return self.app(environ, start_response)
+
+
 if __name__ == '__main__':
     Config.init_config('config.ini')
+    app.wsgi_app = ReverseProxied(app.wsgi_app)
     app.logger.setLevel(logging.INFO)
     app.secret_key = Config.c.constants.app_secret_key
     if not ConsumersDBManager().is_key_valid(Config.c.constants.lti_consumer_key):
