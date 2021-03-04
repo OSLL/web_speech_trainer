@@ -2,10 +2,9 @@ from pymodm import MongoModel, fields
 
 
 class Trainings(MongoModel):
-    username = fields.CharField()
-    task_id = fields.CharField()
-    passback_parameters = fields.DictField()
-    is_passed_back = fields.BooleanField()
+    task_attempt_id = fields.CharField(blank=True)
+    username = fields.CharField(blank=True)
+    full_name = fields.CharField(blank=True)
     presentation_file_id = fields.ObjectIdField()
     recognized_presentation_id = fields.ObjectIdField()
     presentation_id = fields.ObjectIdField()
@@ -19,6 +18,26 @@ class Trainings(MongoModel):
     slide_switch_timestamps = fields.ListField(blank=True)
     criteria_pack_id = fields.IntegerField(blank=True)
     feedback_evaluator_id = fields.IntegerField(blank=True)
+
+
+class Tasks(MongoModel):
+    task_id = fields.CharField()
+    task_description = fields.CharField()
+    attempt_count = fields.IntegerField()
+    required_points = fields.FloatField()
+
+
+class TaskAttempts(MongoModel):
+    username = fields.CharField()
+    task_id = fields.CharField()
+    params_for_passback = fields.DictField()
+    training_count = fields.IntegerField()
+    training_scores = fields.OrderedDictField(blank=True)
+    is_passed_back = fields.BooleanField()
+
+
+class TaskAttemptsToPassBack(MongoModel):
+    task_attempt_id = fields.ObjectIdField()
 
 
 class Sessions(MongoModel):
@@ -58,11 +77,6 @@ class RecognizedAudioToProcess(MongoModel):
 
 class TrainingsToProcess(MongoModel):
     training_id = fields.ObjectIdField()
-
-
-class TrainingsToPassBack(MongoModel):
-    training_id = fields.ObjectIdField()
-
 
 class FeedbackEvaluators(MongoModel):
     name = fields.CharField()

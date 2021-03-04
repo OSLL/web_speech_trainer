@@ -12,7 +12,7 @@ from pymodm.files import GridFSStorage
 from app.config import Config
 from app.mongo_models import Trainings, AudioToRecognize, TrainingsToProcess, \
     PresentationsToRecognize, RecognizedAudioToProcess, RecognizedPresentationsToProcess, PresentationFiles, \
-    TrainingsToPassBack, Sessions, Consumers
+    Sessions, Consumers, Tasks, TaskAttempts, TaskAttemptsToPassBack
 from app.status import AudioStatus, PresentationStatus, TrainingStatus
 
 
@@ -58,27 +58,23 @@ class TrainingsDBManager:
 
     def add_training(
             self,
-            presentation_file_id,
+            task_attempt_id,
             username,
-            task_id,
-            passback_parameters=None,
-            is_passed_back=False,
+            full_name,
+            presentation_file_id,
             slide_switch_timestamps=None,
             status=TrainingStatus.PREPARING,
             audio_status=AudioStatus.NEW,
             presentation_status=PresentationStatus.NEW,
             criteria_pack_id=None,
     ):
-        if passback_parameters is None:
-            passback_parameters = {}
         if slide_switch_timestamps is None:
             slide_switch_timestamps = []
         return Trainings(
-            presentation_file_id=presentation_file_id,
+            task_attempt_id=task_attempt_id,
             username=username,
-            task_id=task_id,
-            is_passed_back=is_passed_back,
-            passback_parameters=passback_parameters,
+            full_name=full_name,
+            presentation_file_id=presentation_file_id,
             slide_switch_timestamps=slide_switch_timestamps,
             status=status,
             audio_status=audio_status,
@@ -89,8 +85,17 @@ class TrainingsDBManager:
     def get_trainings(self):
         return Trainings.objects.all()
 
+    def get_trainings_filtered(self, filters):
+        for (key, value) in filters.copy().items():
+            if not value:
+                filters.pop(key)
+        return Trainings.objects.raw({'$and': [filters]})
+
     def get_training(self, training_id):
-        return Trainings.objects.get({'_id': ObjectId(training_id)})
+        try:
+            return Trainings.objects.get({'_id': ObjectId(training_id)})
+        except Trainings.DoesNotExist:
+            return None
 
     def get_training_by_presentation_file_id(self, presentation_file_id):
         return Trainings.objects.get({'presentation_file_id': presentation_file_id})
@@ -182,9 +187,110 @@ class TrainingsDBManager:
         training = self.get_training_by_recognized_presentation_id(recognized_presentation_id)
         return training.slide_switch_timestamps
 
-    def set_passed_back(self, training, value=True):
-        training.is_passed_back = True
-        training.save()
+
+class TasksDBManager:
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super(TasksDBManager, cls).__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
+        return cls.instance
+
+    def get_task(self, task_id):
+        try:
+            return Tasks.objects.get({'task_id': task_id})
+        except Tasks.DoesNotExist:
+            return None
+
+    def add_task(self, task_id, task_description, attempt_count, required_points):
+        return Tasks(
+            task_id=task_id,
+            task_description=task_description,
+            attempt_count=attempt_count,
+            required_points=required_points,
+        ).save()
+
+    def add_task_if_absent(self, task_id, task_description, attempt_count, required_points):
+        task_db = self.get_task(task_id)
+        if task_db is None:
+            return self.add_task(task_id, task_description, attempt_count, required_points)
+        if task_db.task_description != task_description:
+            task_db.task_description = task_description
+        if task_db.attempt_count != attempt_count:
+            task_db.attempt_count = attempt_count
+        if task_db.required_points != required_points:
+            task_db.required_points = required_points
+        return task_db.save()
+
+
+class TaskAttemptsDBManager:
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super(TaskAttemptsDBManager, cls).__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
+        return cls.instance
+
+    def add_task_attempt(
+            self,
+            username,
+            task_id,
+            params_for_passback,
+            training_count,
+            training_scores=None,
+            is_passed_back=False
+    ):
+        if training_scores is None:
+            training_scores = {}
+        return TaskAttempts(
+            username=username,
+            task_id=task_id,
+            params_for_passback=params_for_passback,
+            training_count=training_count,
+            training_scores=training_scores,
+            is_passed_back=is_passed_back,
+        ).save()
+
+    def get_task_attempt(self, task_attempt_id):
+        try:
+            return TaskAttempts.objects.get({'_id': ObjectId(task_attempt_id)})
+        except TaskAttempts.DoesNotExist:
+            return None
+
+    def get_attempts_count(self, username, task_id):
+        return TaskAttempts.objects.raw({'$and': [{'username': username, 'task_id': task_id}]}).count()
+
+    def get_current_task_attempt(self, username, task_id):
+        obj = TaskAttempts.objects \
+            .raw({'$and': [{'username': username, 'task_id': task_id}]}) \
+            .order_by([('_id', pymongo.DESCENDING)]) \
+            .limit(1)
+        if obj.count():
+            return obj.first()
+        else:
+            return None
+
+    def add_training(self, task_attempt_id, training_id):
+        task_attempt_db = self.get_task_attempt(task_attempt_id)
+        if task_attempt_db is None:
+            return
+        task_attempt_db.training_scores[str(training_id)] = None
+        return task_attempt_db.save()
+
+    def update_scores(self, task_attempt_id, training_id, score):
+        task_attempt_db = self.get_task_attempt(task_attempt_id)
+        if task_attempt_db is None:
+            return
+        task_attempt_db.training_scores[str(training_id)] = score
+        self.submit_scores_for_passback(task_attempt_db)
+        return task_attempt_db.save()
+
+    def submit_scores_for_passback(self, task_attempt):
+        TaskAttemptsToPassBackDBManager().add_task_attempt_to_pass_back(task_attempt.pk)
+
+    def set_passed_back(self, task_attempt, value=True):
+        task_attempt.is_passed_back = value
+        task_attempt.save()
 
 
 class SessionsDBManager:
@@ -265,27 +371,27 @@ class ConsumersDBManager:
             return
 
 
-class TrainingsToPassBackDBManager:
+class TaskAttemptsToPassBackDBManager:
     def __new__(cls):
         if not hasattr(cls, 'init_done'):
-            cls.instance = super(TrainingsToPassBackDBManager, cls).__new__(cls)
+            cls.instance = super(TaskAttemptsToPassBackDBManager, cls).__new__(cls)
             connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
             cls.init_done = True
         return cls.instance
 
-    def add_training_to_pass_back(self, training_id):
-        return TrainingsToPassBack(
-            training_id=training_id
+    def add_task_attempt_to_pass_back(self, task_attempt_id):
+        return TaskAttemptsToPassBack(
+            task_attempt_id=task_attempt_id,
         ).save()
 
-    def extract_training_id_to_pass_back(self):
-        obj = TrainingsToPassBack.objects.model._mongometa.collection.find_one_and_delete(
+    def extract_task_attempt_id_to_pass_back(self):
+        obj = TaskAttemptsToPassBack.objects.model._mongometa.collection.find_one_and_delete(
             filter={},
             sort=[('_id', pymongo.ASCENDING)]
         )
         if obj is None:
             return None
-        return obj['training_id']
+        return obj['task_attempt_id']
 
 
 class TrainingsToProcessDBManager:
@@ -422,5 +528,8 @@ class PresentationFilesDBManager:
         return PresentationFiles.objects.all()
 
     def get_preview_id_by_file_id(self, file_id):
-        presentation_file = PresentationFiles.objects.get({'file_id': ObjectId(file_id)})
-        return presentation_file.preview_id
+        try:
+            presentation_file = PresentationFiles.objects.get({'file_id': ObjectId(file_id)})
+            return presentation_file.preview_id
+        except PresentationFiles.DoesNotExist:
+            return None
