@@ -2,7 +2,7 @@
 
 apache_config_filename=${1}
 apache_ssl_mod=${2:-''}
-source scripts/setup_apache_config.sh $apache_config_filename $apache_ssl_mod
+source sudo scripts/setup_apache_config.sh $apache_config_filename $apache_ssl_mod
 
 mkdir -p ../mongo_data
 docker-compose build
