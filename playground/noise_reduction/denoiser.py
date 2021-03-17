@@ -1,12 +1,12 @@
+import array
+import math
+
 import librosa
 import noisereduce as nr
 import numpy as np
-import math
-import array
 import python_speech_features as psf
 from pydub import AudioSegment
 from pysndfx import AudioEffectsChain
-from tempfile import NamedTemporaryFile
 
 
 class Denoiser:
@@ -41,7 +41,7 @@ class Denoiser:
                 (data / data.max() if data.max() != 0 else data) * np.iinfo(
                     audiosegment.array_type
                 ).max
-            ).astype(np.int)
+            ).astype(np.short)
         )
 
         new_segment = audiosegment._spawn(data_array)
