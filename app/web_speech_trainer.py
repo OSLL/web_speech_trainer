@@ -44,11 +44,14 @@ def training(presentation_file_id):
     username = session.get('session_id', '')
     full_name = session.get('full_name', '')
     task_attempt_id = session.get('task_attempt_id', '')
+    task_id = session.get('task_id', '')
+    criteria_pack_id = TasksDBManager().get_task(task_id) or 0
     training_id = TrainingsDBManager().add_training(
         task_attempt_id=task_attempt_id,
         username=username,
         full_name=full_name,
         presentation_file_id=presentation_file_id,
+        criteria_pack_id=criteria_pack_id,
     ).pk
     TaskAttemptsDBManager().add_training(task_attempt_id, training_id)
     return render_template(
@@ -280,6 +283,7 @@ def lti():
     task_description = custom_params.get('task_description', '')
     attempt_count = int(custom_params.get('attempt_count', 1))
     required_points = float(custom_params.get('required_points', 0))
+    criteria_pack_id = int(custom_params.get('criteria_pack_id', 0))
     role = utils.get_role(params)
     params_for_passback = utils.extract_passback_params(params)
 
@@ -289,7 +293,7 @@ def lti():
     session['consumer_key'] = consumer_key
     session['full_name'] = full_name
 
-    TasksDBManager().add_task_if_absent(task_id, task_description, attempt_count, required_points)
+    TasksDBManager().add_task_if_absent(task_id, task_description, attempt_count, required_points, criteria_pack_id)
 
     return training_greeting()
 

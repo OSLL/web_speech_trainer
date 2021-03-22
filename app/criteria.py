@@ -191,8 +191,13 @@ class FillersRatioCriterion(Criterion):
             return CriterionResult(1)
         fillers_count = 0
         for audio_slide in audio.audio_slides:
-            audio_slide_words = audio_slide.recognized_words
-            for recognized_word in audio_slide_words:
-                if recognized_word.word.value in fillers:
-                    fillers_count += 1
+            audio_slide_words = [recognized_word.word.value for recognized_word in audio_slide.recognized_words]
+            for i in range(len(audio_slide_words)):
+                for filler in fillers:
+                    filler_split = filler.split()
+                    filler_length = len(filler_split)
+                    if i + filler_length > len(audio_slide_words):
+                        continue
+                    if audio_slide_words[i: i + filler_length] == filler_split:
+                        fillers_count += 1
         return CriterionResult(1 - fillers_count / total_words)
