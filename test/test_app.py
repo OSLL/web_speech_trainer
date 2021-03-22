@@ -17,11 +17,11 @@ def test_home_page():
 
 
 def test_fillers_ratio_criteria():
-    criteria = FillersRatioCriterion(
-        parameters={'fillers': ['а', 'ну']},
+    criterion = FillersRatioCriterion(
+        parameters={'fillers': ['а', 'ну', 'это самое']},
         dependent_criteria=[],
     )
     with open('test_audio.json', 'rb') as test_audio_file:
         test_audio = Audio.from_json_file(test_audio_file)
-        criteria_result = criteria.apply(test_audio, presentation=None, criteria_results={})
-        assert criteria_result.result == 1 - 1 / 893
+        criterion_result = criterion.apply(test_audio, presentation=None, criteria_results={})
+        assert criterion_result.result == 1 - 1 / 893

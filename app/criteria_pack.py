@@ -11,9 +11,9 @@ class CriteriaPack:
     def add_criterion_result(self, name, criterion_result):
         self.criteria_results[name] = criterion_result
 
-    def apply(self, audio, presentation):
+    def apply(self, audio, presentation, training_id):
         for criterion in self.criteria:
-            criterion_result = criterion.apply(audio, presentation, self.criteria_results)
+            criterion_result = criterion.apply(audio, presentation, training_id, self.criteria_results)
             self.add_criterion_result(criterion.name, criterion_result)
         return self.criteria_results
 
@@ -61,20 +61,71 @@ class PaceAndDurationCriteriaPack(CriteriaPack):
         )
 
 
+DEFAULT_FILLERS_RATIO_CRITERION = FillersRatioCriterion(
+    parameters={
+        'fillers': [
+            'короче',
+            'однако',
+            'это',
+            'типа',
+            'как бы',
+            'это самое',
+            'как сказать',
+            'в общем-то',
+            'в общем то',
+            'знаешь',
+            'ну',
+            'то есть',
+            'так сказать',
+            'понимаешь',
+            'собственно',
+            'в принципе',
+            'допустим',
+            'например',
+            'слушай',
+            'собственно говоря',
+            'кстати',
+            'вообще',
+            'кажется',
+            'вероятно',
+            'значит',
+            'на самом деле',
+            'просто',
+            'сложно сказать',
+            'конкретно',
+            'вот',
+            'ладно',
+            'блин',
+            'так',
+            'походу',
+        ]
+    },
+    dependent_criteria=[],
+)
+
+
 class FillersRatioCriteriaPack(CriteriaPack):
     CLASS_NAME = 'FillersRatioCriteriaPack'
     CRITERIA_PACK_ID = 3
 
     def __init__(self):
-        fillers_ratio_criterion = FillersRatioCriterion(
-            parameters={'fillers': ['а', 'ну', 'вот']},
-            dependent_criteria=[],
-        )
-
         super().__init__(
             name=FillersRatioCriteriaPack.CLASS_NAME,
-            criteria=[fillers_ratio_criterion],
+            criteria=[DEFAULT_FILLERS_RATIO_CRITERION],
         )
+
+
+DEFAULT_SPEECH_IS_NOT_IN_DATABASE_CRITERION = SpeechIsNotInDatabaseCriterion(
+    parameters={
+        'sample_rate': 22050,
+        'window_size': 1,
+        'window_step': 0.5,
+        'sample_rate_decrease_ratio': 10,
+        'dist_threshold': 0.06,
+        'common_ratio_threshold': 0.7
+    },
+    dependent_criteria=[],
+)
 
 
 class DuplicateAudioCriteriaPack(CriteriaPack):
@@ -82,21 +133,96 @@ class DuplicateAudioCriteriaPack(CriteriaPack):
     CRITERIA_PACK_ID = 4
 
     def __init__(self):
-        speech_is_not_in_database_criterion = SpeechIsNotInDatabaseCriterion(
+        super().__init__(
+            name=DuplicateAudioCriteriaPack.CLASS_NAME,
+            criteria=[DEFAULT_SPEECH_IS_NOT_IN_DATABASE_CRITERION],
+        )
+
+
+class TenMinutesTrainingCriteriaPack(CriteriaPack):
+    CLASS_NAME = 'TenMinutesTrainingCriteriaPack'
+    CRITERIA_PACK_ID = 5
+
+    def __init__(self):
+        speech_is_not_too_long_criterion = SpeechIsNotTooLongCriterion(
+            parameters={'maximal_allowed_duration': 10 * 60},
+            dependent_criteria=[],
+        )
+
+        speech_pace_criterion = SpeechPaceCriterion(
             parameters={
-                'sample_rate': 22050,
-                'window_size': 1,
-                'window_step': 0.5,
-                'sample_rate_decrease_ratio': 10,
-                'dist_threshold': 0.06,
-                'common_ratio_threshold': 0.7
+                'minimal_allowed_pace': 75,
+                'maximal_allowed_pace': 175,
             },
             dependent_criteria=[],
         )
 
         super().__init__(
-            name=DuplicateAudioCriteriaPack.CLASS_NAME,
-            criteria=[speech_is_not_in_database_criterion],
+            name=TenMinutesTrainingCriteriaPack.CLASS_NAME,
+            criteria=[
+                speech_is_not_too_long_criterion,
+                speech_pace_criterion,
+                DEFAULT_SPEECH_IS_NOT_IN_DATABASE_CRITERION,
+                DEFAULT_FILLERS_RATIO_CRITERION,
+            ],
+        )
+
+
+class FifteenMinutesTrainingCriteriaPack(CriteriaPack):
+    CLASS_NAME = 'FifteenMinutesTrainingCriteriaPack'
+    CRITERIA_PACK_ID = 6
+
+    def __init__(self):
+        speech_is_not_too_long_criterion = SpeechIsNotTooLongCriterion(
+            parameters={'maximal_allowed_duration': 15 * 60},
+            dependent_criteria=[],
+        )
+
+        speech_pace_criterion = SpeechPaceCriterion(
+            parameters={
+                'minimal_allowed_pace': 75,
+                'maximal_allowed_pace': 175,
+            },
+            dependent_criteria=[],
+        )
+
+        super().__init__(
+            name=FifteenMinutesTrainingCriteriaPack.CLASS_NAME,
+            criteria=[
+                speech_is_not_too_long_criterion,
+                speech_pace_criterion,
+                DEFAULT_SPEECH_IS_NOT_IN_DATABASE_CRITERION,
+                DEFAULT_FILLERS_RATIO_CRITERION,
+            ],
+        )
+
+
+class TwentyMinutesTrainingCriteriaPack(CriteriaPack):
+    CLASS_NAME = 'TwentyMinutesTrainingCriteriaPack'
+    CRITERIA_PACK_ID = 7
+
+    def __init__(self):
+        speech_is_not_too_long_criterion = SpeechIsNotTooLongCriterion(
+            parameters={'maximal_allowed_duration': 20 * 60},
+            dependent_criteria=[],
+        )
+
+        speech_pace_criterion = SpeechPaceCriterion(
+            parameters={
+                'minimal_allowed_pace': 75,
+                'maximal_allowed_pace': 175,
+            },
+            dependent_criteria=[],
+        )
+
+        super().__init__(
+            name=TwentyMinutesTrainingCriteriaPack.CLASS_NAME,
+            criteria=[
+                speech_is_not_too_long_criterion,
+                speech_pace_criterion,
+                DEFAULT_SPEECH_IS_NOT_IN_DATABASE_CRITERION,
+                DEFAULT_FILLERS_RATIO_CRITERION,
+            ],
         )
 
 
@@ -105,6 +231,9 @@ CRITERIA_PACK_CLASS_BY_ID = {
     PaceAndDurationCriteriaPack.CRITERIA_PACK_ID: PaceAndDurationCriteriaPack,
     FillersRatioCriteriaPack.CRITERIA_PACK_ID: FillersRatioCriteriaPack,
     DuplicateAudioCriteriaPack.CRITERIA_PACK_ID: DuplicateAudioCriteriaPack,
+    TenMinutesTrainingCriteriaPack.CRITERIA_PACK_ID: TenMinutesTrainingCriteriaPack,
+    FifteenMinutesTrainingCriteriaPack.CRITERIA_PACK_ID: FifteenMinutesTrainingCriteriaPack,
+    TwentyMinutesTrainingCriteriaPack.CRITERIA_PACK_ID: TwentyMinutesTrainingCriteriaPack,
 }
 
 

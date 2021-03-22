@@ -25,6 +25,7 @@ class Tasks(MongoModel):
     task_description = fields.CharField()
     attempt_count = fields.IntegerField()
     required_points = fields.FloatField()
+    criteria_pack_id = fields.IntegerField()
 
 
 class TaskAttempts(MongoModel):

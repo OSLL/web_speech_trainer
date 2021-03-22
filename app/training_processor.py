@@ -27,7 +27,7 @@ class TrainingProcessor:
                 criteria_pack = CriteriaPackFactory().get_criteria_pack(criteria_pack_id)
                 feedback_evaluator_id = training_db.feedback_evaluator_id
                 feedback_evaluator = FeedbackEvaluatorFactory().get_feedback_evaluator(feedback_evaluator_id)
-                training = Training(audio, presentation, criteria_pack, feedback_evaluator)
+                training = Training(training_id, audio, presentation, criteria_pack, feedback_evaluator)
                 feedback = training.evaluate_feedback()
                 TrainingsDBManager().add_feedback(training_id, feedback.to_dict())
                 TrainingsDBManager().change_training_status(training_id, PresentationStatus.PROCESSED)

@@ -210,7 +210,7 @@ class TasksDBManager:
             required_points=required_points,
         ).save()
 
-    def add_task_if_absent(self, task_id, task_description, attempt_count, required_points):
+    def add_task_if_absent(self, task_id, task_description, attempt_count, required_points, criteria_pack_id):
         task_db = self.get_task(task_id)
         if task_db is None:
             return self.add_task(task_id, task_description, attempt_count, required_points)
@@ -220,6 +220,8 @@ class TasksDBManager:
             task_db.attempt_count = attempt_count
         if task_db.required_points != required_points:
             task_db.required_points = required_points
+        if task_db.criteria_pack_id != criteria_pack_id:
+            task_db.criteria_pack_id = criteria_pack_id
         return task_db.save()
 
 
