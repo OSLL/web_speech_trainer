@@ -45,7 +45,8 @@ def training(presentation_file_id):
     full_name = session.get('full_name', '')
     task_attempt_id = session.get('task_attempt_id', '')
     task_id = session.get('task_id', '')
-    criteria_pack_id = TasksDBManager().get_task(task_id) or 0
+    task_db = TasksDBManager().get_task(task_id)
+    criteria_pack_id = 0 if task_db is None else task_db.criteria_pack_id
     training_id = TrainingsDBManager().add_training(
         task_attempt_id=task_attempt_id,
         username=username,

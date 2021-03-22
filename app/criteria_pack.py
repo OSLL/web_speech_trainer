@@ -11,9 +11,9 @@ class CriteriaPack:
     def add_criterion_result(self, name, criterion_result):
         self.criteria_results[name] = criterion_result
 
-    def apply(self, audio, presentation):
+    def apply(self, audio, presentation, training_id):
         for criterion in self.criteria:
-            criterion_result = criterion.apply(audio, presentation, self.criteria_results)
+            criterion_result = criterion.apply(audio, presentation, training_id, self.criteria_results)
             self.add_criterion_result(criterion.name, criterion_result)
         return self.criteria_results
 

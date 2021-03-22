@@ -25,7 +25,7 @@ class Criterion:
         self.parameters = parameters
         self.dependent_criteria = dependent_criteria
 
-    def apply(self, audio, presentation, criteria_results):
+    def apply(self, audio, presentation, training_id, criteria_results):
         pass
 
 
@@ -39,7 +39,7 @@ class SpeechIsNotTooLongCriterion(Criterion):
             dependent_criteria=dependent_criteria,
         )
 
-    def apply(self, audio, presentation, criteria_results):
+    def apply(self, audio, presentation, training_id, criteria_results):
         maximal_allowed_duration = self.parameters['maximal_allowed_duration']
         if audio.audio_stats['duration'] <= maximal_allowed_duration:
             return CriterionResult(result=1)
@@ -121,18 +121,22 @@ class SpeechIsNotInDatabaseCriterion(Criterion):
 
         return length / min_len
 
-    def apply(self, audio, presentation, criteria_results):
-        audio = convert_from_mp3_to_wav(audio, frame_rate=self.parameters['sample_rate'])
+    def apply(self, audio, presentation, training_id, criteria_results):
+        current_audio_id = TrainingsDBManager().get_training(training_id).presentation_record_file_id
+        current_audio_file = DBManager().get_file(current_audio_id)
+        current_audio_file = convert_from_mp3_to_wav(current_audio_file, frame_rate=self.parameters['sample_rate'])
 
         db_audio_ids = [
             training.presentation_record_file_id
             for training in TrainingsDBManager().get_trainings()
         ]
         for db_audio_id in db_audio_ids:
+            if db_audio_id == current_audio_id:
+                continue
             db_audio_mp3 = DBManager().get_file(db_audio_id)
             db_audio = convert_from_mp3_to_wav(db_audio_mp3, frame_rate=self.parameters['sample_rate'])
 
-            aligned_audio = self.align(audio,
+            aligned_audio = self.align(current_audio_file,
                                        self.parameters['sample_rate'],
                                        db_audio,
                                        self.parameters['sample_rate'],
@@ -161,7 +165,7 @@ class SpeechPaceCriterion(Criterion):
             dependent_criteria=dependent_criteria,
         )
 
-    def apply(self, audio, presentation, criteria_results):
+    def apply(self, audio, presentation, training_id, criteria_results):
         minimal_allowed_pace = self.parameters['minimal_allowed_pace']
         maximal_allowed_pace = self.parameters['maximal_allowed_pace']
         pace = audio.audio_stats['words_per_minute']
@@ -184,7 +188,7 @@ class FillersRatioCriterion(Criterion):
             dependent_criteria=dependent_criteria,
         )
 
-    def apply(self, audio, presentation, criteria_results):
+    def apply(self, audio, presentation, training_id, criteria_results):
         fillers = self.parameters['fillers']
         total_words = audio.audio_stats['total_words']
         if total_words == 0:
