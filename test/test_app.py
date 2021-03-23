@@ -23,5 +23,5 @@ def test_fillers_ratio_criteria():
     )
     with open('test_audio.json', 'rb') as test_audio_file:
         test_audio = Audio.from_json_file(test_audio_file)
-        criterion_result = criterion.apply(test_audio, presentation=None, criteria_results={})
+        criterion_result = criterion.apply(test_audio, presentation=None, training_id=None, criteria_results={})
         assert criterion_result.result == 1 - 1 / 893

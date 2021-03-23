@@ -125,7 +125,7 @@ class SpeechIsNotInDatabaseCriterion(Criterion):
         current_audio_id = TrainingsDBManager().get_training(training_id).presentation_record_file_id
         current_audio_file = DBManager().get_file(current_audio_id)
         current_audio_file = convert_from_mp3_to_wav(current_audio_file, frame_rate=self.parameters['sample_rate'])
-
+        current_audio_file, _ = librosa.load(current_audio_file.name)
         db_audio_ids = [
             training.presentation_record_file_id
             for training in TrainingsDBManager().get_trainings()
@@ -135,7 +135,7 @@ class SpeechIsNotInDatabaseCriterion(Criterion):
                 continue
             db_audio_mp3 = DBManager().get_file(db_audio_id)
             db_audio = convert_from_mp3_to_wav(db_audio_mp3, frame_rate=self.parameters['sample_rate'])
-
+            db_audio, _ = librosa.load(db_audio.name)
             aligned_audio = self.align(current_audio_file,
                                        self.parameters['sample_rate'],
                                        db_audio,

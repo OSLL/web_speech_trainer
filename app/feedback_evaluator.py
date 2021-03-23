@@ -34,21 +34,23 @@ class FeedbackEvaluator:
         pass
 
 
-class SimpleFeedbackEvaluator(FeedbackEvaluator):
-    CLASS_NAME = 'SimpleFeedbackEvaluator'
+class SameWeightFeedbackEvaluator(FeedbackEvaluator):
+    CLASS_NAME = 'SameWeightFeedbackEvaluator'
     FEEDBACK_EVALUATOR_ID = 1
 
     def __init__(self, weights=None):
-        if weights is None:
-            weights = {
-                SpeechIsNotTooLongCriterion.CLASS_NAME: 1,
-            }
-
-        super().__init__(name=SimpleFeedbackEvaluator.CLASS_NAME, weights=weights)
+        super().__init__(name=SameWeightFeedbackEvaluator.CLASS_NAME, weights=weights)
 
     def evaluate_feedback(self, criteria_results):
-        score = criteria_results[SpeechIsNotTooLongCriterion.CLASS_NAME].result \
-                * self.weights[SpeechIsNotTooLongCriterion.CLASS_NAME]
+        score = 0
+        if self.weights is not None:
+            for class_name in self.weights:
+                if class_name in criteria_results:
+                    score += self.weights[class_name] * criteria_results[class_name].result
+        else:
+            for class_name in criteria_results:
+                print(class_name, criteria_results[class_name])
+                score += 1. / len(criteria_results) * criteria_results[class_name].result
         return Feedback(score)
 
 
@@ -88,16 +90,35 @@ class FillersRatioFeedbackEvaluator(FeedbackEvaluator):
         return Feedback(score)
 
 
+class SimpleFeedbackEvaluator(FeedbackEvaluator):
+    CLASS_NAME = 'SimpleFeedbackEvaluator'
+    FEEDBACK_EVALUATOR_ID = 3
+
+    def __init__(self, weights=None):
+        if weights is None:
+            weights = {
+                SpeechIsNotTooLongCriterion.CLASS_NAME: 1,
+            }
+
+        super().__init__(name=SimpleFeedbackEvaluator.CLASS_NAME, weights=weights)
+
+    def evaluate_feedback(self, criteria_results):
+        score = criteria_results[SpeechIsNotTooLongCriterion.CLASS_NAME].result \
+                * self.weights[SpeechIsNotTooLongCriterion.CLASS_NAME]
+        return Feedback(score)
+
+
 FEEDBACK_EVALUATOR_CLASS_BY_ID = {
-    SimpleFeedbackEvaluator.FEEDBACK_EVALUATOR_ID: SimpleFeedbackEvaluator,
+    SameWeightFeedbackEvaluator.FEEDBACK_EVALUATOR_ID: SameWeightFeedbackEvaluator,
     PaceAndDurationFeedbackEvaluator.FEEDBACK_EVALUATOR_ID: PaceAndDurationFeedbackEvaluator,
     FillersRatioFeedbackEvaluator.FEEDBACK_EVALUATOR_ID: FillersRatioFeedbackEvaluator,
+    SimpleFeedbackEvaluator.FEEDBACK_EVALUATOR_ID: SimpleFeedbackEvaluator,
 }
 
 
 class FeedbackEvaluatorFactory:
     def get_feedback_evaluator(self, feedback_evaluator_id):
         if feedback_evaluator_id is None:
-            return SimpleFeedbackEvaluator()
+            return SameWeightFeedbackEvaluator()
         feedback_evaluator_class = FEEDBACK_EVALUATOR_CLASS_BY_ID[feedback_evaluator_id]
         return feedback_evaluator_class()
