@@ -1,6 +1,7 @@
 import logging
 
 from flask import Flask, render_template, request, jsonify, send_file, redirect, session, url_for, abort
+from werkzeug.exceptions import HTTPException
 
 from app.config import Config
 from app.lti_session_passback.auth_checkers import check_auth
@@ -39,7 +40,7 @@ def show_page():
 
 @app.route('/training/<presentation_file_id>/')
 def training(presentation_file_id):
-    user_session = check_auth()
+    check_auth()
     app.logger.info('presentation_file_id = {}'.format(presentation_file_id))
     username = session.get('session_id', '')
     full_name = session.get('full_name', '')
@@ -222,6 +223,28 @@ def build_current_points_str(training_ids):
         return current_points[:-2] + ']'
 
 
+@app.route('/get_current_task_attempt')
+def get_current_task_attempt():
+    try:
+        check_auth()
+    except HTTPException:
+        return {}
+    username = session.get('session_id', '')
+    task_id = session.get('task_id', '')
+    task_db = TasksDBManager().get_task(task_id)
+    if task_db is None:
+        return 'No such task with id `{}` found'.format(task_id), 404
+    current_task_attempt = TaskAttemptsDBManager().get_current_task_attempt(username, task_id)
+    if current_task_attempt is not None:
+        return {
+            'current_points': build_current_points_str(current_task_attempt.training_scores.keys()),
+            'training_number': len(current_task_attempt.training_scores),
+            'attempt_count': task_db.attempt_count,
+        }
+    else:
+        return {}
+
+
 @app.route('/training_greeting')
 def training_greeting():
     user_session = check_auth()
@@ -238,7 +261,6 @@ def training_greeting():
         training_number = len(current_task_attempt.training_scores) + 1
     else:
         training_number = 1
-    print('num = {}'.format(training_number))
     if current_task_attempt is None or training_number > attempt_count:
         current_task_attempt = TaskAttemptsDBManager().add_task_attempt(
             username,
