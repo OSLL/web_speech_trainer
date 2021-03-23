@@ -6,6 +6,11 @@ let gumStream,
 function startRecording() {
     navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(function(stream) {
         callShowPage();
+        $('#tutorial')[0].style = "visibility: hidden; font-size: 0";
+        $('#denoising-note')[0].style = "visibility: visible; font-size: 14";
+        setTimeout(function () {
+            $('#denoising-note')[0].style = "visibility: hidden; font-size: 0";
+        }, 3000);
         let audioContext = new window.AudioContext();
         gumStream = stream;
         input = audioContext.createMediaStreamSource(stream);
@@ -14,7 +19,7 @@ function startRecording() {
             encoding: "mp3",
         });
         recorder.onComplete = function(recorder, blob) {
-            $('#record_processing')[0].style = "visibility: hidden; font-size: 0";
+            $('#record-processing')[0].style = "visibility: hidden; font-size: 0";
             callAddPresentationRecord(blob);
         }
         recorder.setOptions({
@@ -32,7 +37,7 @@ function startRecording() {
 function stopRecording() {
     gumStream.getAudioTracks()[0].stop();
     $('#record')[0].disabled = false;
-    $('#record_processing')[0].style = "visibility: visible; font-size: 14px";
+    $('#record-processing')[0].style = "visibility: visible; font-size: 14px";
     recorder.finishRecording();
 }
 
@@ -58,4 +63,6 @@ $(document).ready(function() {
     encodeAfterRecord = true;
     $('#record').click(startRecording);
     $('#done').click(stopRecording);
+    $('#record-processing')[0].style = "visibility: hidden; font-size: 0";
+    $('#denoising-note')[0].style = "visibility: hidden; font-size: 0";
 });
