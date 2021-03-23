@@ -1,6 +1,7 @@
 import numpy as np
 import librosa
 import scipy
+from gridfs import NoFile
 from scipy.spatial.distance import cosine
 
 from app.mongo_odm import DBManager, TrainingsDBManager
@@ -134,7 +135,10 @@ class SpeechIsNotInDatabaseCriterion(Criterion):
             if db_audio_id == current_audio_id:
                 continue
             db_audio_mp3 = DBManager().get_file(db_audio_id)
-            db_audio = convert_from_mp3_to_wav(db_audio_mp3, frame_rate=self.parameters['sample_rate'])
+            try:
+                db_audio = convert_from_mp3_to_wav(db_audio_mp3, frame_rate=self.parameters['sample_rate'])
+            except NoFile:
+                continue
             db_audio, _ = librosa.load(db_audio.name)
             aligned_audio = self.align(current_audio_file,
                                        self.parameters['sample_rate'],
