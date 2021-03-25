@@ -2,6 +2,8 @@ from fuzzywuzzy import fuzz
 from nltk import word_tokenize, Text, download
 from nltk.probability import FreqDist
 
+from experiment import BiGrams
+
 download('punkt')
 
 
@@ -62,6 +64,36 @@ def get_weight_scale(slide_text, transcript_text):
                 print("Промежуточный аддитивный WEIGHT коэф. k =", k)
     print("Результирующий весовой коэффициент:", 1 + k/count_value_words)
     return (1 + k / count_value_words)
+
+
+def get_bigram_weight_scale(slide_list, txt_list):
+    pdf_text = ' '.join(slide_list).replace('\n', ' ')
+    txt_text = ' '.join(txt_list).replace('\n', ' ')
+
+    pdf_bigrams = BiGrams()
+    pdf_bigrams.compute_freq(text=pdf_text)
+    transcript_bigrams = BiGrams()
+    transcript_bigrams.compute_freq(text=txt_text)
+
+    transcript_freq = transcript_bigrams.freq_dict
+    pdf_freq = pdf_bigrams.freq_dict
+
+    n = len(transcript_freq)
+    k = 0
+    count_same_bi_grams = 0
+
+    for pdf_bigram, pdf_bigram_freq in pdf_freq.items():
+        if pdf_bigram in transcript_freq:
+            min_freq = min(pdf_bigram_freq, transcript_freq[pdf_bigram])
+            count_same_bi_grams += 1
+            k += min_freq / n
+            print("Биграмма: [%s]" % pdf_bigram)
+            print('Trancript Freq:', transcript_freq[pdf_bigram])
+            print('Pdf Freq:', pdf_freq)
+            print('WEIGHT:', min_freq / n)
+            print("Промежуточный аддитивный WEIGHT коэф. k =", k)
+    print("Результирующий весовой коэффициент:", 1 + k / count_same_bi_grams)
+    return (1 + k / count_same_bi_grams)
 
 
 def weight_cmp(s1, s2, force_ascii=True, full_process=True):

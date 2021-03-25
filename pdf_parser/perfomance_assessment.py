@@ -1,9 +1,11 @@
-from text_comorator import base_cmp, weight_cmp, value_slide_checking
-from slide_splitter import parse_txt, parse_pdf
-
-
 import argparse
 import os
+
+from text_comparator import base_cmp, weight_cmp, value_slide_checking
+
+from slide_splitter import parse_txt, parse_pdf
+
+from text_comparator import get_bigram_weight_scale
 
 
 def check_headder(slide, opt):
@@ -15,25 +17,28 @@ def check_headder(slide, opt):
     return False
 
 
-def perfomance_score(slide_dict, txt_dict, opt):
+def perfomance_score(slide_list, txt_list, opt, bi_grams_weight_scale=False):
     assessment = 0
-    m = len(min(slide_dict, txt_dict))
+    m = len(min(slide_list, txt_list))
     n = m
     print(m)
     for i in range(m):
         # Проверяем заголовки слайдов на совпадение с теми, что нужно пропустить
-        if check_headder(slide_dict[i], opt):
+        if check_headder(slide_list[i], opt):
             n -= 1
             continue
 
         # Если есть "ЗНАЧИМЫЕ" слова, то проводим оценку слайда методом взвешивания
-        if value_slide_checking(slide_dict[i]):
-            slide_assessment = weight_cmp(slide_dict[i], txt_dict[i])
+        if value_slide_checking(slide_list[i]):
+            slide_assessment = weight_cmp(slide_list[i], txt_list[i])
             print("Оценка за взвешенный слайд %i - %i/100" % (i, slide_assessment))
         else:
-            slide_assessment = base_cmp(slide_dict[i], txt_dict[i])
+            slide_assessment = base_cmp(slide_list[i], txt_list[i])
             print("Оценка за слайд %i - %i/100" % (i, slide_assessment))
         assessment += slide_assessment
+
+    if bi_grams_weight_scale:
+        return get_bigram_weight_scale() * assessment / n
 
     return assessment / n
 
@@ -66,14 +71,28 @@ if __name__ == '__main__':
 
     # Опция сравнения
     parser.add_argument('--opt', action="store", dest="opt", nargs='*', metavar='O')
+
+    # Опция весового коэффициента биграмм
+    parser.add_argument('--bg_weight', action='store', dest='bg_weight',
+                        choices=['on', 'off'], default='off')
+
     args = parser.parse_args()
 
     if args.pdf and args.txt:
         parse_pdf(args.pdf, args.pdf.split(".")[0])
         parse_txt(args.txt, args.txt.split(".")[0])
-        print('Оценка выступлению:', perfomance_score(slide_dict=pdf_split(args.pdf.split(".")[0]),
-                               txt_dict=txt_split('{}/clear.txt'.format(args.txt.split(".")[0])),
-                               opt=args.opt),
-              '%')
+        slide_list = pdf_split(args.pdf.split(".")[0])
+        txt_list = txt_split('{}/clear.txt'.format(args.txt.split(".")[0]))
+
+        score = perfomance_score(slide_list=pdf_split(args.pdf.split(".")[0]),
+                                   txt_list=txt_split('{}/clear.txt'.format(args.txt.split(".")[0])),
+                                   opt=args.opt)
+        print('Оценка выступлению:', score, '%')
+
+        if args.bg_weight == 'on':
+            score *= get_bigram_weight_scale(slide_list=slide_list, txt_list=txt_list)
+            if score > 100:
+                score = 100
+            print('Оценка выступлению с биграммами:', score, '%')
 
 

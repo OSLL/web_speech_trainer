@@ -63,18 +63,18 @@ def parse_pdf(pdf_path, extract_dir=None):
 
     pdf_doc = fitz.open(pdf_path)
     print(pdf_doc)
-    slide_dict = []
+    slide_list = []
 
     for page in pdf_doc:
         text = page.getText("text")
-        slide_dict.append(text)
+        slide_list.append(text)
         l_text = text_processor(text, mode="pdf")
 
         if extract_dir is not None:
             with open("{}/{}_slide.txt".format(extract_dir, page.number), "w") as f:
                 f.write(l_text)
 
-    return slide_dict
+    return slide_list
 
 
 if __name__ == '__main__':
