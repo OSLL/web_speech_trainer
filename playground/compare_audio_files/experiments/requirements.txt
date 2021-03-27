@@ -1,0 +1,10 @@
+librosa
+fastdtw
+pandas
+pyfunctional
+returns
+python_speech_features
+pysndfx
+noisereduce
+psycopg2
+contextlib

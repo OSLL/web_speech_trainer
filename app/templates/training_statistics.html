@@ -5,6 +5,18 @@
     <h2>id презентации: {{ presentation_file_id }}</h2>
     <h2>id тренировки: {{ training_id }}</h2>
     <h2>id аудиозаписи: {{ presentation_record_file_id }}</h2>
+    <div id="next-training">
+        <h2 id="training-number"></h2>
+        <h2 id="current-points"></h2>
+        <button id="next-training-button">Следующая тренировка</button>
+        <br>
+    </div>
     <audio controls src="/get_presentation_record?presentationRecordFileId={{ presentation_record_file_id }}"></audio>
+    <h2>
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLSdQ0q4wdt2YowyhXmtP7fTvZCOfZh0V0B-5-A-JETD6s9q62w/viewform">
+            Сообщить о багах / проблемах сайта
+        </a>
+    </h2>
 </div>
+<script src="{{ url_for('static', filename='js/training_statistics.js') }}"></script>
 {% endblock %}

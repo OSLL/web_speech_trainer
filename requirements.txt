@@ -1,11 +1,26 @@
 fitz
 flask
 Flask-Reuploaded
+fuzzywuzzy         == 0.18.0
+lti
+nltk
+numpy              == 1.19.2
+oauthlib
 preview-generator
 pydub
 pymongo
 pymodm
+pymorphy2          ==     0.9.1
+pymorphy2-dicts    ==    2.4.393442.3710985
+pymorphy2-dicts-ru ==    2.4.417127.4579844
 PyMuPDF
+pytest
+scipy
 vext
 vext.gi
 websockets
+wheel
+librosa
+noisereduce
+python_speech_features
+pysndfx

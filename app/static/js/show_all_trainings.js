@@ -8,6 +8,14 @@ function buildCurrentTrainingRow(trainingId, trainingJson) {
     trainingIdElement.appendChild(trainingIdLink);
     currentTrainingRowElement.appendChild(trainingIdElement);
 
+    const trainingUsernameElement = document.createElement('td');
+    trainingUsernameElement.textContent = trainingJson['username'];
+    currentTrainingRowElement.appendChild(trainingUsernameElement);
+
+    const trainingFullNameElement = document.createElement('td');
+    trainingFullNameElement.textContent = trainingJson['full_name'];
+    currentTrainingRowElement.appendChild(trainingFullNameElement);
+
     const trainingDatetimeElement = document.createElement('td');
     trainingDatetimeElement.textContent = trainingJson['datetime'];
     currentTrainingRowElement.appendChild(trainingDatetimeElement);
@@ -26,7 +34,7 @@ function buildCurrentTrainingRow(trainingId, trainingJson) {
 
 function buildAllTrainingsTable(trainingsJson) {
     const allTrainingsTable = document.getElementById('all-trainings-table');
-    const titleRow = buildTitleRow(['id', 'Время', 'Результат']);
+    const titleRow = buildTitleRow(['id', 'Логин', 'Имя', 'Время', 'Результат']);
     allTrainingsTable.appendChild(titleRow);
 
     Object.keys(trainingsJson).forEach(trainingId => {
@@ -35,8 +43,8 @@ function buildAllTrainingsTable(trainingsJson) {
     });
 }
 
-function call_get_all_trainings() {
-    fetch('/get_all_trainings')
+function call_get_all_trainings(username, full_name) {
+    fetch(`/get_all_trainings?username=${username}&full_name=${full_name}`)
         .then(response => response.json())
         .then(responseJson => buildAllTrainingsTable(responseJson));
 }

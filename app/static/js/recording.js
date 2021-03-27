@@ -5,7 +5,13 @@ let gumStream,
 
 function startRecording() {
     navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(function(stream) {
-        audioContext = new window.AudioContext();
+        callShowPage();
+        $('#tutorial')[0].style = "visibility: hidden; font-size: 0";
+        $('#denoising-note')[0].style = "visibility: visible; font-size: 14";
+        setTimeout(function () {
+            $('#denoising-note')[0].style = "visibility: hidden; font-size: 0";
+        }, 3000);
+        let audioContext = new window.AudioContext();
         gumStream = stream;
         input = audioContext.createMediaStreamSource(stream);
         recorder = new WebAudioRecorder(input, {
@@ -13,7 +19,7 @@ function startRecording() {
             encoding: "mp3",
         });
         recorder.onComplete = function(recorder, blob) {
-            $('#record_processing')[0].style = "visibility: hidden; font-size: 0";
+            $('#record-processing')[0].style = "visibility: hidden; font-size: 0";
             callAddPresentationRecord(blob);
         }
         recorder.setOptions({
@@ -31,15 +37,14 @@ function startRecording() {
 function stopRecording() {
     gumStream.getAudioTracks()[0].stop();
     $('#record')[0].disabled = false;
-    $('#record_processing')[0].style = "visibility: visible; font-size: 14px";
+    $('#record-processing')[0].style = "visibility: visible; font-size: 14px";
     recorder.finishRecording();
 }
 
 function callAddPresentationRecord(blob) {
     let fd = new FormData();
     fd.append('presentationRecord', blob);
-    fd.append('presentationFileId', presentationFileId);
-    fd.append('slideSwitchTimestampsId', slideSwitchTimestampsId);
+    fd.append('trainingId', trainingId);
 
     $.ajax({
       url: '/presentation_record',
@@ -48,8 +53,8 @@ function callAddPresentationRecord(blob) {
       contentType: false,
       type: 'POST',
       datatype: 'json',
-      success: function (response) {
-          window.location.href = `/training_statistics/${response.trainingId}`;
+      success: function() {
+          window.location.href = `/training_statistics/${trainingId}`;
       }
     });
 }
@@ -58,4 +63,6 @@ $(document).ready(function() {
     encodeAfterRecord = true;
     $('#record').click(startRecording);
     $('#done').click(stopRecording);
+    $('#record-processing')[0].style = "visibility: hidden; font-size: 0";
+    $('#denoising-note')[0].style = "visibility: hidden; font-size: 0";
 });

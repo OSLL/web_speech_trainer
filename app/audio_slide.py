@@ -17,7 +17,8 @@ class AudioSlide:
         else:
             slide_duration = recognized_words[-1].end_timestamp - recognized_words[0].begin_timestamp
         return {
-            'slide_duration': slide_duration
+            'slide_duration': slide_duration,
+            'total_words': len(recognized_words),
         }
 
     def __repr__(self):
