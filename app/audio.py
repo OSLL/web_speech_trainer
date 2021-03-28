@@ -13,6 +13,20 @@ class Audio:
             self.audio_slides = self.split_into_slides(recognized_audio, slide_switch_timestamps)
             self.audio_stats = self.calculate_audio_stats(recognized_audio, slide_switch_timestamps)
 
+    def get_transcription(self):
+        '''Метод для построения txt транскрипта
+
+        :return:
+        '''
+        transcript_slides = []
+
+        for audio_slide in self.audio_slides:
+            slide_transcript = [recognized_word for recognized_word in audio_slide.recognized_words]
+            transcript_slides.append(' '.join(slide_transcript))
+
+        return '\n\n'.join(transcript_slides)
+
+
     def split_into_slides(self, recognized_audio, slide_switch_timestamps):
         if len(recognized_audio.recognized_words) == 0:
             return []

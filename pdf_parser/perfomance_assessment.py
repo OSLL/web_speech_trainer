@@ -9,27 +9,29 @@ from text_comparator import get_bigram_weight_scale
 
 
 def check_headder(slide, opt):
-    if opt is not None:
-        for headder in opt:
-            if base_cmp(headder, slide[:len(headder)]) > 92:
-                print("Пропускаем слайд с заголовком:", headder)
-                return True
+    for headder in opt:
+        if base_cmp(headder, slide[:len(headder)]) > 92:
+            print("Пропускаем слайд с заголовком:", headder)
+            return True
     return False
 
 
-def perfomance_score(slide_list, txt_list, opt, bi_grams_weight_scale=False):
+def perfomance_score(pdf_path, txt_path, pass_slide_headers, word_weight_scale=False, bi_grams_weight_scale=False):
+    slide_list = parse_pdf(pdf_path=pdf_path, ret_lematize_slides=True)
+    txt_list = parse_txt(txt_path=txt_path)
+
     assessment = 0
-    m = len(min(slide_list, txt_list))
+    m = min(len(slide_list), len(txt_list))
     n = m
     print(m)
     for i in range(m):
         # Проверяем заголовки слайдов на совпадение с теми, что нужно пропустить
-        if check_headder(slide_list[i], opt):
+        if check_headder(slide_list[i], pass_slide_headers):
             n -= 1
             continue
 
         # Если есть "ЗНАЧИМЫЕ" слова, то проводим оценку слайда методом взвешивания
-        if value_slide_checking(slide_list[i]):
+        if word_weight_scale and value_slide_checking(slide_list[i]):
             slide_assessment = weight_cmp(slide_list[i], txt_list[i])
             print("Оценка за взвешенный слайд %i - %i/100" % (i, slide_assessment))
         else:
@@ -38,27 +40,14 @@ def perfomance_score(slide_list, txt_list, opt, bi_grams_weight_scale=False):
         assessment += slide_assessment
 
     if bi_grams_weight_scale:
-        return get_bigram_weight_scale() * assessment / n
+        assessment *= get_bigram_weight_scale(slide_list=slide_list, txt_list=txt_list)
 
-    return assessment / n
+    total_assessment = assessment / n
 
+    if total_assessment > 100:
+        total_assessment = 100
 
-def txt_split(txt_path):
-    with open(txt_path) as f:
-        text = ''.join(f.readlines())
-        return text.split("\n\n")
-
-
-def pdf_split(pdf_dir):
-    # Сортируем текст слайдов по возрастанию чтобы не напутать ничего при сравнении с выступлением
-    files = sorted(os.listdir(pdf_dir), key=lambda x: int(x.split('_')[0]))
-    slides = []
-
-    for file in files:
-        with open('{}/{}'.format(pdf_dir, file)) as f:
-            slides.append(''.join(f.readlines()))
-
-    return slides
+    return total_assessment
 
 
 if __name__ == '__main__':
@@ -69,30 +58,29 @@ if __name__ == '__main__':
     # Путь к текстовому файлу выступления
     parser.add_argument('--txt', action="store", dest="txt")
 
-    # Опция сравнения
-    parser.add_argument('--opt', action="store", dest="opt", nargs='*', metavar='O')
+    # Список заголовков слайдов, которые нужно пропустить
+    parser.add_argument('--pass_slide_headers', action="store", dest="pass_slide_headers",
+                        nargs='*', metavar='O', default=[])
+
+    # Опция весового коэффициента "значимых" слов для слайдов Цели, Задачи
+    parser.add_argument('--word_weight', action='store', dest='word_weight',
+                        choices=['on', 'off'], default='off')
 
     # Опция весового коэффициента биграмм
     parser.add_argument('--bg_weight', action='store', dest='bg_weight',
                         choices=['on', 'off'], default='off')
 
     args = parser.parse_args()
+    word_weight = True if args.word_weight == 'on' else False
+    bg_weight = True if args.bg_weight == 'on' else False
 
     if args.pdf and args.txt:
-        parse_pdf(args.pdf, args.pdf.split(".")[0])
-        parse_txt(args.txt, args.txt.split(".")[0])
-        slide_list = pdf_split(args.pdf.split(".")[0])
-        txt_list = txt_split('{}/clear.txt'.format(args.txt.split(".")[0]))
-
-        score = perfomance_score(slide_list=pdf_split(args.pdf.split(".")[0]),
-                                   txt_list=txt_split('{}/clear.txt'.format(args.txt.split(".")[0])),
-                                   opt=args.opt)
+        score = perfomance_score(pdf_path=args.pdf,
+                                 txt_path=args.txt,
+                                 pass_slide_headers=args.pass_slide_headers,
+                                 word_weight_scale=word_weight,
+                                 bi_grams_weight_scale=bg_weight
+        )
         print('Оценка выступлению:', score, '%')
-
-        if args.bg_weight == 'on':
-            score *= get_bigram_weight_scale(slide_list=slide_list, txt_list=txt_list)
-            if score > 100:
-                score = 100
-            print('Оценка выступлению с биграммами:', score, '%')
 
 

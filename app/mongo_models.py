@@ -5,7 +5,7 @@ class Trainings(MongoModel):
     task_attempt_id = fields.CharField(blank=True)
     username = fields.CharField(blank=True)
     full_name = fields.CharField(blank=True)
-    presentation_file_id = fields.ObjectIdField()
+    presentation_file_id = fields.ObjectIdField() # Presentation ID
     recognized_presentation_id = fields.ObjectIdField()
     presentation_id = fields.ObjectIdField()
     presentation_record_file_id = fields.ObjectIdField()
