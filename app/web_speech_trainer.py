@@ -40,7 +40,7 @@ def show_page():
 
 @app.route('/training/<presentation_file_id>/')
 def training(presentation_file_id):
-    check_auth()
+    # check_auth()
     app.logger.info('presentation_file_id = {}'.format(presentation_file_id))
     username = session.get('session_id', '')
     full_name = session.get('full_name', '')
@@ -114,11 +114,13 @@ def get_presentation_preview():
 def upload_pdf():
     redirect_to = request.args.get('to')
     if request.content_length > int(Config.c.constants.presentation_file_max_size_in_megabytes) * BYTES_IN_MEGABYTE:
-        return 'Presentation file should not exceed {}MB' \
-                   .format(Config.c.constants.presentation_file_max_size_in_megabytes), 413
+        # return 'Presentation file should not exceed {}MB' \
+        #print('Presentation file should not exceed {}MB'.format(Config.c.constants.presentation_file_max_size_in_megabytes))
+        return render_template("error.html", error_text='Presentation file should not exceed {}MB'.format(Config.c.constants.presentation_file_max_size_in_megabytes)), 413
     presentation_file = request.files['presentation']
     if not file_has_pdf_beginning(presentation_file):
-        return 'Presentation file should be a pdf file', 400
+        # return 'Presentation file should be a pdf file', 400
+        return render_template("error.html", error_text="Presentation file should be a pdf file"), 400
     presentation_file_id = DBManager().add_file(presentation_file, presentation_file.filename)
     presentation_file_preview = get_presentation_file_preview(DBManager().get_file(presentation_file_id))
     presentation_file_preview_id = DBManager().read_and_add_file(
