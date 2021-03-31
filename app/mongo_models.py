@@ -2,7 +2,7 @@ from pymodm import MongoModel, fields
 
 
 class Trainings(MongoModel):
-    task_attempt_id = fields.CharField(blank=True)
+    task_attempt_id = fields.ObjectIdField(blank=True)
     username = fields.CharField(blank=True)
     full_name = fields.CharField(blank=True)
     presentation_file_id = fields.ObjectIdField()
@@ -11,9 +11,12 @@ class Trainings(MongoModel):
     presentation_record_file_id = fields.ObjectIdField()
     recognized_audio_id = fields.ObjectIdField()
     audio_id = fields.ObjectIdField()
-    status = fields.IntegerField()
-    audio_status = fields.IntegerField()
-    presentation_status = fields.IntegerField()
+    status = fields.CharField()
+    status_last_update = fields.TimestampField()
+    audio_status = fields.CharField()
+    audio_status_last_update = fields.TimestampField()
+    presentation_status = fields.CharField()
+    presentation_status_last_update = fields.TimestampField()
     feedback = fields.DictField()
     slide_switch_timestamps = fields.ListField(blank=True)
     criteria_pack_id = fields.IntegerField(blank=True)
@@ -62,22 +65,27 @@ class PresentationFiles(MongoModel):
 
 class PresentationsToRecognize(MongoModel):
     file_id = fields.ObjectIdField()
+    training_id = fields.ObjectIdField()
 
 
 class RecognizedPresentationsToProcess(MongoModel):
     file_id = fields.ObjectIdField()
+    training_id = fields.ObjectIdField()
 
 
 class AudioToRecognize(MongoModel):
     file_id = fields.ObjectIdField()
+    training_id = fields.ObjectIdField()
 
 
 class RecognizedAudioToProcess(MongoModel):
     file_id = fields.ObjectIdField()
+    training_id = fields.ObjectIdField()
 
 
 class TrainingsToProcess(MongoModel):
     training_id = fields.ObjectIdField()
+
 
 class FeedbackEvaluators(MongoModel):
     name = fields.CharField()

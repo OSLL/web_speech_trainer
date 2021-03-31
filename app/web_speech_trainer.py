@@ -1,24 +1,33 @@
-import logging
+import time
 
-from flask import Flask, render_template, request, jsonify, send_file, redirect, session, url_for, abort
+from flask import Flask, render_template, request, send_file, redirect, session, url_for, abort
 from werkzeug.exceptions import HTTPException
 
 from app.config import Config
+from app.root_logger import  get_logging_stdout_handler, get_root_logger
 from app.lti_session_passback.auth_checkers import check_auth
 from app.mongo_odm import DBManager, TrainingsDBManager, PresentationFilesDBManager, SessionsDBManager, \
     ConsumersDBManager, TasksDBManager, TaskAttemptsDBManager
 from app.lti_session_passback.lti_module import utils
 from app.lti_session_passback.lti_module.check_request import check_request
 from app.training_manager import TrainingManager
-from app.utils import file_has_pdf_beginning, get_presentation_file_preview
+from app.utils import file_has_pdf_beginning, get_presentation_file_preview, BYTES_PER_MEGABYTE
+import logging
 
 app = Flask(__name__)
+logger = get_root_logger()
 
 
 @app.route('/get_presentation_record')
 def get_presentation_record():
     presentation_record_file_id = request.args.get('presentationRecordFileId')
     presentation_record_file = DBManager().get_file(presentation_record_file_id)
+    if presentation_record_file is None:
+        logger.debug('Getting presentation record file with presentation_record_file_id = {}. No such file.'
+                     .format(presentation_record_file_id))
+        return 'No such file', 404
+    logger.debug('Got presentation record file with presentation_record_file_id = {}.'
+                 .format(presentation_record_file_id))
     return send_file(presentation_record_file, attachment_filename='{}.mp3'.format(presentation_record_file_id),
                      as_attachment=True)
 
@@ -27,21 +36,39 @@ def get_presentation_record():
 def get_presentation_file():
     presentation_file_id = request.args.get('presentationFileId')
     presentation_file = DBManager().get_file(presentation_file_id)
+    if presentation_file is None:
+        logger.debug('Getting presentation file with presentation_file_id = {}. No such file.'
+                     .format(presentation_file_id))
+        return 'No such file', 404
+    logger.debug('Got presentation file with presentation_file_id = {}.'.format(presentation_file_id))
     return send_file(presentation_file, mimetype='application/pdf')
 
 
 @app.route('/show_page')
 def show_page():
+    user_session = check_auth()
     training_id = request.args.get('trainingId')
-    app.logger.info('training_id = {}'.format(training_id))
-    TrainingsDBManager().append_timestamp(training_id)
-    return jsonify('OK')
+    if not user_session.is_admin:
+        username = session.get('session_id', '0' * 24)
+        training_db = TrainingsDBManager().get_training(training_id)
+        if not training_db:
+            logger.debug('Slide switch: training_id = {}. No such training.'.format(training_id))
+            return 'No such training', 404
+        elif training_db.username != username:
+            logger.debug('Slide switch: training_id = {}, username = {} but this training belongs to {}'
+                         .format(training_id, username, training_db.username))
+            abort(401)
+    if not TrainingsDBManager().append_timestamp(training_id):
+        logger.debug('Slide switch: training_id = {}. No such training.'.format(training_id))
+        return 'No such training', 404
+    else:
+        logger.debug('Slide switch: training_id = {}, timestamp = {}'.format(training_id, time.time()))
+        return 'OK'
 
 
 @app.route('/training/<presentation_file_id>/')
 def training(presentation_file_id):
     check_auth()
-    app.logger.info('presentation_file_id = {}'.format(presentation_file_id))
     username = session.get('session_id', '')
     full_name = session.get('full_name', '')
     task_attempt_id = session.get('task_attempt_id', '')
@@ -55,7 +82,15 @@ def training(presentation_file_id):
         presentation_file_id=presentation_file_id,
         criteria_pack_id=criteria_pack_id,
     ).pk
+    logger.info(
+        'Added training with training_id = {}.\npresentation_file_id = {}, username = {}, full_name = {},\n'
+        'task_attempt_id = {}, task_id = {}, criteria_pack_id = {}.'
+        .format(training_id, presentation_file_id, username, full_name, task_attempt_id, task_id, criteria_pack_id)
+    )
     TaskAttemptsDBManager().add_training(task_attempt_id, training_id)
+    logger.info(
+        'Updated task attempt with task_attempt_id = {}, training_id = {}.'.format(task_attempt_id, training_id)
+    )
     return render_template(
         'training.html',
         presentation_file_id=presentation_file_id,
@@ -65,55 +100,67 @@ def training(presentation_file_id):
 
 @app.route('/training_statistics/<training_id>/')
 def training_statistics(training_id):
-    page_title = 'Статистика тренировки с ID: {}'.format(training_id)
     training_db = TrainingsDBManager().get_training(training_id)
+    if training_db is None:
+        logger.info('No such training with training_id = {}'.format(training_id))
+        return 'No such training', 404
     presentation_file_id = training_db.presentation_file_id
     presentation_file_name = DBManager().get_file_name(presentation_file_id)
-    presentation_name = 'Название презентации: {}'.format(presentation_file_name)
+    if presentation_file_name is None:
+        logger.info('No such presentation file with presentation_file_id = {}'.format(presentation_file_id))
+        return 'No such presentation file', 404
     presentation_record_file_id = training_db.presentation_record_file_id
     feedback = training_db.feedback
     if 'score' in feedback:
         feedback_str = 'feedback.score = {}'.format(feedback['score'])
     else:
-        feedback_str = 'feedback.score is not ready yet. Please refresh the page'
+        feedback_str = 'Тренировка обрабатывается. Обновите страницу.'
     return render_template(
         'training_statistics.html',
-        page_title=page_title,
+        page_title='Статистика тренировки с ID: {}'.format(training_id),
         training_id=training_id,
         presentation_file_id=presentation_file_id,
-        presentation_name=presentation_name,
+        presentation_name='Название презентации: {}'.format(presentation_file_name),
         presentation_record_file_id=presentation_record_file_id,
         feedback=feedback_str,
     )
-
-
-BYTES_IN_MEGABYTE = 1024 * 1024
 
 
 @app.route('/presentation_record', methods=['GET', 'POST'])
 def presentation_record():
     if 'presentationRecord' not in request.files:
         return 'Presentation record file should be present', 400
+    if 'trainingId' not in request.form:
+        return 'Training identifier should be present', 400
     training_id = request.form['trainingId']
     presentation_record_file = request.files['presentationRecord']
     presentation_record_file_id = DBManager().add_file(presentation_record_file)
     TrainingsDBManager().add_presentation_record_file_id(training_id, presentation_record_file_id)
+    logger.info('Attached presentation record with presentation_record_id = {} to a training with training_id = {}'
+                .format(presentation_record_file_id, training_id))
     TrainingManager().add_training(training_id)
-    return jsonify('OK')
+    return 'OK'
 
 
 @app.route('/get_presentation_preview')
 def get_presentation_preview():
     presentation_file_id = request.args.get('presentationFileId')
     preview_id = PresentationFilesDBManager().get_preview_id_by_file_id(presentation_file_id)
+    if preview_id is None:
+        logger.debug('No presentation with preview_id = {}'.format(preview_id))
+        return 'No presentation with such preview_id', 404
     presentation_preview_file = DBManager().get_file(preview_id)
+    if presentation_preview_file is None:
+        logger.debug('No presentation preview file with preview_id = {}'.format(preview_id))
+        return 'No presentation preview file with such preview_id', 404
+    logger.debug('Got presentation preview file with preview_id = {}'.format(preview_id))
     return send_file(presentation_preview_file, mimetype='image/png')
 
 
 @app.route('/upload_pdf', methods=['POST'])
 def upload_pdf():
     redirect_to = request.args.get('to')
-    if request.content_length > int(Config.c.constants.presentation_file_max_size_in_megabytes) * BYTES_IN_MEGABYTE:
+    if request.content_length > int(Config.c.constants.presentation_file_max_size_in_megabytes) * BYTES_PER_MEGABYTE:
         return 'Presentation file should not exceed {}MB' \
                    .format(Config.c.constants.presentation_file_max_size_in_megabytes), 413
     presentation_file = request.files['presentation']
@@ -146,6 +193,7 @@ def upload():
             return upload_pdf_response
         else:
             presentation_file_id = upload_pdf_response[0]
+            logger.info('Uploaded file with presentation_file_id = {}.'.format(presentation_file_id))
             return redirect(url_for('training', presentation_file_id=presentation_file_id))
     else:
         return render_template('upload.html')
@@ -156,7 +204,6 @@ def get_all_trainings():
     username = request.args.get('username', '')
     full_name = request.args.get('full_name', '')
     trainings = TrainingsDBManager().get_trainings_filtered({'username': username, 'full_name': full_name})
-    print(trainings.count())
     trainings_json = {}
     for current_training in trainings:
         _id = current_training.pk
@@ -335,8 +382,13 @@ class ReverseProxied(object):
 
 if __name__ == '__main__':
     Config.init_config('config.ini')
+    werkzeug_logger = logging.getLogger('werkzeug')
+    werkzeug_logger.addHandler(get_logging_stdout_handler())
+    werkzeug_logger.setLevel(logging.ERROR)
+    werkzeug_logger.propagate = False
+    app.logger.addHandler(get_logging_stdout_handler())
+    app.logger.propagate = False
     app.wsgi_app = ReverseProxied(app.wsgi_app)
-    app.logger.setLevel(logging.INFO)
     app.secret_key = Config.c.constants.app_secret_key
     if not ConsumersDBManager().is_key_valid(Config.c.constants.lti_consumer_key):
         ConsumersDBManager().add_consumer(Config.c.constants.lti_consumer_key, Config.c.constants.lti_consumer_secret)

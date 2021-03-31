@@ -239,7 +239,7 @@ CRITERIA_PACK_CLASS_BY_ID = {
 
 class CriteriaPackFactory:
     def get_criteria_pack(self, criteria_pack_id):
-        if criteria_pack_id is None:
+        if criteria_pack_id is None or criteria_pack_id not in CRITERIA_PACK_CLASS_BY_ID:
             return SimpleCriteriaPack()
         criteria_pack_class = CRITERIA_PACK_CLASS_BY_ID[criteria_pack_id]
         return criteria_pack_class()
