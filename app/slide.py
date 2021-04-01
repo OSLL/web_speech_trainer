@@ -24,6 +24,9 @@ class Slide:
             'slide_stats': json.dumps(self.slide_stats),
         }, ensure_ascii=False)
 
+    def __eq__(self, other):
+        return isinstance(other, Slide) and self.words == other.words and self.slide_stats == other.slide_stats
+
     @staticmethod
     def from_json_string(json_string):
         json_obj = json.loads(json_string)

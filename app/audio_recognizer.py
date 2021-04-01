@@ -10,6 +10,7 @@ from app.recognized_word import RecognizedWord
 from app.word import Word
 from playground.noise_reduction.denoiser import Denoiser
 
+
 class AudioRecognizer:
     def recognize(self, audio):
         pass
