@@ -28,15 +28,21 @@ class AudioProcessor:
                 presentation_record_file = DBManager().get_file(presentation_record_file_id)
                 if presentation_record_file is None:
                     TrainingsDBManager().change_audio_status(training_id, AudioStatus.RECOGNITION_FAILED)
-                    logger.warn('Presentation record file with presentation_record_file_id = {} was not found.'
-                                .format(presentation_record_file_id))
+                    verdict = 'Presentation record file with presentation_record_file_id = {} was not found.'\
+                        .format(presentation_record_file_id)
+                    TrainingsDBManager().append_verdict(training_id, verdict)
+                    TrainingsDBManager().set_score(training_id, 0)
+                    logger.warn(verdict)
                     continue
                 try:
                     recognized_audio = self.audio_recognizer.recognize(presentation_record_file)
                 except Exception as e:
                     TrainingsDBManager().change_audio_status(training_id, AudioStatus.RECOGNITION_FAILED)
-                    logger.warn('Recognition of presentation record file with presentation_record_file_id = {} '
-                                'has failed.\n{}'.format(presentation_record_file_id, e))
+                    verdict = 'Recognition of a presentation record file with presentation_record_file_id = {} '\
+                              'has failed.\n{}'.format(presentation_record_file_id, e)
+                    TrainingsDBManager().append_verdict(training_id, verdict)
+                    TrainingsDBManager().set_score(training_id, 0)
+                    logger.warn(verdict)
                     continue
                 recognized_audio_id = DBManager().add_file(repr(recognized_audio))
                 TrainingsDBManager().add_recognized_audio_id(training_id, recognized_audio_id)

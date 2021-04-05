@@ -10,6 +10,7 @@ from app.mongo_odm import DBManager, TrainingsDBManager, PresentationFilesDBMana
     ConsumersDBManager, TasksDBManager, TaskAttemptsDBManager
 from app.lti_session_passback.lti_module import utils
 from app.lti_session_passback.lti_module.check_request import check_request
+from app.status import TrainingStatus, PresentationStatus, AudioStatus
 from app.training_manager import TrainingManager
 from app.utils import file_has_pdf_beginning, get_presentation_file_preview, BYTES_PER_MEGABYTE
 import logging
@@ -110,6 +111,12 @@ def training_statistics(training_id):
         logger.info('No such presentation file with presentation_file_id = {}'.format(presentation_file_id))
         return 'No such presentation file', 404
     presentation_record_file_id = training_db.presentation_record_file_id
+    training_status = training_db.status
+    training_status_str = TrainingStatus.russian.get(training_status, '')
+    audio_status = training_db.audio_status
+    audio_status_str = AudioStatus.russian.get(audio_status, '')
+    presentation_status = training_db.presentation_status
+    presentation_status_str = PresentationStatus.russian.get(presentation_status, '')
     feedback = training_db.feedback
     if 'score' in feedback:
         feedback_str = 'feedback.score = {}'.format(feedback['score'])
@@ -123,6 +130,10 @@ def training_statistics(training_id):
         presentation_name='Название презентации: {}'.format(presentation_file_name),
         presentation_record_file_id=presentation_record_file_id,
         feedback=feedback_str,
+        verdict=feedback.get('verdict', '').replace('\n', '\\n'),
+        training_status='Статус: {}'.format(training_status_str) if training_status_str != '' else '',
+        audio_status='Статус: {}'.format(audio_status_str) if audio_status_str != '' else '',
+        presentation_status='Статус: {}'.format(presentation_status_str) if presentation_status_str != '' else '',
     )
 
 

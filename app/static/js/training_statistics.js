@@ -19,3 +19,7 @@ document.addEventListener("DOMContentLoaded", function() {
         window.location.href = `/training_greeting`;
     }
 });
+
+function setVerdict(s) {
+    document.getElementById('verdict').innerText = `${s}`;
+}

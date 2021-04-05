@@ -10,7 +10,8 @@ from pysndfx import AudioEffectsChain
 
 
 class TooShortAudioToDenoise(Exception):
-    pass
+    def __str__(self):
+        return 'Too short audio to denoise.'
 
 
 class Denoiser:

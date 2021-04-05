@@ -276,6 +276,28 @@ class TrainingsDBManager:
         training = self.get_training_by_recognized_presentation_id(recognized_presentation_id)
         return training.slide_switch_timestamps
 
+    def append_verdict(self, training_id, verdict):
+        document = None
+        while document is None:
+            current_training_db = self.get_training(training_id)
+            if current_training_db is None:
+                return False
+            old_verdict = current_training_db.feedback.get('verdict', None)
+            new_verdict = verdict if old_verdict is None else old_verdict + '\n' + verdict
+            document = Trainings.objects.model._mongometa.collection.find_one_and_update(
+                filter={'_id': ObjectId(training_id), 'feedback.verdict': old_verdict},
+                update={'$set': {'feedback.verdict': new_verdict}},
+                return_document=ReturnDocument.AFTER,
+            )
+        return True
+
+    def set_score(self, training_id, score):
+        training = self.get_training(training_id)
+        if training is None:
+            return None
+        training.feedback['score'] = score
+        return training.save()
+
 
 class TasksDBManager:
     def __new__(cls):

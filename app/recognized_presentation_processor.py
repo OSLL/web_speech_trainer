@@ -31,8 +31,11 @@ class RecognizedPresentationProcessor:
                     TrainingsDBManager().change_presentation_status(
                         training_id, PresentationStatus.PROCESSING_FAILED
                     )
-                    logger.warn('Recognized presentation file with recognized_presentation_id = {} was not found.'
-                                .format(recognized_presentation_id))
+                    verdict = 'Recognized presentation file with recognized_presentation_id = {} was not found.'\
+                        .format(recognized_presentation_id)
+                    TrainingsDBManager().append_verdict(training_id, verdict)
+                    TrainingsDBManager().set_score(training_id, 0)
+                    logger.warn(verdict)
                     continue
                 recognized_presentation = RecognizedPresentation.from_json_file(json_file)
                 json_file.close()
