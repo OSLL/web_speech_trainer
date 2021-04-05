@@ -26,8 +26,11 @@ class RecognizedAudioProcessor:
                 json_file = DBManager().get_file(recognized_audio_id)
                 if json_file is None:
                     TrainingsDBManager().change_audio_status(training_id, AudioStatus.PROCESSING_FAILED)
-                    logger.warn('Recognized audio file with recognized_audio_id = {} was not found.'
-                                .format(recognized_audio_id))
+                    verdict = 'Recognized audio file with recognized_audio_id = {} was not found.'\
+                        .format(recognized_audio_id)
+                    TrainingsDBManager().append_verdict(training_id, verdict)
+                    TrainingsDBManager().set_score(training_id, 0)
+                    logger.warn(verdict)
                     continue
                 recognized_audio = RecognizedAudio.from_json_file(json_file)
                 json_file.close()

@@ -16,4 +16,4 @@ class TrainingManager:
         TrainingsDBManager().change_presentation_status(training_id, PresentationStatus.SENT_FOR_RECOGNITION)
         AudioToRecognizeDBManager().add_audio_to_recognize(presentation_record_file_id, training_id)
         TrainingsDBManager().change_audio_status(training_id, AudioStatus.SENT_FOR_RECOGNITION)
-        TrainingsDBManager().change_training_status(training, TrainingStatus.SENT_FOR_PREPARATION)
+        TrainingsDBManager().change_training_status(training, TrainingStatus.PREPARING)

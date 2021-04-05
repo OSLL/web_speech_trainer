@@ -9,6 +9,18 @@ class TrainingStatus:
     PROCESSED = "PROCESSED"
     PROCESSING_FAILED = "PROCESSING_FAILED"
 
+    russian = {
+        NEW: "Новая тренировка",
+        SENT_FOR_PREPARATION: "Отправлена на распознавание",
+        PREPARING: "Идёт распознавание",
+        PREPARED: "Распознавание завершено",
+        PREPARATION_FAILED: "Ошибка распознавания",
+        SENT_FOR_PROCESSING: "Отправлена на обработку",
+        PROCESSING: "Обрабатывается",
+        PROCESSED: "Обработана",
+        PROCESSING_FAILED: "Ошибка обработки",
+    }
+
 
 class AudioStatus:
     NEW = "NEW"
@@ -21,6 +33,18 @@ class AudioStatus:
     PROCESSED = "PROCESSED"
     PROCESSING_FAILED = "PROCESSING_FAILED"
 
+    russian = {
+        NEW: "Новая тренировка",
+        SENT_FOR_RECOGNITION: "Отправлена на распознавание",
+        RECOGNIZING: "Идёт распознавание",
+        RECOGNIZED: "Распознавание завершено",
+        RECOGNITION_FAILED: "Ошибка распознавания",
+        SENT_FOR_PROCESSING: "Отправлена на обработку",
+        PROCESSING: "Обрабатывается",
+        PROCESSED: "Обработана",
+        PROCESSING_FAILED: "Ошибка обработки",
+    }
+
 
 class PresentationStatus:
     NEW = "NEW"
@@ -32,3 +56,15 @@ class PresentationStatus:
     PROCESSING = "PROCESSING"
     PROCESSED = "PROCESSED"
     PROCESSING_FAILED = "PROCESSING_FAILED"
+
+    russian = {
+        NEW: "Новая тренировка",
+        SENT_FOR_RECOGNITION: "Отправлена на распознавание",
+        RECOGNIZING: "Идёт распознавание",
+        RECOGNIZED: "Распознавание завершено",
+        RECOGNITION_FAILED: "Ошибка распознавания",
+        SENT_FOR_PROCESSING: "Отправлена на обработку",
+        PROCESSING: "Обрабатывается",
+        PROCESSED: "Обработана",
+        PROCESSING_FAILED: "Ошибка обработки",
+    }

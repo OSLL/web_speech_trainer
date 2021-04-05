@@ -29,15 +29,21 @@ class PresentationProcessor:
                 presentation_file = DBManager().get_file(presentation_file_id)
                 if presentation_file is None:
                     TrainingsDBManager().change_presentation_status(training_id, PresentationStatus.RECOGNITION_FAILED)
-                    logger.warn('Presentation file with presentation_file_id = {} was not found.'
-                                .format(presentation_file_id))
+                    verdict = 'Presentation file with presentation_file_id = {} was not found.'\
+                        .format(presentation_file_id)
+                    TrainingsDBManager().append_verdict(training_id, verdict)
+                    TrainingsDBManager().set_score(training_id, 0)
+                    logger.warn(verdict)
                     continue
                 try:
                     recognized_presentation = self.presentation_recognizer.recognize(presentation_file)
                 except Exception as e:
                     TrainingsDBManager().change_presentation_status(training_id, PresentationStatus.RECOGNITION_FAILED)
-                    logger.warn('Recognition of presentation file with presentation_file_id = {} has failed.\n{}'
-                                .format(presentation_file_id, e))
+                    verdict = 'Recognition of presentation file with presentation_file_id = {} has failed.\n{}'\
+                        .format(presentation_file_id, e)
+                    TrainingsDBManager().append_verdict(training_id, verdict)
+                    TrainingsDBManager().set_score(training_id, 0)
+                    logger.warn(verdict)
                     continue
                 recognized_presentation_id = DBManager().add_file(repr(recognized_presentation))
                 TrainingsDBManager().add_recognized_presentation_id(training_id, recognized_presentation_id)
