@@ -90,3 +90,15 @@ class TrainingsToProcess(MongoModel):
 class FeedbackEvaluators(MongoModel):
     name = fields.CharField()
     weights = fields.DictField()
+
+
+class Logs(MongoModel):
+    timestamp = fields.TimestampField()
+    serviceName = fields.CharField()
+    levelname = fields.CharField()
+    levelno = fields.IntegerField()
+    message = fields.CharField()
+    pathname = fields.CharField()
+    filename = fields.CharField()
+    funcName = fields.CharField()
+    lineno = fields.IntegerField()

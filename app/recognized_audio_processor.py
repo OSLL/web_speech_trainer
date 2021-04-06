@@ -7,7 +7,7 @@ from app.recognized_audio import RecognizedAudio
 from app.root_logger import get_root_logger
 from app.status import AudioStatus
 
-logger = get_root_logger()
+logger = get_root_logger(service_name='recognized_audio_processor')
 
 
 class RecognizedAudioProcessor:
