@@ -30,7 +30,7 @@ class TrainingProcessor:
                     verdict = 'Training with training_id = {} was not found.'.format(training_id)
                     TrainingsDBManager().append_verdict(training_id, verdict)
                     TrainingsDBManager().set_score(training_id, 0)
-                    logger.warn(verdict)
+                    logger.warning(verdict)
                     continue
                 TrainingsDBManager().change_training_status_by_training_id(training_id, TrainingStatus.PROCESSING)
                 audio_file = DBManager().get_file(training_db.audio_id)
@@ -42,7 +42,7 @@ class TrainingProcessor:
                         .format(training_db.audio_id, training_id)
                     TrainingsDBManager().append_verdict(training_id, verdict)
                     TrainingsDBManager().set_score(training_id, 0)
-                    logger.warn(verdict)
+                    logger.warning(verdict)
                     continue
                 audio = Audio.from_json_file(audio_file)
                 audio_file.close()
@@ -55,7 +55,7 @@ class TrainingProcessor:
                         .format(training_db.presentation_id, training_id)
                     TrainingsDBManager().append_verdict(training_id, verdict)
                     TrainingsDBManager().set_score(training_id, 0)
-                    logger.warn(verdict)
+                    logger.warning(verdict)
                     continue
                 presentation = Presentation.from_json_file(presentation_file)
                 presentation_file.close()
@@ -74,7 +74,7 @@ class TrainingProcessor:
                         .format(training_id, e)
                     TrainingsDBManager().append_verdict(training_id, verdict)
                     TrainingsDBManager().set_score(training_id, 0)
-                    logger.warn(verdict)
+                    logger.warning(verdict)
                     continue
                 TrainingsDBManager().add_feedback(training_id, feedback.to_dict())
                 TrainingsDBManager().change_training_status_by_training_id(training_id, PresentationStatus.PROCESSED)

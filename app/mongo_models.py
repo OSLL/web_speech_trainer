@@ -17,7 +17,7 @@ class Trainings(MongoModel):
     audio_status_last_update = fields.TimestampField()
     presentation_status = fields.CharField()
     presentation_status_last_update = fields.TimestampField()
-    feedback = fields.DictField()
+    feedback = fields.DictField(blank=True)
     slide_switch_timestamps = fields.ListField(blank=True)
     criteria_pack_id = fields.IntegerField(blank=True)
     feedback_evaluator_id = fields.IntegerField(blank=True)

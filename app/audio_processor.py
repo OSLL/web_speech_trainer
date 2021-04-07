@@ -32,7 +32,7 @@ class AudioProcessor:
                         .format(presentation_record_file_id)
                     TrainingsDBManager().append_verdict(training_id, verdict)
                     TrainingsDBManager().set_score(training_id, 0)
-                    logger.warn(verdict)
+                    logger.warning(verdict)
                     continue
                 try:
                     recognized_audio = self.audio_recognizer.recognize(presentation_record_file)
@@ -42,7 +42,7 @@ class AudioProcessor:
                               'has failed.\n{}'.format(presentation_record_file_id, e)
                     TrainingsDBManager().append_verdict(training_id, verdict)
                     TrainingsDBManager().set_score(training_id, 0)
-                    logger.warn(verdict)
+                    logger.warning(verdict)
                     continue
                 recognized_audio_id = DBManager().add_file(repr(recognized_audio))
                 TrainingsDBManager().add_recognized_audio_id(training_id, recognized_audio_id)

@@ -1,5 +1,9 @@
+import logging
+
 from app.criteria import SpeechIsNotTooLongCriterion, SpeechPaceCriterion, FillersRatioCriterion, \
     SpeechIsNotInDatabaseCriterion
+
+logger = logging.getLogger('root_logger')
 
 
 class CriteriaPack:
@@ -12,9 +16,16 @@ class CriteriaPack:
         self.criteria_results[name] = criterion_result
 
     def apply(self, audio, presentation, training_id):
+        logger.info('Called CriteriaPack.apply for a training with training_id={}'.format(training_id))
         for criterion in self.criteria:
-            criterion_result = criterion.apply(audio, presentation, training_id, self.criteria_results)
-            self.add_criterion_result(criterion.name, criterion_result)
+            try:
+                criterion_result = criterion.apply(audio, presentation, training_id, self.criteria_results)
+                self.add_criterion_result(criterion.name, criterion_result)
+                logger.info('Attached {} {} to a training with training_id = {}'
+                            .format(criterion.name, criterion_result, training_id))
+            except Exception as e:
+                logger.warning('Exception while applying {} for a training with training_id = {}.\n{}'
+                               .format(criterion.name, training_id, e))
         return self.criteria_results
 
 

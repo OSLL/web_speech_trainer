@@ -30,7 +30,7 @@ class RecognizedAudioProcessor:
                         .format(recognized_audio_id)
                     TrainingsDBManager().append_verdict(training_id, verdict)
                     TrainingsDBManager().set_score(training_id, 0)
-                    logger.warn(verdict)
+                    logger.warning(verdict)
                     continue
                 recognized_audio = RecognizedAudio.from_json_file(json_file)
                 json_file.close()

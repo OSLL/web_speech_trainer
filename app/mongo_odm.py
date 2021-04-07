@@ -100,7 +100,7 @@ class TrainingsDBManager:
         for (key, value) in filters.copy().items():
             if not value:
                 filters.pop(key)
-        return Trainings.objects.raw({'$and': [filters]})
+        return Trainings.objects.raw(filters)
 
     def get_training(self, training_id):
         try:
@@ -622,7 +622,6 @@ class RecognizedPresentationsToProcessDBManager:
             filter={},
             sort=[('_id', pymongo.ASCENDING)]
         )
-        print(document)
         if document is None:
             return None
         return RecognizedPresentationsToProcess.from_document(document)

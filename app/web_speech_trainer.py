@@ -52,7 +52,7 @@ def show_page():
     user_session = check_auth()
     training_id = request.args.get('trainingId')
     if not user_session.is_admin:
-        username = session.get('session_id', '0' * 24)
+        username = session.get('session_id', '')
         training_db = TrainingsDBManager().get_training(training_id)
         if not training_db:
             logger.debug('Slide switch: training_id = {}. No such training.'.format(training_id))
@@ -430,7 +430,6 @@ def get_logs():
     logs_list = []
     for current_log in logs:
         _id = current_log.pk
-        print(current_log.timestamp)
         fields = {
             'timestamp': datetime.fromtimestamp(current_log.timestamp.time, tz=datetime.now().astimezone().tzinfo),
             'serviceName': current_log.serviceName,
@@ -458,6 +457,19 @@ class ReverseProxied(object):
         return self.app(environ, start_response)
 
 
+def resubmit_failed_trainings():
+    failed_trainings = TrainingsDBManager().get_trainings_filtered(
+        filters={
+            '$or': [{'status': TrainingStatus.PREPARATION_FAILED}, {'status': TrainingStatus.PROCESSING_FAILED}]
+        }
+    )
+    for current_training in failed_trainings:
+        logger.info('Resubmitting training with training_id = {}'.format(current_training.pk))
+        current_training.feedback = {}
+        current_training.save()
+        TrainingManager().add_training(current_training.pk)
+
+
 if __name__ == '__main__':
     Config.init_config('config.ini')
     werkzeug_logger = logging.getLogger('werkzeug')
@@ -470,4 +482,5 @@ if __name__ == '__main__':
     app.secret_key = Config.c.constants.app_secret_key
     if not ConsumersDBManager().is_key_valid(Config.c.constants.lti_consumer_key):
         ConsumersDBManager().add_consumer(Config.c.constants.lti_consumer_key, Config.c.constants.lti_consumer_secret)
+    resubmit_failed_trainings()
     app.run(host='0.0.0.0')
