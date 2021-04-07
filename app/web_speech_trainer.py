@@ -115,7 +115,6 @@ def upload_pdf():
     redirect_to = request.args.get('to')
     if request.content_length > int(Config.c.constants.presentation_file_max_size_in_megabytes) * BYTES_IN_MEGABYTE:
         # return 'Presentation file should not exceed {}MB' \
-        #print('Presentation file should not exceed {}MB'.format(Config.c.constants.presentation_file_max_size_in_megabytes))
         return render_template("error.html", error_text='Presentation file should not exceed {}MB'.format(Config.c.constants.presentation_file_max_size_in_megabytes)), 413
     presentation_file = request.files['presentation']
     if not file_has_pdf_beginning(presentation_file):
