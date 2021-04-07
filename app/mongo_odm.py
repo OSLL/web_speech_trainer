@@ -1,3 +1,4 @@
+import logging
 import os
 import time
 import uuid
@@ -20,6 +21,7 @@ from app.mongo_models import Trainings, AudioToRecognize, TrainingsToProcess, \
     Sessions, Consumers, Tasks, TaskAttempts, TaskAttemptsToPassBack, Logs
 from app.status import AudioStatus, PresentationStatus, TrainingStatus
 
+logger = logging.getLogger('root_logger')
 
 class DBManager:
     def __new__(cls):
@@ -497,6 +499,12 @@ class TaskAttemptsToPassBackDBManager:
         return TaskAttemptsToPassBack(
             task_attempt_id=task_attempt_id,
         ).save()
+
+    def resubmit_failed_pass_back_task_attempts(self):
+        task_attempts = TaskAttempts.objects.raw({'is_passed_back': False})
+        for task_attempt in task_attempts:
+            logger.info('Resubmitting task attempt with task_attempt_id = {}'.format(task_attempt.pk))
+            self.add_task_attempt_to_pass_back(task_attempt.pk)
 
     def extract_task_attempt_id_to_pass_back(self):
         obj = TaskAttemptsToPassBack.objects.model._mongometa.collection.find_one_and_delete(

@@ -46,6 +46,7 @@ class TaskAttemptToPassBackProcessor:
                         logger.warning('Task attempt with task_attempt_id = {} was not found.'.format(task_attempt_id))
                         break
                     self.grade_passback(task_attempt_db)
+                TaskAttemptsToPassBackDBManager().resubmit_failed_pass_back_task_attempts()
             except Exception as e:
                 logger.error('Unknown exception.\n{}'.format(e))
             sleep(10)
