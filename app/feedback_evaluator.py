@@ -49,7 +49,6 @@ class SameWeightFeedbackEvaluator(FeedbackEvaluator):
                     score += self.weights[class_name] * criteria_results[class_name].result
         else:
             for class_name in criteria_results:
-                print(class_name, criteria_results[class_name])
                 score += 1. / len(criteria_results) * criteria_results[class_name].result
         return Feedback(score)
 
