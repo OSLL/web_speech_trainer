@@ -1,13 +1,15 @@
 import time
+from ast import literal_eval
+from datetime import datetime
 
-from flask import Flask, render_template, request, send_file, redirect, session, url_for, abort
+from flask import Flask, render_template, request, send_file, redirect, session, url_for, abort, jsonify
 from werkzeug.exceptions import HTTPException
 
 from app.config import Config
 from app.root_logger import  get_logging_stdout_handler, get_root_logger
-from app.lti_session_passback.auth_checkers import check_auth
+from app.lti_session_passback.auth_checkers import check_auth, check_admin
 from app.mongo_odm import DBManager, TrainingsDBManager, PresentationFilesDBManager, SessionsDBManager, \
-    ConsumersDBManager, TasksDBManager, TaskAttemptsDBManager
+    ConsumersDBManager, TasksDBManager, TaskAttemptsDBManager, LogsDBManager
 from app.lti_session_passback.lti_module import utils
 from app.lti_session_passback.lti_module.check_request import check_request
 from app.status import TrainingStatus, PresentationStatus, AudioStatus
@@ -16,7 +18,7 @@ from app.utils import file_has_pdf_beginning, get_presentation_file_preview, BYT
 import logging
 
 app = Flask(__name__)
-logger = get_root_logger()
+logger = get_root_logger(service_name='web')
 
 
 @app.route('/get_presentation_record')
@@ -212,6 +214,7 @@ def upload():
 
 @app.route('/get_all_trainings')
 def get_all_trainings():
+    check_admin()
     username = request.args.get('username', '')
     full_name = request.args.get('full_name', '')
     trainings = TrainingsDBManager().get_trainings_filtered({'username': username, 'full_name': full_name})
@@ -247,6 +250,7 @@ def show_all_trainings():
 
 @app.route('/get_all_presentations')
 def get_all_presentations():
+    check_admin()
     presentation_files = PresentationFilesDBManager().get_presentation_files()
     presentation_files_json = {}
     for current_presentation_file in presentation_files:
@@ -377,6 +381,69 @@ def lti():
     TasksDBManager().add_task_if_absent(task_id, task_description, attempt_count, required_points, criteria_pack_id)
 
     return training_greeting()
+
+
+@app.route('/get_logs')
+def get_logs():
+    check_admin()
+    try:
+        limit = request.args.get('limit', default=None, type=int)
+    except Exception as e:
+        logger.info('Limit value {} is invalid.\n{}'.format(request.args.get('limit'), e))
+        limit = None
+    try:
+        offset = request.args.get('offset', default=None, type=int)
+    except Exception as e:
+        logger.info('Offset value {} is invalid.\n{}'.format(request.args.get('offset', default=None), e))
+        offset = None
+
+    raw_filters = request.args.get('filter', default=None)
+    if raw_filters is not None:
+        try:
+            filters = literal_eval(raw_filters)
+            if not isinstance(filters, dict):
+                filters = None
+        except Exception as e:
+            logger.info('Filter value {} is invalid.\n{}'.format(raw_filters, e))
+            filters = None
+    else:
+        filters = raw_filters
+
+    raw_ordering = request.args.get('ordering', default=None)
+    if raw_ordering is not None:
+        try:
+            ordering = literal_eval(raw_ordering)
+            if not isinstance(ordering, list) or not all(map(lambda x: x[1] in [-1, 1], ordering)):
+                logger.info('Ordering value {} is invalid.'.format(raw_ordering))
+                ordering = None
+        except Exception as e:
+            logger.info('Ordering value {} is invalid.\n{}'.format(request.args.get('ordering', default=None), e))
+            ordering = None
+    else:
+        ordering = raw_ordering
+    try:
+        logs = LogsDBManager().get_logs_filtered(filters=filters, limit=limit, offset=offset, ordering=ordering)
+    except Exception as e:
+        logger.info('Incorrect get_logs_filtered execution.\n{}'.format(e))
+        return {}
+
+    logs_list = []
+    for current_log in logs:
+        _id = current_log.pk
+        print(current_log.timestamp)
+        fields = {
+            'timestamp': datetime.fromtimestamp(current_log.timestamp.time, tz=datetime.now().astimezone().tzinfo),
+            'serviceName': current_log.serviceName,
+            'levelname': current_log.levelname,
+            'levelno': current_log.levelno,
+            'message': current_log.message,
+            'pathname': current_log.pathname,
+            'filename': current_log.filename,
+            'funcName': current_log.funcName,
+            'lineno': current_log.lineno,
+        }
+        logs_list.append({'_id': str(_id), 'fields': fields})
+    return jsonify(logs_list)
 
 
 class ReverseProxied(object):

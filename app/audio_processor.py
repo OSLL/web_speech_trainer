@@ -6,7 +6,7 @@ from app.mongo_odm import DBManager, AudioToRecognizeDBManager, TrainingsDBManag
 from app.root_logger import get_root_logger
 from app.status import AudioStatus
 
-logger = get_root_logger()
+logger = get_root_logger(service_name='audio_processor')
 
 
 class AudioProcessor:

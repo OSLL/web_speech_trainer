@@ -4,6 +4,9 @@ from lti import ToolProvider
 
 from app.config import Config
 from app.mongo_odm import ConsumersDBManager, TaskAttemptsToPassBackDBManager, TaskAttemptsDBManager
+from app.root_logger import get_root_logger
+
+logger = get_root_logger(service_name='task_attempt_to_pass_back_processor')
 
 
 class TaskAttemptToPassBackProcessor:
@@ -24,10 +27,11 @@ class TaskAttemptToPassBackProcessor:
         ).post_replace_result(score=normalized_score)
         if response.code_major == 'success' and response.severity == 'status':
             TaskAttemptsDBManager().set_passed_back(task_attempt_db)
-            print('Success: score = {}'.format(normalized_score))
+            logger.info('Score was successfully passed back: score = {}, task_attempt_db = {}'
+                        .format(normalized_score, task_attempt_db.pk))
         else:
             TaskAttemptsDBManager().set_passed_back(task_attempt_db, value=False)
-            print('Passback fail: {}'.format(task_attempt_db.pk))
+            logger.warn('Score pass back failed: task_attempt_db = {}'.format(task_attempt_db.pk))
 
     def run(self):
         while True:

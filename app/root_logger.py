@@ -1,5 +1,28 @@
 import logging
 import sys
+from datetime import datetime
+
+from app.mongo_odm import LogsDBManager
+
+
+class MongoDBLoggingHandler(logging.StreamHandler):
+    def __init__(self, service_name):
+        super().__init__()
+        self.setLevel(logging.DEBUG)
+        self.service_name = service_name
+
+    def emit(self, record):
+        if not record.msg:
+            return
+        LogsDBManager().add_log(timestamp=datetime.now(),
+                                serviceName=self.service_name,
+                                levelname=record.levelname,
+                                levelno=record.levelno,
+                                message=self.format(record),
+                                pathname=record.pathname,
+                                filename=record.filename,
+                                funcName=record.funcName,
+                                lineno=record.lineno)
 
 
 def get_logging_stdout_handler():
@@ -10,9 +33,10 @@ def get_logging_stdout_handler():
     return logging_stdout_handler
 
 
-def get_root_logger():
+def get_root_logger(service_name):
     root_logger = logging.getLogger('root_logger')
     root_logger.setLevel(logging.DEBUG)
     root_logger.addHandler(get_logging_stdout_handler())
+    root_logger.addHandler(MongoDBLoggingHandler(service_name))
     root_logger.propagate = False
     return root_logger

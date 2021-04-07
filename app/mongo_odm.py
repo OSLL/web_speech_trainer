@@ -12,11 +12,12 @@ from pymodm.connection import _get_db
 from pymodm.errors import ValidationError
 from pymodm.files import GridFSStorage
 from pymongo import ReturnDocument
+from pymongo.errors import CollectionInvalid
 
 from app.config import Config
 from app.mongo_models import Trainings, AudioToRecognize, TrainingsToProcess, \
     PresentationsToRecognize, RecognizedAudioToProcess, RecognizedPresentationsToProcess, PresentationFiles, \
-    Sessions, Consumers, Tasks, TaskAttempts, TaskAttemptsToPassBack
+    Sessions, Consumers, Tasks, TaskAttempts, TaskAttemptsToPassBack, Logs
 from app.status import AudioStatus, PresentationStatus, TrainingStatus
 
 
@@ -651,3 +652,46 @@ class PresentationFilesDBManager:
             return presentation_file.preview_id
         except (PresentationFiles.DoesNotExist, InvalidId):
             return None
+
+
+class LogsDBManager:
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super(LogsDBManager, cls).__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            try:
+                _get_db().create_collection(
+                    name='logs',
+                    capped=True,
+                    size=100*1024*1024,
+                    max=1000,
+                )
+            except CollectionInvalid:
+                pass
+            cls.init_done = True
+        return cls.instance
+
+    def add_log(self, timestamp, serviceName, levelname, levelno, message, pathname, filename, funcName, lineno):
+        return Logs(
+            timestamp=timestamp,
+            serviceName=serviceName,
+            levelname=levelname,
+            levelno=levelno,
+            message=message,
+            pathname=pathname,
+            filename=filename,
+            funcName=funcName,
+            lineno=lineno,
+        ).save()
+
+    def get_logs_filtered(self, filters=None, limit=None, offset=None, ordering=None):
+        if filters is None:
+            filters = {}
+        if ordering is None:
+            ordering = []
+        logs = Logs.objects.raw(filters).order_by(ordering)
+        if offset is not None:
+            logs = logs.skip(offset)
+        if limit is not None:
+            logs = logs.limit(limit)
+        return logs

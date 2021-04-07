@@ -7,7 +7,7 @@ from app.recognized_presentation import RecognizedPresentation
 from app.root_logger import get_root_logger
 from app.status import PresentationStatus
 
-logger = get_root_logger()
+logger = get_root_logger(service_name='recognized_presentation_processor')
 
 
 class RecognizedPresentationProcessor:
