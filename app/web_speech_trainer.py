@@ -40,7 +40,7 @@ def show_page():
 
 @app.route('/training/<presentation_file_id>/')
 def training(presentation_file_id):
-    # check_auth()
+    check_auth()
     app.logger.info('presentation_file_id = {}'.format(presentation_file_id))
     username = session.get('session_id', '')
     full_name = session.get('full_name', '')
