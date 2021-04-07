@@ -1,8 +1,9 @@
+import logging
+
 from app.criteria import SpeechIsNotTooLongCriterion, SpeechPaceCriterion, FillersRatioCriterion, \
     SpeechIsNotInDatabaseCriterion
-from app.root_logger import get_root_logger
 
-logger = get_root_logger('training_processor')
+logger = logging.getLogger('root_logger')
 
 
 class CriteriaPack:
@@ -23,8 +24,8 @@ class CriteriaPack:
                 logger.info('Attached {} {} to a training with training_id = {}'
                             .format(criterion.name, criterion_result, training_id))
             except Exception as e:
-                logger.warn('Exception while applying {} for a training with training_id = {}.\n{}'
-                            .format(criterion.name, training_id, e))
+                logger.warning('Exception while applying {} for a training with training_id = {}.\n{}'
+                               .format(criterion.name, training_id, e))
         return self.criteria_results
 
 

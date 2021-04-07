@@ -460,8 +460,7 @@ class ReverseProxied(object):
 def resubmit_failed_trainings():
     failed_trainings = TrainingsDBManager().get_trainings_filtered(
         filters={
-            '$or': [{'status': TrainingStatus.PREPARATION_FAILED}, {'status': TrainingStatus.PROCESSING_FAILED}],
-            'username': 'ant.filatov', #hotfix
+            '$or': [{'status': TrainingStatus.PREPARATION_FAILED}, {'status': TrainingStatus.PROCESSING_FAILED}]
         }
     )
     for current_training in failed_trainings:

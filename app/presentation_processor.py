@@ -33,7 +33,7 @@ class PresentationProcessor:
                         .format(presentation_file_id)
                     TrainingsDBManager().append_verdict(training_id, verdict)
                     TrainingsDBManager().set_score(training_id, 0)
-                    logger.warn(verdict)
+                    logger.warning(verdict)
                     continue
                 try:
                     recognized_presentation = self.presentation_recognizer.recognize(presentation_file)
@@ -43,7 +43,7 @@ class PresentationProcessor:
                         .format(presentation_file_id, e)
                     TrainingsDBManager().append_verdict(training_id, verdict)
                     TrainingsDBManager().set_score(training_id, 0)
-                    logger.warn(verdict)
+                    logger.warning(verdict)
                     continue
                 recognized_presentation_id = DBManager().add_file(repr(recognized_presentation))
                 TrainingsDBManager().add_recognized_presentation_id(training_id, recognized_presentation_id)

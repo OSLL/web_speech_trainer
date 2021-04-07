@@ -31,7 +31,7 @@ class TaskAttemptToPassBackProcessor:
                         .format(normalized_score, task_attempt_db.pk))
         else:
             TaskAttemptsDBManager().set_passed_back(task_attempt_db, value=False)
-            logger.warn('Score pass back failed: task_attempt_db = {}'.format(task_attempt_db.pk))
+            logger.warning('Score pass back failed: task_attempt_db = {}'.format(task_attempt_db.pk))
 
     def run(self):
         while True:
@@ -43,7 +43,7 @@ class TaskAttemptToPassBackProcessor:
                     logger.info('Extracted task attempt with task_attempt_id = {}'.format(task_attempt_id))
                     task_attempt_db = TaskAttemptsDBManager().get_task_attempt(task_attempt_id)
                     if not task_attempt_db:
-                        logger.warn('Task attempt with task_attempt_id = {} was not found.'.format(task_attempt_id))
+                        logger.warning('Task attempt with task_attempt_id = {} was not found.'.format(task_attempt_id))
                         break
                     self.grade_passback(task_attempt_db)
             except Exception as e:
