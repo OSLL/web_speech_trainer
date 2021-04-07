@@ -1,4 +1,14 @@
-{% extends 'base.html' %} {% block content %}
+{% extends 'base.html' %}
+
+{% block header %}
+<link rel="stylesheet" href="static/css/danger-alert.css">
+{% endblock %}
+
+{% block content %}
+
+<div id="alert" class="alert alert-danger" role="alert">
+<p id="error-text">Error!</p>
+</div>
 
 <div id="controls">
   <button id="record">Record</button>

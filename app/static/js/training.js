@@ -75,6 +75,17 @@ function setupPresentationViewer(presentationFileId_, trainingId_) {
 }
 
 $(document).ready(function() {
+
+    $('#alert').hide()
+
+    navigator.mediaDevices.getUserMedia({ audio: true}).then(stream => {
+
+    }).catch( err => {
+        $('#alert').show()
+        str = "Microphone is not available!"
+        $('#error-text').html(str)
+    })
+
     pdfDoc = null;
     pageNum = 1;
     pageRendering = false;
