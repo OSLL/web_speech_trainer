@@ -16,9 +16,17 @@ function buildCurrentTrainingRow(trainingId, trainingJson) {
     trainingFullNameElement.textContent = trainingJson['full_name'];
     currentTrainingRowElement.appendChild(trainingFullNameElement);
 
-    const trainingDatetimeElement = document.createElement('td');
-    trainingDatetimeElement.textContent = trainingJson['datetime'];
-    currentTrainingRowElement.appendChild(trainingDatetimeElement);
+    const trainingProcessingStartTimestampElement = document.createElement('td');
+    trainingProcessingStartTimestampElement.textContent = trainingJson['processing_start_timestamp'];
+    currentTrainingRowElement.appendChild(trainingProcessingStartTimestampElement);
+
+    const trainingProcessingFinishTimestampElement = document.createElement('td');
+    trainingProcessingFinishTimestampElement.textContent = trainingJson['processing_finish_timestamp'];
+    currentTrainingRowElement.appendChild(trainingProcessingFinishTimestampElement);
+
+    const trainingPassBackStatusElement = document.createElement('td');
+    trainingPassBackStatusElement.textContent = trainingJson['pass_back_status'];
+    currentTrainingRowElement.appendChild(trainingPassBackStatusElement);
 
     const trainingScoreElement = document.createElement('td');
     let score = trainingJson['score'];
@@ -34,7 +42,9 @@ function buildCurrentTrainingRow(trainingId, trainingJson) {
 
 function buildAllTrainingsTable(trainingsJson) {
     const allTrainingsTable = document.getElementById('all-trainings-table');
-    const titleRow = buildTitleRow(['id', 'Логин', 'Имя', 'Время', 'Результат']);
+    const titleRow = buildTitleRow(
+        ['id тренировки', 'Логин', 'Имя', 'Начало обработки', 'Конец обработки', 'Статус отправки в LMS', 'Балл']
+    );
     allTrainingsTable.appendChild(titleRow);
 
     Object.keys(trainingsJson).forEach(trainingId => {

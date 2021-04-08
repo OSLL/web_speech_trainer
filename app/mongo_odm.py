@@ -19,7 +19,7 @@ from app.config import Config
 from app.mongo_models import Trainings, AudioToRecognize, TrainingsToProcess, \
     PresentationsToRecognize, RecognizedAudioToProcess, RecognizedPresentationsToProcess, PresentationFiles, \
     Sessions, Consumers, Tasks, TaskAttempts, TaskAttemptsToPassBack, Logs
-from app.status import AudioStatus, PresentationStatus, TrainingStatus
+from app.status import AudioStatus, PresentationStatus, TrainingStatus, PassBackStatus
 
 logger = logging.getLogger('root_logger')
 
@@ -97,6 +97,9 @@ class TrainingsDBManager:
 
     def get_trainings(self):
         return Trainings.objects.all()
+
+    def get_trainings_documents(self):
+        return Trainings.objects.model._mongometa.collection.find({})
 
     def get_trainings_filtered(self, filters):
         for (key, value) in filters.copy().items():
@@ -301,6 +304,13 @@ class TrainingsDBManager:
         training.feedback['score'] = score
         return training.save()
 
+    def set_processing_start_time(self, training_id, timestamp):
+        training = self.get_training(training_id)
+        if training is None:
+            return None
+        training.processing_start_time = timestamp
+        return training.save()
+
 
 class TasksDBManager:
     def __new__(cls):
@@ -347,6 +357,9 @@ class TaskAttemptsDBManager:
             cls.init_done = True
         return cls.instance
 
+    def get_task_attempts_documents(self):
+        return TaskAttempts.objects.model._mongometa.collection.find({})
+
     def add_task_attempt(
             self,
             username,
@@ -354,10 +367,12 @@ class TaskAttemptsDBManager:
             params_for_passback,
             training_count,
             training_scores=None,
-            is_passed_back=False
+            is_passed_back=None,
     ):
         if training_scores is None:
             training_scores = {}
+        if is_passed_back is None:
+            is_passed_back = {}
         return TaskAttempts(
             username=username,
             task_id=task_id,
@@ -391,6 +406,7 @@ class TaskAttemptsDBManager:
         if task_attempt_db is None:
             return
         task_attempt_db.training_scores[str(training_id)] = None
+        task_attempt_db.is_passed_back[str(training_id)] = PassBackStatus.NOT_SENT
         return task_attempt_db.save()
 
     def update_scores(self, task_attempt_id, training_id, score):
@@ -398,14 +414,14 @@ class TaskAttemptsDBManager:
         if task_attempt_db is None:
             return
         task_attempt_db.training_scores[str(training_id)] = score
-        self.submit_scores_for_passback(task_attempt_db)
+        self.submit_scores_for_passback(task_attempt_db, training_id)
         return task_attempt_db.save()
 
-    def submit_scores_for_passback(self, task_attempt):
-        TaskAttemptsToPassBackDBManager().add_task_attempt_to_pass_back(task_attempt.pk)
+    def submit_scores_for_passback(self, task_attempt, training_id):
+        TaskAttemptsToPassBackDBManager().add_task_attempt_to_pass_back(task_attempt.pk, training_id)
 
-    def set_passed_back(self, task_attempt, value=True):
-        task_attempt.is_passed_back = value
+    def set_pass_back_status(self, task_attempt, training_id, value):
+        task_attempt.is_passed_back[str(training_id)] = value
         task_attempt.save()
 
 
@@ -495,25 +511,27 @@ class TaskAttemptsToPassBackDBManager:
             cls.init_done = True
         return cls.instance
 
-    def add_task_attempt_to_pass_back(self, task_attempt_id):
+    def add_task_attempt_to_pass_back(self, task_attempt_id, training_id):
         return TaskAttemptsToPassBack(
             task_attempt_id=task_attempt_id,
+            training_id=training_id,
         ).save()
 
     def resubmit_failed_pass_back_task_attempts(self):
-        task_attempts = TaskAttempts.objects.raw({'is_passed_back': False})
+        task_attempts = TaskAttempts.objects.all()
         for task_attempt in task_attempts:
-            logger.info('Resubmitting task attempt with task_attempt_id = {}'.format(task_attempt.pk))
-            self.add_task_attempt_to_pass_back(task_attempt.pk)
+            for (training_id, pass_back_status) in task_attempt.is_passed_back.items():
+                if pass_back_status == PassBackStatus.FAILED:
+                    self.add_task_attempt_to_pass_back(task_attempt.pk, training_id)
 
-    def extract_task_attempt_id_to_pass_back(self):
-        obj = TaskAttemptsToPassBack.objects.model._mongometa.collection.find_one_and_delete(
+    def extract_task_attempt_to_pass_back(self):
+        document = TaskAttemptsToPassBack.objects.model._mongometa.collection.find_one_and_delete(
             filter={},
             sort=[('_id', pymongo.ASCENDING)]
         )
-        if obj is None:
+        if document is None:
             return None
-        return obj['task_attempt_id']
+        return TaskAttemptsToPassBack.from_document(document)
 
 
 class TrainingsToProcessDBManager:
