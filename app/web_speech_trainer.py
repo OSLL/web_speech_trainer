@@ -6,11 +6,10 @@ from flask import Flask, render_template, request, send_file, redirect, session,
 from werkzeug.exceptions import HTTPException
 
 from app.config import Config
-from app.mongo_models import TaskAttempts, Trainings
-from app.root_logger import  get_logging_stdout_handler, get_root_logger
+from app.root_logger import get_logging_stdout_handler, get_root_logger
 from app.lti_session_passback.auth_checkers import check_auth, check_admin
 from app.mongo_odm import DBManager, TrainingsDBManager, PresentationFilesDBManager, SessionsDBManager, \
-    ConsumersDBManager, TasksDBManager, TaskAttemptsDBManager, LogsDBManager, TaskAttemptsToPassBackDBManager
+    ConsumersDBManager, TasksDBManager, TaskAttemptsDBManager, LogsDBManager
 from app.lti_session_passback.lti_module import utils
 from app.lti_session_passback.lti_module.check_request import check_request
 from app.status import TrainingStatus, PresentationStatus, AudioStatus, PassBackStatus
@@ -236,15 +235,12 @@ def get_all_trainings():
             pass_back_status = PassBackStatus.NOT_SENT
         else:
             pass_back_status = task_attempt.is_passed_back.get(str(_id), PassBackStatus.NOT_SENT)
-        try:
-            username = current_training.username
-        except AttributeError:
-            username = None
-        try:
-            full_name = current_training.full_name
-        except AttributeError:
-            full_name = None
-        score = current_training.feedback.get('score')
+        username = current_training.username
+        full_name = current_training.full_name
+        score = current_training.feedback.get('score', None)
+        training_status = current_training.status
+        audio_status = current_training.audio_status
+        presentation_status = current_training.presentation_status
         current_training_json = {
             'processing_start_timestamp': processing_start_timestamp,
             'processing_finish_timestamp': processing_finish_timestamp,
@@ -252,6 +248,9 @@ def get_all_trainings():
             'username': username,
             'full_name': full_name,
             'pass_back_status': PassBackStatus.russian.get(pass_back_status, pass_back_status),
+            'training_status': TrainingStatus.russian.get(training_status, training_status),
+            'audio_status': AudioStatus.russian.get(audio_status, audio_status),
+            'presentation_status': PresentationStatus.russian.get(presentation_status, presentation_status),
         }
         trainings_json[str(_id)] = current_training_json
     return trainings_json
@@ -494,37 +493,6 @@ def resubmit_failed_trainings():
         TrainingManager().add_training(current_training.pk)
 
 
-def migrate_db():
-    task_attempts_documents = TaskAttemptsDBManager().get_task_attempts_documents()
-    for task_attempt_document in task_attempts_documents:
-        try:
-            for training_id in task_attempt_document['training_scores']:
-                training_db = TrainingsDBManager().get_training(training_id)
-                new_is_passed_back_value = PassBackStatus.NOT_SENT
-                if training_db is not None and 'score' in training_db.feedback:
-                    new_is_passed_back_value = PassBackStatus.SUCCESS
-                task_attempt_document['is_passed_back'][str(training_id)] = new_is_passed_back_value
-            task_attempt = TaskAttempts.from_document(task_attempt_document)
-            task_attempt.save()
-        except Exception as e:
-            logger.warn('Migration error for task attempt with task_attempt_id = {}.\n{}'.format(
-                str(task_attempt_document['_id']), e)
-            )
-
-    trainings_documents = TrainingsDBManager().get_trainings_documents()
-    for training_document in trainings_documents:
-        try:
-            if training_document.get('processing_start_timestamp', None) is not None:
-                continue
-            training_document['processing_start_timestamp'] = training_document['_id'].generation_time
-            training = Trainings.from_document(training_document)
-            training.save()
-        except Exception as e:
-            logger.warn('Migration error for training with training_id = {}.\n{}'.format(
-                str(training_document['_id']), e)
-            )
-
-
 if __name__ == '__main__':
     Config.init_config('config.ini')
     werkzeug_logger = logging.getLogger('werkzeug')
@@ -537,6 +505,5 @@ if __name__ == '__main__':
     app.secret_key = Config.c.constants.app_secret_key
     if not ConsumersDBManager().is_key_valid(Config.c.constants.lti_consumer_key):
         ConsumersDBManager().add_consumer(Config.c.constants.lti_consumer_key, Config.c.constants.lti_consumer_secret)
-    migrate_db()
     resubmit_failed_trainings()
     app.run(host='0.0.0.0')

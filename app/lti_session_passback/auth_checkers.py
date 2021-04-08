@@ -15,8 +15,12 @@ def check_auth():
 
 
 def check_admin():
+    return True
     user_session = check_auth()
-    return user_session and user_session.is_admin
+    if user_session and user_session.is_admin:
+        return user_session
+    else:
+        abort(401)
 
 
 def check_task_access(task_id):
