@@ -6,7 +6,7 @@ services:
     command: python3 -m web_speech_trainer
     restart: always
     ports:
-      - "5000:5000"
+      - 5000:5000
     depends_on:
       - db
       - training_processor

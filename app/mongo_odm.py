@@ -311,6 +311,13 @@ class TrainingsDBManager:
         training.processing_start_time = timestamp
         return training.save()
 
+    def set_presentation_record_duration(self, training_id, presentation_record_duration):
+        training = self.get_training(training_id)
+        if training is None:
+            return None
+        training.presentation_record_duration = presentation_record_duration
+        return training.save()
+
 
 class TasksDBManager:
     def __new__(cls):

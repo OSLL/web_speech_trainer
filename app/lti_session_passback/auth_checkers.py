@@ -15,7 +15,6 @@ def check_auth():
 
 
 def check_admin():
-    return True
     user_session = check_auth()
     if user_session and user_session.is_admin:
         return user_session
