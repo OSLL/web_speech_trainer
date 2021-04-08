@@ -1,11 +1,13 @@
 import time
 from ast import literal_eval
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from flask import Flask, render_template, request, send_file, redirect, session, url_for, abort, jsonify
+from pydub import AudioSegment
 from werkzeug.exceptions import HTTPException
 
 from app.config import Config
+from app.mongo_models import Trainings
 from app.root_logger import get_logging_stdout_handler, get_root_logger
 from app.lti_session_passback.auth_checkers import check_auth, check_admin
 from app.mongo_odm import DBManager, TrainingsDBManager, PresentationFilesDBManager, SessionsDBManager, \
@@ -121,7 +123,7 @@ def training_statistics(training_id):
     presentation_status_str = PresentationStatus.russian.get(presentation_status, '')
     feedback = training_db.feedback
     if 'score' in feedback:
-        feedback_str = 'feedback.score = {}'.format(feedback['score'])
+        feedback_str = 'feedback.score = {}'.format(round(feedback['score'], 2))
     else:
         feedback_str = 'Тренировка обрабатывается. Обновите страницу.'
     return render_template(
@@ -147,10 +149,12 @@ def presentation_record():
         return 'Training identifier should be present', 400
     training_id = request.form['trainingId']
     presentation_record_file = request.files['presentationRecord']
+    presentation_record_duration = float(request.form['presentationRecordDuration'])
     presentation_record_file_id = DBManager().add_file(presentation_record_file)
     TrainingsDBManager().add_presentation_record_file_id(training_id, presentation_record_file_id)
     logger.info('Attached presentation record with presentation_record_id = {} to a training with training_id = {}'
                 .format(presentation_record_file_id, training_id))
+    TrainingsDBManager().set_presentation_record_duration(training_id, presentation_record_duration)
     TrainingManager().add_training(training_id)
     return 'OK'
 
@@ -241,16 +245,26 @@ def get_all_trainings():
         training_status = current_training.status
         audio_status = current_training.audio_status
         presentation_status = current_training.presentation_status
+        try:
+            presentation_record_duration = current_training.presentation_record_duration
+            presentation_record_duration_str = time.strftime(
+                "%M:%S", time.gmtime(round(presentation_record_duration))
+            ) if presentation_record_duration is not None else None
+        except Exception as e:
+            logger.warn('Cannot extract presentation_record_duration, training_id = {}.\n{}'
+                        .format(current_training.pk, e))
+            presentation_record_duration_str = None
         current_training_json = {
             'processing_start_timestamp': processing_start_timestamp,
             'processing_finish_timestamp': processing_finish_timestamp,
-            'score': score,
+            'score': round(score, 2) if score is not None else None,
             'username': username,
             'full_name': full_name,
             'pass_back_status': PassBackStatus.russian.get(pass_back_status, pass_back_status),
             'training_status': TrainingStatus.russian.get(training_status, training_status),
             'audio_status': AudioStatus.russian.get(audio_status, audio_status),
             'presentation_status': PresentationStatus.russian.get(presentation_status, presentation_status),
+            'presentation_record_duration': presentation_record_duration_str,
         }
         trainings_json[str(_id)] = current_training_json
     return trainings_json
@@ -292,7 +306,9 @@ def build_current_points_str(training_ids):
     for training_id in training_ids:
         training_db = TrainingsDBManager().get_training(training_id)
         if training_db is not None:
-            current_points += str(training_db.feedback.get('score', '...'))
+            score = training_db.feedback.get('score', None)
+            score_str = str(round(score, 2)) if score is not None else '...'
+            current_points += score_str
         else:
             current_points += '...'
         current_points += ', '
@@ -493,6 +509,21 @@ def resubmit_failed_trainings():
         TrainingManager().add_training(current_training.pk)
 
 
+def migrate_db():
+    for training_document in TrainingsDBManager().get_trainings_documents():
+        if 'presentation_record_duration' in training_document or \
+                'presentation_record_file_id' not in training_document:
+            continue
+        try:
+            presentation_record_file = DBManager().get_file(training_document['presentation_record_file_id'])
+            training_document['presentation_record_duration'] \
+                = AudioSegment.from_mp3(presentation_record_file).duration_seconds
+            training_db = Trainings.from_document(training_document)
+            training_db.save()
+        except Exception as e:
+            logger.warn('Migration failed for training with training_id = {}.\n{}'.format(training_document['_id'], e))
+
+
 if __name__ == '__main__':
     Config.init_config('config.ini')
     werkzeug_logger = logging.getLogger('werkzeug')
@@ -505,5 +536,6 @@ if __name__ == '__main__':
     app.secret_key = Config.c.constants.app_secret_key
     if not ConsumersDBManager().is_key_valid(Config.c.constants.lti_consumer_key):
         ConsumersDBManager().add_consumer(Config.c.constants.lti_consumer_key, Config.c.constants.lti_consumer_secret)
+    migrate_db()
     resubmit_failed_trainings()
     app.run(host='0.0.0.0')

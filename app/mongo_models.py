@@ -9,6 +9,7 @@ class Trainings(MongoModel):
     recognized_presentation_id = fields.ObjectIdField()
     presentation_id = fields.ObjectIdField()
     presentation_record_file_id = fields.ObjectIdField()
+    presentation_record_duration = fields.FloatField()
     recognized_audio_id = fields.ObjectIdField()
     audio_id = fields.ObjectIdField()
     status = fields.CharField()

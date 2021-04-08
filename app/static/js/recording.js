@@ -1,11 +1,13 @@
 let gumStream,
     recorder,
     input,
-    encodeAfterRecord;
+    encodeAfterRecord,
+    currentTimestamp;
 
 function startRecording() {
     navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(function(stream) {
         callShowPage();
+        currentTimestamp = Date.now();
         $('#tutorial')[0].style = "visibility: hidden; font-size: 0";
         $('#denoising-note')[0].style = "visibility: visible; font-size: 14";
         setTimeout(function () {
@@ -45,7 +47,7 @@ function callAddPresentationRecord(blob) {
     let fd = new FormData();
     fd.append('presentationRecord', blob);
     fd.append('trainingId', trainingId);
-
+    fd.append('presentationRecordDuration', ((Date.now() - currentTimestamp) / 1000).toString());
     $.ajax({
       url: '/presentation_record',
       data: fd,
