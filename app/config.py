@@ -5,7 +5,7 @@ from collections import OrderedDict
 class DictToObject(object):
     def __init__(self, dictionary):
         def _traverse(key, element):
-            if isinstance(element, OrderedDict):
+            if isinstance(element, dict):
                 return key, DictToObject(element)
             else:
                 return key, element

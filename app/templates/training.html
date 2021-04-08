@@ -6,11 +6,15 @@
   <button id="done" disabled>Done</button>
   &nbsp; &nbsp;
   <span>Page: <span id="page_num"></span> / <span id="page_count"></span></span>
-  <p id="record_processing" style="visibility: hidden; font-size: 0">Your record is being processed. Please don't leave the page.</p>
 </div>
-<div id="silence" style="visibility: visible;">
-  Please keep silence for first 3 seconds. We will tune in to your surroundings.
+<div id="tutorial">
+  Для начала тренировки нажмите кнопку "Record".
+  Для перехода на следующий слайд нажмите кнопку "Next".
+  Для окончания тренировки нажмите кнопку "Done".
 </div>
+<p id="denoising-note">Не говорите ничего первые 3 секунды после нажатия кнопки "Record". Это нужно для калибровки шума.</p>
+<p id="record-processing">Аудиозапись обрабатывается. Не уходите со страницы.</p>
+
 <div>
   <canvas id="the-canvas" style="border: 1px solid #000000; direction: ltr;"></canvas>
 </div>

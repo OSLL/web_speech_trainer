@@ -1,12 +1,17 @@
+import array
+import math
+
 import librosa
 import noisereduce as nr
 import numpy as np
-import math
-import array
 import python_speech_features as psf
 from pydub import AudioSegment
 from pysndfx import AudioEffectsChain
-from tempfile import NamedTemporaryFile
+
+
+class TooShortAudioToDenoise(Exception):
+    def __str__(self):
+        return 'Too short audio to denoise.'
 
 
 class Denoiser:
@@ -41,7 +46,7 @@ class Denoiser:
                 (data / data.max() if data.max() != 0 else data) * np.iinfo(
                     audiosegment.array_type
                 ).max
-            ).astype(np.int)
+            ).astype(np.short)
         )
 
         new_segment = audiosegment._spawn(data_array)
@@ -73,6 +78,8 @@ class Denoiser:
     @classmethod
     def process_wav_to_wav(cls, in_file, out_file, noise_length=3):
         audio = AudioSegment.from_wav(in_file)
+        if audio.duration_seconds <= noise_length:
+            raise TooShortAudioToDenoise()
         denoised_audio = cls.process_seg_to_seg(audio, noise_length)
         denoised_audio.export(out_file, format='wav')
 

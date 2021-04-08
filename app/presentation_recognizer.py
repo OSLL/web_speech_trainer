@@ -14,9 +14,9 @@ class PresentationRecognizer:
 
 class SimplePresentationRecognizer:
     def recognize(self, presentation):
-        print("Presetation:", presentation)
+        print("Presentation:", presentation)
         tp = tempfile.NamedTemporaryFile()
-        tp.write(presentation.file.read())
+        tp.write(presentation.read())
         print('Presentation name:', tp.name)
         slides = parse_pdf(pdf_path=tp.name, extract_dir=tp.name.split('/')[-1])
         recognized_slides = [RecognizedSlide(s) for s in slides]
