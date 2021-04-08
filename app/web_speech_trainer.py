@@ -6,13 +6,14 @@ from flask import Flask, render_template, request, send_file, redirect, session,
 from werkzeug.exceptions import HTTPException
 
 from app.config import Config
+from app.mongo_models import TaskAttempts, Trainings
 from app.root_logger import  get_logging_stdout_handler, get_root_logger
 from app.lti_session_passback.auth_checkers import check_auth, check_admin
 from app.mongo_odm import DBManager, TrainingsDBManager, PresentationFilesDBManager, SessionsDBManager, \
-    ConsumersDBManager, TasksDBManager, TaskAttemptsDBManager, LogsDBManager
+    ConsumersDBManager, TasksDBManager, TaskAttemptsDBManager, LogsDBManager, TaskAttemptsToPassBackDBManager
 from app.lti_session_passback.lti_module import utils
 from app.lti_session_passback.lti_module.check_request import check_request
-from app.status import TrainingStatus, PresentationStatus, AudioStatus
+from app.status import TrainingStatus, PresentationStatus, AudioStatus, PassBackStatus
 from app.training_manager import TrainingManager
 from app.utils import file_has_pdf_beginning, get_presentation_file_preview, BYTES_PER_MEGABYTE
 import logging
@@ -221,7 +222,20 @@ def get_all_trainings():
     trainings_json = {}
     for current_training in trainings:
         _id = current_training.pk
-        datetime = current_training.pk.generation_time
+        processing_start_timestamp = current_training.processing_start_timestamp
+        if processing_start_timestamp is not None:
+            processing_start_timestamp = datetime.fromtimestamp(processing_start_timestamp.time)
+        processing_finish_timestamp = current_training.status_last_update \
+            if current_training.status in \
+               [TrainingStatus.PROCESSED, TrainingStatus.PROCESSING_FAILED, TrainingStatus.PREPARATION_FAILED] \
+            else None
+        if processing_finish_timestamp is not None:
+            processing_finish_timestamp = datetime.fromtimestamp(processing_finish_timestamp.time)
+        task_attempt = TaskAttemptsDBManager().get_task_attempt(current_training.task_attempt_id)
+        if task_attempt is None:
+            pass_back_status = PassBackStatus.NOT_SENT
+        else:
+            pass_back_status = task_attempt.is_passed_back.get(str(_id), PassBackStatus.NOT_SENT)
         try:
             username = current_training.username
         except AttributeError:
@@ -232,10 +246,12 @@ def get_all_trainings():
             full_name = None
         score = current_training.feedback.get('score')
         current_training_json = {
-            'datetime': datetime,
+            'processing_start_timestamp': processing_start_timestamp,
+            'processing_finish_timestamp': processing_finish_timestamp,
             'score': score,
             'username': username,
             'full_name': full_name,
+            'pass_back_status': PassBackStatus.russian.get(pass_back_status, pass_back_status),
         }
         trainings_json[str(_id)] = current_training_json
     return trainings_json
@@ -243,6 +259,7 @@ def get_all_trainings():
 
 @app.route('/show_all_trainings')
 def show_all_trainings():
+    check_admin()
     username = request.args.get('username', '')
     full_name = request.args.get('full_name', '')
     return render_template('show_all_trainings.html', username=username, full_name=full_name)
@@ -267,6 +284,7 @@ def get_all_presentations():
 
 @app.route('/show_all_presentations')
 def show_all_presentations():
+    check_admin()
     return render_template('show_all_presentations.html')
 
 
@@ -470,6 +488,37 @@ def resubmit_failed_trainings():
         TrainingManager().add_training(current_training.pk)
 
 
+def migrate_db():
+    task_attempts_documents = TaskAttemptsDBManager().get_task_attempts_documents()
+    for task_attempt_document in task_attempts_documents:
+        try:
+            for training_id in task_attempt_document['training_scores']:
+                training_db = TrainingsDBManager().get_training(training_id)
+                new_is_passed_back_value = PassBackStatus.NOT_SENT
+                if training_db is not None and 'score' in training_db.feedback:
+                    new_is_passed_back_value = PassBackStatus.SUCCESS
+                task_attempt_document['is_passed_back'][str(training_id)] = new_is_passed_back_value
+            task_attempt = TaskAttempts.from_document(task_attempt_document)
+            task_attempt.save()
+        except Exception as e:
+            logger.warn('Migration error for task attempt with task_attempt_id = {}.\n{}'.format(
+                str(task_attempt_document['_id']), e)
+            )
+
+    trainings_documents = TrainingsDBManager().get_trainings_documents()
+    for training_document in trainings_documents:
+        try:
+            if training_document.get('processing_start_timestamp', None) is not None:
+                continue
+            training_document['processing_start_timestamp'] = training_document['_id'].generation_time
+            training = Trainings.from_document(training_document)
+            training.save()
+        except Exception as e:
+            logger.warn('Migration error for training with training_id = {}.\n{}'.format(
+                str(training_document['_id']), e)
+            )
+
+
 if __name__ == '__main__':
     Config.init_config('config.ini')
     werkzeug_logger = logging.getLogger('werkzeug')
@@ -482,5 +531,6 @@ if __name__ == '__main__':
     app.secret_key = Config.c.constants.app_secret_key
     if not ConsumersDBManager().is_key_valid(Config.c.constants.lti_consumer_key):
         ConsumersDBManager().add_consumer(Config.c.constants.lti_consumer_key, Config.c.constants.lti_consumer_secret)
+    migrate_db()
     resubmit_failed_trainings()
     app.run(host='0.0.0.0')

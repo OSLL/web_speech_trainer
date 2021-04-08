@@ -68,3 +68,15 @@ class PresentationStatus:
         PROCESSED: "Обработана",
         PROCESSING_FAILED: "Ошибка обработки",
     }
+
+
+class PassBackStatus:
+    NOT_SENT = "NOT_SENT"
+    SUCCESS = "SUCCESS"
+    FAILED = "FAILED"
+
+    russian = {
+        NOT_SENT: "Не отправлена",
+        SUCCESS: "Отправлена",
+        FAILED: "Ошибка отправки",
+    }
