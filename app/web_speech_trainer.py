@@ -243,6 +243,7 @@ def get_all_trainings():
 
 @app.route('/show_all_trainings')
 def show_all_trainings():
+    check_admin()
     username = request.args.get('username', '')
     full_name = request.args.get('full_name', '')
     return render_template('show_all_trainings.html', username=username, full_name=full_name)
@@ -267,6 +268,7 @@ def get_all_presentations():
 
 @app.route('/show_all_presentations')
 def show_all_presentations():
+    check_admin()
     return render_template('show_all_presentations.html')
 
 
@@ -443,6 +445,12 @@ def get_logs():
         }
         logs_list.append({'_id': str(_id), 'fields': fields})
     return jsonify(logs_list)
+
+
+@app.route('/admin')
+def admin():
+    check_admin()
+    return render_template('admin.html')
 
 
 class ReverseProxied(object):
