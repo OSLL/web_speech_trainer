@@ -15,10 +15,7 @@ def check_auth():
 
 
 def check_admin():
-    user_session = SessionsDBManager().get_session(
-        session.get('session_id', None),
-        session.get('consumer_key', None),
-    )
+    user_session = check_auth()
     return user_session and user_session.is_admin
 
 
