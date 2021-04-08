@@ -34,7 +34,7 @@ class AudioStatus:
     PROCESSING_FAILED = "PROCESSING_FAILED"
 
     russian = {
-        NEW: "Новая тренировка",
+        NEW: "Новая аудиозапись",
         SENT_FOR_RECOGNITION: "Отправлена на распознавание",
         RECOGNIZING: "Идёт распознавание",
         RECOGNIZED: "Распознавание завершено",
@@ -58,7 +58,7 @@ class PresentationStatus:
     PROCESSING_FAILED = "PROCESSING_FAILED"
 
     russian = {
-        NEW: "Новая тренировка",
+        NEW: "Новая презентация",
         SENT_FOR_RECOGNITION: "Отправлена на распознавание",
         RECOGNIZING: "Идёт распознавание",
         RECOGNIZED: "Распознавание завершено",

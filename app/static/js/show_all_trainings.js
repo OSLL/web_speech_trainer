@@ -28,6 +28,18 @@ function buildCurrentTrainingRow(trainingId, trainingJson) {
     trainingPassBackStatusElement.textContent = trainingJson['pass_back_status'];
     currentTrainingRowElement.appendChild(trainingPassBackStatusElement);
 
+    const trainingStatusElement = document.createElement('td');
+    trainingStatusElement.textContent = trainingJson['training_status'];
+    currentTrainingRowElement.appendChild(trainingStatusElement);
+
+    const audioStatusElement = document.createElement('td');
+    audioStatusElement.textContent = trainingJson['audio_status'];
+    currentTrainingRowElement.appendChild(audioStatusElement);
+
+    const presentationStatusElement = document.createElement('td');
+    presentationStatusElement.textContent = trainingJson['presentation_status'];
+    currentTrainingRowElement.appendChild(presentationStatusElement);
+
     const trainingScoreElement = document.createElement('td');
     let score = trainingJson['score'];
     if (score !== null) {
@@ -43,7 +55,18 @@ function buildCurrentTrainingRow(trainingId, trainingJson) {
 function buildAllTrainingsTable(trainingsJson) {
     const allTrainingsTable = document.getElementById('all-trainings-table');
     const titleRow = buildTitleRow(
-        ['id тренировки', 'Логин', 'Имя', 'Начало обработки', 'Конец обработки', 'Статус отправки в LMS', 'Балл']
+        [
+            'id тренировки',
+            'Логин',
+            'Имя',
+            'Начало обработки',
+            'Конец обработки',
+            'Статус отправки в LMS',
+            'Балл',
+            'Статус тренировки',
+            'Статус аудио',
+            'Статус презентации'
+        ]
     );
     allTrainingsTable.appendChild(titleRow);
 
