@@ -23,6 +23,17 @@ app = Flask(__name__)
 logger = get_root_logger(service_name='web')
 
 
+@app.route('/get_login')
+def get_login():
+    username = session.get('session_id', 'login')
+    full_name = session.get('full_name', 'user')
+    user_info = {
+        'username': username,
+        'full_name': full_name
+    }
+    return user_info
+
+
 @app.route('/get_presentation_record')
 def get_presentation_record():
     presentation_record_file_id = request.args.get('presentationRecordFileId')
