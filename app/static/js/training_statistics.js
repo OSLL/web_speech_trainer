@@ -20,6 +20,37 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 });
 
+function buildAudioSlideTranscriptionRow(slideNumber, words) {
+    const currentSlideRowElement = document.createElement('tr');
+
+    const slideNumberElement = document.createElement('td');
+    slideNumberElement.textContent = slideNumber;
+    currentSlideRowElement.appendChild(slideNumberElement);
+
+    const transcriptionElement = document.createElement('td');
+    transcriptionElement.textContent = words;
+    currentSlideRowElement.appendChild(transcriptionElement);
+
+    return currentSlideRowElement;
+}
+
+function buildPerSlideAudioTranscriptionTable(audioTranscriptionJson) {
+    const perSlideAudioTranscriptionTable = document.getElementById("per-slide-audio-transcription-table");
+    const titleRow = buildTitleRow(["Номер слайда", "Транскрипция"]);
+    perSlideAudioTranscriptionTable.appendChild(titleRow);
+    for (let i = 0; i < audioTranscriptionJson.length; i++) {
+        perSlideAudioTranscriptionTable.appendChild(
+            buildAudioSlideTranscriptionRow(i + 1, audioTranscriptionJson[i])
+        );
+    }
+}
+
+function setPerSlideAudioTranscriptionTable(trainingId) {
+    fetch(`/get_audio_transcription?trainingId=${trainingId}`)
+        .then(response => response.json())
+        .then(responseJson => buildPerSlideAudioTranscriptionTable(responseJson));
+}
+
 function setVerdict(s) {
     document.getElementById('verdict').innerText = `${s}`;
 }
