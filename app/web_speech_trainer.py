@@ -2,6 +2,7 @@ import time
 from ast import literal_eval
 from datetime import datetime, timedelta
 
+from bson import ObjectId
 from flask import Flask, render_template, request, send_file, redirect, session, url_for, abort, jsonify
 from pydub import AudioSegment
 from werkzeug.exceptions import HTTPException
@@ -510,18 +511,18 @@ def resubmit_failed_trainings():
 
 
 def migrate_db():
-    for training_document in TrainingsDBManager().get_trainings_documents():
-        if 'presentation_record_duration' in training_document or \
-                'presentation_record_file_id' not in training_document:
-            continue
+    trainings_documents = TrainingsDBManager().get_trainings_documents()
+    for training_document in trainings_documents:
         try:
-            presentation_record_file = DBManager().get_file(training_document['presentation_record_file_id'])
-            training_document['presentation_record_duration'] \
-                = AudioSegment.from_mp3(presentation_record_file).duration_seconds
-            training_db = Trainings.from_document(training_document)
-            training_db.save()
+            if training_document.get('processing_start_timestamp', None) is not None:
+                continue
+            training_document['processing_start_timestamp'] = training_document['_id'].generation_time
+            training = Trainings.from_document(training_document)
+            training.save()
         except Exception as e:
-            logger.warn('Migration failed for training with training_id = {}.\n{}'.format(training_document['_id'], e))
+            logger.warn('Migration error for training with training_id = {}.\n{}'.format(
+                str(training_document['_id']), e)
+            )
 
 
 if __name__ == '__main__':

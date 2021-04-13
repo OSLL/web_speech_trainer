@@ -23,6 +23,7 @@ from app.status import AudioStatus, PresentationStatus, TrainingStatus, PassBack
 
 logger = logging.getLogger('root_logger')
 
+
 class DBManager:
     def __new__(cls):
         if not hasattr(cls, 'init_done'):
@@ -141,9 +142,9 @@ class TrainingsDBManager:
         training = self.get_training(training_id)
         if training is None:
             return None
-        return self.change_training_status(training, status)
+        return self._change_training_status(training, status)
 
-    def change_training_status(self, training, status):
+    def _change_training_status(self, training, status):
         training.status = status
         training.status_last_update = datetime.now()
         return training.save()
@@ -166,7 +167,7 @@ class TrainingsDBManager:
         training = Trainings.from_document(document)
         if training.status == TrainingStatus.PREPARED:
             TrainingsToProcessDBManager().add_training_to_process(training_id)
-            self.change_training_status(training, TrainingStatus.SENT_FOR_PROCESSING)
+            self._change_training_status(training, TrainingStatus.SENT_FOR_PROCESSING)
             return True
         else:
             return False
@@ -304,12 +305,15 @@ class TrainingsDBManager:
         training.feedback['score'] = score
         return training.save()
 
-    def set_processing_start_time(self, training_id, timestamp):
+    def set_processing_start_timestamp(self, training_id, timestamp):
+        logger.info('Setting processing start timestamp = {} for a training with training_id = {}'
+                    .format(timestamp, training_id))
         training = self.get_training(training_id)
         if training is None:
+            logger.warning('No training with training_id = {} found.'.format(training_id))
             return None
-        training.processing_start_time = timestamp
-        return training.save()
+        training.processing_start_timestamp = timestamp
+        training.save()
 
     def set_presentation_record_duration(self, training_id, presentation_record_duration):
         training = self.get_training(training_id)
