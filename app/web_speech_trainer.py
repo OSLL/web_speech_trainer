@@ -129,9 +129,10 @@ def get_audio_transcription():
     audio = Audio.from_json_file(audio_as_json)
     audio_slides = audio.audio_slides
     audio_transcription = [
-        [word.word.value for word in audio_slide.recognized_words] for audio_slide in audio_slides
+        ' '.join([word.word.value for word in audio_slide.recognized_words]) for audio_slide in audio_slides
     ]
     return jsonify(audio_transcription)
+
 
 @app.route('/training_statistics/<training_id>/')
 def training_statistics(training_id):

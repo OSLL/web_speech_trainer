@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 
 {% block header %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/training_statistics.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
 {% endblock %}
 
@@ -19,7 +20,7 @@
         <br>
     </div>
     <audio controls src="/get_presentation_record?presentationRecordFileId={{ presentation_record_file_id }}"></audio>
-    <table class="table" id="per-slide-audio-transcription-table"></table>
+    <table class="table transcription-table" id="per-slide-audio-transcription-table"></table>
 </div>
 <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
 <script src="{{ url_for('static', filename='js/training_statistics.js') }}"></script>
