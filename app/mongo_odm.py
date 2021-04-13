@@ -111,7 +111,11 @@ class TrainingsDBManager:
     def get_training(self, training_id):
         try:
             return Trainings.objects.get({'_id': ObjectId(training_id)})
-        except (Trainings.DoesNotExist, InvalidId):
+        except Trainings.DoesNotExist:
+            logger.info('No such training with training_id = {}.'.format(training_id))
+            return None
+        except InvalidId:
+            logger.info('Invalid training_id = {}.'.format(training_id))
             return None
 
     def get_training_by_presentation_file_id(self, presentation_file_id):
@@ -575,6 +579,9 @@ class AudioToRecognizeDBManager:
             connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
             cls.init_done = True
         return cls.instance
+
+    def get_all_audio_to_recognize(self):
+        return AudioToRecognize.objects.all()
 
     def add_audio_to_recognize(self, file_id, training_id):
         return AudioToRecognize(

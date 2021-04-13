@@ -21,6 +21,10 @@ class TrainingStatus:
         PROCESSING_FAILED: "Ошибка обработки",
     }
 
+    @staticmethod
+    def is_terminal(status):
+        return status in [TrainingStatus.PROCESSED, TrainingStatus.PROCESSING_FAILED, TrainingStatus.PREPARATION_FAILED]
+
 
 class AudioStatus:
     NEW = "NEW"
