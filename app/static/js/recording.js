@@ -2,7 +2,8 @@ let gumStream,
     recorder,
     input,
     encodeAfterRecord,
-    currentTimestamp;
+    currentTimestamp,
+    timer;
 
 function startRecording() {
     navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(function(stream) {
@@ -12,6 +13,16 @@ function startRecording() {
         $('#denoising-note')[0].style = "visibility: visible; font-size: 14";
         setTimeout(function () {
             $('#denoising-note')[0].style = "visibility: hidden; font-size: 0";
+            time = 0;
+            $('#timer').show();
+            timer = setInterval(function () {
+                seconds = time%60
+                minuts = time/60%60
+                hour = time/60/60%60
+                let strTimer = `Training time: ${Math.trunc(hour)}:${Math.trunc(minuts)}:${seconds}`;
+                $('#timer').html(strTimer);
+                time++;
+            }, 1000)
         }, 3000);
         let audioContext = new window.AudioContext();
         gumStream = stream;
@@ -37,6 +48,8 @@ function startRecording() {
 }
 
 function stopRecording() {
+    clearInterval(timer)
+    $('#timer').hide();
     gumStream.getAudioTracks()[0].stop();
     $('#record')[0].disabled = false;
     $('#record-processing')[0].style = "visibility: visible; font-size: 14px";
@@ -62,6 +75,8 @@ function callAddPresentationRecord(blob) {
 }
 
 $(document).ready(function() {
+    console.log(trainingId)
+    $('#timer').hide();
     encodeAfterRecord = true;
     $('#record').click(startRecording);
     $('#done').click(stopRecording);
