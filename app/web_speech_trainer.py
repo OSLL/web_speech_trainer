@@ -1,3 +1,4 @@
+import json
 import time
 from ast import literal_eval
 from datetime import datetime, timedelta
@@ -7,8 +8,10 @@ from flask import Flask, render_template, request, send_file, redirect, session,
 from pydub import AudioSegment
 from werkzeug.exceptions import HTTPException
 
+from app.audio import Audio
 from app.config import Config
 from app.mongo_models import Trainings
+from app.recognized_presentation import RecognizedPresentation
 from app.root_logger import get_logging_stdout_handler, get_root_logger
 from app.lti_session_passback.auth_checkers import check_auth, check_admin
 from app.mongo_odm import DBManager, TrainingsDBManager, PresentationFilesDBManager, SessionsDBManager, \
@@ -104,16 +107,44 @@ def training(presentation_file_id):
     )
 
 
+@app.route('/get_audio_transcription')
+def get_audio_transcription():
+    user_session = check_auth()
+    training_id = request.args.get('trainingId')
+    training_db = TrainingsDBManager().get_training(training_id)
+    if not training_db:
+        logger.debug('Audio transcription: training_id = {}. No such training.'.format(training_id))
+        return 'No such training', 404
+    if not user_session.is_admin:
+        username = session.get('session_id', '')
+        if training_db.username != username:
+            logger.debug('Audio transcription: training_id = {}, username = {} but this training belongs to {}'
+                         .format(training_id, username, training_db.username))
+            abort(401)
+    audio_id = training_db.audio_id
+    audio_as_json = DBManager().get_file(audio_id)
+    if audio_as_json is None:
+        logger.warn('No audio file found with audio_id = {}, training_id = {}.'.format(audio_id, training_id))
+        return 'No such audio file', 404
+    audio = Audio.from_json_file(audio_as_json)
+    audio_slides = audio.audio_slides
+    audio_transcription = [
+        ' '.join([word.word.value for word in audio_slide.recognized_words]) for audio_slide in audio_slides
+    ]
+    return jsonify(audio_transcription)
+
+
 @app.route('/training_statistics/<training_id>/')
 def training_statistics(training_id):
     training_db = TrainingsDBManager().get_training(training_id)
     if training_db is None:
-        logger.info('No such training with training_id = {}'.format(training_id))
+        logger.info('No such training with training_id = {}.'.format(training_id))
         return 'No such training', 404
     presentation_file_id = training_db.presentation_file_id
     presentation_file_name = DBManager().get_file_name(presentation_file_id)
     if presentation_file_name is None:
-        logger.info('No such presentation file with presentation_file_id = {}'.format(presentation_file_id))
+        logger.info('No such presentation file with presentation_file_id = {}, training_id = {}.'
+                    .format(presentation_file_id, training_id))
         return 'No such presentation file', 404
     presentation_record_file_id = training_db.presentation_record_file_id
     training_status = training_db.status
