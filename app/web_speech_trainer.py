@@ -1,21 +1,16 @@
-import json
 import time
 from ast import literal_eval
-from datetime import datetime, timedelta
+from datetime import datetime
 
-from bson import ObjectId
 from flask import Flask, render_template, request, send_file, redirect, session, url_for, abort, jsonify
-from pydub import AudioSegment
 from werkzeug.exceptions import HTTPException
 
 from app.audio import Audio
 from app.config import Config
-from app.mongo_models import Trainings
-from app.recognized_presentation import RecognizedPresentation
 from app.root_logger import get_logging_stdout_handler, get_root_logger
 from app.lti_session_passback.auth_checkers import check_auth, check_admin
 from app.mongo_odm import DBManager, TrainingsDBManager, PresentationFilesDBManager, SessionsDBManager, \
-    ConsumersDBManager, TasksDBManager, TaskAttemptsDBManager, LogsDBManager
+    ConsumersDBManager, TasksDBManager, TaskAttemptsDBManager, LogsDBManager, AudioToRecognizeDBManager
 from app.lti_session_passback.lti_module import utils
 from app.lti_session_passback.lti_module.check_request import check_request
 from app.status import TrainingStatus, PresentationStatus, AudioStatus, PassBackStatus
@@ -61,14 +56,12 @@ def show_page():
         username = session.get('session_id', '')
         training_db = TrainingsDBManager().get_training(training_id)
         if not training_db:
-            logger.debug('Slide switch: training_id = {}. No such training.'.format(training_id))
             return 'No such training', 404
         elif training_db.username != username:
             logger.debug('Slide switch: training_id = {}, username = {} but this training belongs to {}'
                          .format(training_id, username, training_db.username))
             abort(401)
     if not TrainingsDBManager().append_timestamp(training_id):
-        logger.debug('Slide switch: training_id = {}. No such training.'.format(training_id))
         return 'No such training', 404
     else:
         logger.debug('Slide switch: training_id = {}, timestamp = {}'.format(training_id, time.time()))
@@ -113,7 +106,6 @@ def get_audio_transcription():
     training_id = request.args.get('trainingId')
     training_db = TrainingsDBManager().get_training(training_id)
     if not training_db:
-        logger.debug('Audio transcription: training_id = {}. No such training.'.format(training_id))
         return 'No such training', 404
     if not user_session.is_admin:
         username = session.get('session_id', '')
@@ -138,7 +130,6 @@ def get_audio_transcription():
 def training_statistics(training_id):
     training_db = TrainingsDBManager().get_training(training_id)
     if training_db is None:
-        logger.info('No such training with training_id = {}.'.format(training_id))
         return 'No such training', 404
     presentation_file_id = training_db.presentation_file_id
     presentation_file_name = DBManager().get_file_name(presentation_file_id)
@@ -158,6 +149,14 @@ def training_statistics(training_id):
         feedback_str = 'feedback.score = {}'.format(round(feedback['score'], 2))
     else:
         feedback_str = 'Тренировка обрабатывается. Обновите страницу.'
+    remaining_processing_time_estimation = get_remaining_processing_time_by_training_id(training_id)
+    if remaining_processing_time_estimation.get('message') == 'OK' and \
+            remaining_processing_time_estimation.get('processing_time_remaining') > 0:
+        remaining_processing_time_estimation_str = 'Ожидаемое время обработки: {} с.'.format(
+            time.strftime("%M:%S", time.gmtime(remaining_processing_time_estimation.get('processing_time_remaining')))
+        )
+    else:
+        remaining_processing_time_estimation_str = ''
     return render_template(
         'training_statistics.html',
         page_title='Статистика тренировки с ID: {}'.format(training_id),
@@ -170,6 +169,7 @@ def training_statistics(training_id):
         training_status='Статус: {}'.format(training_status_str) if training_status_str != '' else '',
         audio_status='Статус: {}'.format(audio_status_str) if audio_status_str != '' else '',
         presentation_status='Статус: {}'.format(presentation_status_str) if presentation_status_str != '' else '',
+        remaining_processing_time_estimation=remaining_processing_time_estimation_str,
     )
 
 
@@ -370,6 +370,85 @@ def get_current_task_attempt():
         }
     else:
         return {}
+
+
+def get_remaining_processing_time_by_training_id(current_training_id):
+    response = {
+        'processing_time_remaining': None,
+        'message': None,
+    }
+    logger.debug('Estimating processing time of a training with training_id = {}.'.format(current_training_id))
+    current_training_db = TrainingsDBManager().get_training(current_training_id)
+    if not current_training_db:
+        response['message'] = 'No such training with training_id = {}.'.format(current_training_id)
+        return response
+    current_training_status = current_training_db.status
+    if TrainingStatus.is_terminal(current_training_status):
+        logger.debug('Current training status is {} and is terminal, training_id = {}.'
+                     .format(current_training_status, current_training_id))
+        response['processing_time_remaining'] = 0
+        response['message'] = 'OK'
+    time_estimation = 0
+    trainings_with_recognizing_audio_status = \
+        TrainingsDBManager().get_trainings_filtered({'audio_status': AudioStatus.RECOGNIZING})
+    for training in trainings_with_recognizing_audio_status:
+        time_since_audio_status_last_update = datetime.now().timestamp() - training.audio_status_last_update.time
+        estimated_remaining_recognition_time = \
+            training.presentation_record_duration / 2 - time_since_audio_status_last_update
+        logger.debug(
+            'Audio status is RECOGNIZING, training_id = {}, status last update = {}, {} seconds ago, '
+            'presentation record duration = {}.\nEstimated remaining recognition time = {}.'.format(
+                training.pk, training.audio_status_last_update, time_since_audio_status_last_update,
+                training.presentation_record_duration, estimated_remaining_recognition_time,
+            )
+        )
+        time_estimation += max(0, estimated_remaining_recognition_time)
+    if current_training_status == TrainingStatus.PROCESSING:
+        time_estimation_add = 20
+        logger.debug('Current audio status is PROCESSING, training_id = {}. Adding {} seconds.'
+                     .format(current_training_id, time_estimation_add))
+        time_estimation += time_estimation_add
+    current_presentation_record_file_id = current_training_db.presentation_record_file_id
+    current_presentation_record_file_generation_time = current_presentation_record_file_id.generation_time
+    all_audio_to_recognize = AudioToRecognizeDBManager().get_all_audio_to_recognize()
+    for audio_to_recognize in all_audio_to_recognize:
+        presentation_record_file_generation_time = audio_to_recognize.file_id.generation_time
+        training_id = audio_to_recognize.training_id
+        training_db = TrainingsDBManager().get_training(training_id)
+        time_estimation_add = training_db.presentation_record_duration / 2
+        if presentation_record_file_generation_time < current_presentation_record_file_generation_time:
+            logger.debug(
+                'Presentation record file generation time for a training with training_id = {} is {}. '
+                'It is earlier than for the current training with training_id = {} that is {}. Adding {} seconds.'
+                .format(
+                    training_id,
+                    presentation_record_file_generation_time,
+                    current_training_id,
+                    current_presentation_record_file_generation_time,
+                    time_estimation_add,
+                )
+            )
+            time_estimation += time_estimation_add
+    response['processing_time_remaining'] = round(time_estimation)
+    response['message'] = 'OK'
+    return response
+
+
+@app.route('/remaining_processing_time')
+def remaining_processing_time():
+    response = {
+        'processing_time_remaining': None,
+        'message': None,
+    }
+    try:
+        check_auth()
+    except HTTPException:
+        return response
+    current_training_id = request.args.get('trainingId')
+    if current_training_id is None:
+        response['message'] = 'trainingId is not filled.'
+        return response
+    return get_remaining_processing_time_by_training_id(current_training_id)
 
 
 @app.route('/training_greeting')
