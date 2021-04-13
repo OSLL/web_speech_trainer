@@ -28,10 +28,6 @@ function buildCurrentTrainingRow(trainingId, trainingJson) {
     trainingProcessingFinishTimestampElement.textContent = trainingJson['processing_finish_timestamp'];
     currentTrainingRowElement.appendChild(trainingProcessingFinishTimestampElement);
 
-    const trainingPassBackStatusElement = document.createElement('td');
-    trainingPassBackStatusElement.textContent = trainingJson['pass_back_status'];
-    currentTrainingRowElement.appendChild(trainingPassBackStatusElement);
-
     const trainingStatusElement = document.createElement('td');
     trainingStatusElement.textContent = trainingJson['training_status'];
     currentTrainingRowElement.appendChild(trainingStatusElement);
@@ -43,6 +39,10 @@ function buildCurrentTrainingRow(trainingId, trainingJson) {
     const presentationStatusElement = document.createElement('td');
     presentationStatusElement.textContent = trainingJson['presentation_status'];
     currentTrainingRowElement.appendChild(presentationStatusElement);
+
+    const trainingPassBackStatusElement = document.createElement('td');
+    trainingPassBackStatusElement.textContent = trainingJson['pass_back_status'];
+    currentTrainingRowElement.appendChild(trainingPassBackStatusElement);
 
     const trainingScoreElement = document.createElement('td');
     trainingScoreElement.textContent = trainingJson['score'];
@@ -61,10 +61,10 @@ function buildAllTrainingsTable(trainingsJson) {
             'Длительность аудиозаписи',
             'Начало обработки',
             'Конец обработки',
-            'Статус отправки в LMS',
             'Статус тренировки',
             'Статус аудио',
             'Статус презентации',
+            'Статус отправки в LMS',
             'Балл',
         ]
     );
