@@ -3,6 +3,7 @@ import time
 from ast import literal_eval
 from datetime import datetime, timedelta
 
+from bson import ObjectId
 from flask import Flask, render_template, request, send_file, redirect, session, url_for, abort, jsonify
 from pydub import AudioSegment
 from werkzeug.exceptions import HTTPException
@@ -539,21 +540,6 @@ def resubmit_failed_trainings():
         TrainingManager().add_training(current_training.pk)
 
 
-def migrate_db():
-    for training_document in TrainingsDBManager().get_trainings_documents():
-        if 'presentation_record_duration' in training_document or \
-                'presentation_record_file_id' not in training_document:
-            continue
-        try:
-            presentation_record_file = DBManager().get_file(training_document['presentation_record_file_id'])
-            training_document['presentation_record_duration'] \
-                = AudioSegment.from_mp3(presentation_record_file).duration_seconds
-            training_db = Trainings.from_document(training_document)
-            training_db.save()
-        except Exception as e:
-            logger.warn('Migration failed for training with training_id = {}.\n{}'.format(training_document['_id'], e))
-
-
 if __name__ == '__main__':
     Config.init_config('config.ini')
     werkzeug_logger = logging.getLogger('werkzeug')
@@ -566,6 +552,5 @@ if __name__ == '__main__':
     app.secret_key = Config.c.constants.app_secret_key
     if not ConsumersDBManager().is_key_valid(Config.c.constants.lti_consumer_key):
         ConsumersDBManager().add_consumer(Config.c.constants.lti_consumer_key, Config.c.constants.lti_consumer_secret)
-    migrate_db()
     resubmit_failed_trainings()
     app.run(host='0.0.0.0')
