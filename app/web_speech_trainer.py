@@ -10,6 +10,7 @@ from werkzeug.exceptions import HTTPException
 
 from app.audio import Audio
 from app.config import Config
+from app.criteria_pack import CriteriaPackFactory
 from app.mongo_models import Trainings
 from app.recognized_presentation import RecognizedPresentation
 from app.root_logger import get_logging_stdout_handler, get_root_logger
@@ -121,6 +122,8 @@ def get_audio_transcription():
             logger.debug('Audio transcription: training_id = {}, username = {} but this training belongs to {}'
                          .format(training_id, username, training_db.username))
             abort(401)
+    if training_db.audio_status != AudioStatus.PROCESSED:
+        return 'Audio file not ready', 404
     audio_id = training_db.audio_id
     audio_as_json = DBManager().get_file(audio_id)
     if audio_as_json is None:
@@ -348,6 +351,51 @@ def build_current_points_str(training_ids):
         return '[]'
     else:
         return current_points[:-2] + ']'
+
+
+@app.route('/get_criterion_parameter')
+def get_criterion_parameter():
+    response = {
+        'parameterName': None,
+        'parameterValue': None,
+        'message': None,
+    }
+    try:
+        user_session = check_auth()
+    except HTTPException:
+        return response
+    for required_argument_name in ['trainingId', 'criterionName', 'parameterName']:
+        if request.args.get(required_argument_name) is None:
+            response['message'] = '{} is not filled.'.format(required_argument_name)
+            return response
+    training_id = request.args.get('trainingId')
+    criterion_name = request.args.get('criterionName')
+    parameter_name = request.args.get('parameterName')
+    response['parameterName'] = parameter_name
+    training_db = TrainingsDBManager().get_training(training_id)
+    if not training_db:
+        logger.debug('Get criterion parameter: training_id = {}. No such training.'.format(training_id))
+        response['message'] = 'No such training with trainingId = {}.'.format(training_id)
+        return response
+    if not user_session.is_admin:
+        username = session.get('session_id', '')
+        if training_db.username != username:
+            logger.debug('Get criterion parameter: training_id = {}, username = {} but this training belongs to {}'
+                         .format(training_id, username, training_db.username))
+            return response
+    criteria_pack_id = training_db.criteria_pack_id
+    criteria_pack = CriteriaPackFactory().get_criteria_pack(criteria_pack_id)
+    criterion = criteria_pack.get_criterion_by_name(criterion_name)
+    if criterion is None:
+        response['message'] = 'No such criterion with name = {}.'.format(criterion_name)
+        return response
+    parameter_value = criterion.parameters.get(parameter_name)
+    if parameter_value is None:
+        response['message'] = 'No such parameter with name = {}.'.format(parameter_name)
+        return response
+    response['parameterValue'] = parameter_value
+    response['message'] = 'OK'
+    return response
 
 
 @app.route('/get_current_task_attempt')
