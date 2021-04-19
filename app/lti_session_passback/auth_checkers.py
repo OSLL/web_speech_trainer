@@ -11,7 +11,11 @@ def check_auth():
     if user_session:
         return user_session
     else:
-        abort(401)
+        return None
+
+
+def is_logged_in():
+    return check_auth() is not None
 
 
 def check_admin():
@@ -19,7 +23,11 @@ def check_admin():
     if user_session and user_session.is_admin:
         return user_session
     else:
-        abort(401)
+        return None
+
+
+def is_admin():
+    return check_admin() is not None
 
 
 def check_task_access(task_id):

@@ -10,6 +10,6 @@ COPY . .
 RUN pip3 install fitz
 
 RUN pip3 install -r requirements.txt
-ENV PYTHONPATH='/app'
+ENV PYTHONPATH='/app/:/app/app/'
 WORKDIR /app/app
 CMD /bin/bash

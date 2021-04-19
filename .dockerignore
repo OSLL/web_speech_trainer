@@ -1,6 +1,6 @@
+.git
 venv
 .idea
+.ssl
 __pycache__
-audio_sources
-.git
 

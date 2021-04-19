@@ -5,7 +5,6 @@ let pdfDoc,
     scale,
     canvas,
     ctx,
-    presentationFileId,
     trainingId;
 
 function renderPage(num) {
@@ -42,16 +41,9 @@ function queueRenderPage(num) {
 
 function callShowPage() {
   $.ajax({
-    type: 'GET',
-    url: '/show_page',
-    data: {
-      trainingId: trainingId
-    }
+    type: 'PUT',
+    url: `/api/trainings/timestamps/${trainingId}/`
   });
-}
-
-function returnToUploadPage() {
-  window.location.replace("/upload");
 }
 
 function onNextPage() {
@@ -63,10 +55,9 @@ function onNextPage() {
   queueRenderPage(pageNum);
 }
 
-function setupPresentationViewer(presentationFileId_, trainingId_) {
-    presentationFileId = presentationFileId_;
+function setupPresentationViewer(trainingId_) {
     trainingId = trainingId_;
-    let loadingTask = pdfjsLib.getDocument(`/get_presentation_file?presentationFileId=${presentationFileId}`);
+    let loadingTask = pdfjsLib.getDocument(`/api/files/presentations/by-training/${trainingId_}/`);
     loadingTask.promise.then(function(pdfDoc_) {
       pdfDoc = pdfDoc_;
       $('#page_count')[0].textContent = pdfDoc.numPages;
