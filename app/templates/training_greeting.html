@@ -7,8 +7,7 @@
     <h2>Номер тренировки: {{ training_number }} / {{ attempt_count }}</h2>
     <h2>Баллы за предыдущие тренировки: {{ current_points }}</h2>
     <h2>Проходной балл: {{ required_points }}</h2>
-    <form method=POST enctype=multipart/form-data action="{{ url_for('upload') }}">
-        <input type="submit" value="Начать">
-    </form>
+    <button type="button" onclick="location.href={{ url_for('routes_presentations.view_presentation_upload') }}">Начать</button>
+
 </div>
 {% endblock %}
