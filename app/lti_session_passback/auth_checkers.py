@@ -3,9 +3,17 @@ from flask import session
 from app.config import Config
 from app.mongo_models import Sessions
 from app.mongo_odm import SessionsDBManager
+from app.utils import is_testing_active
 
 
 def check_auth():
+    if not is_testing_active():
+        return _check_auth()
+    else:
+        return _check_auth_testing()
+
+
+def _check_auth():
     user_session = SessionsDBManager().get_session(
         session.get('session_id', None),
         session.get('consumer_key', None),
@@ -21,10 +29,10 @@ def _check_auth_testing():
         session_id=Config.c.testing.session_id,
         consumer_key=Config.c.constants.lti_consumer_key,
         tasks={
-            Config.c.testing.task_id: {
+            Config.c.testing.custom_task_id: {
                 'params_for_passback': {
                     'lis_outcome_service_url': Config.c.testing.lis_outcome_service_url,
-                    'lis_result_sourcedid': Config.c.testing.lis_result_sourcedid,
+                    'lis_result_sourcedid': Config.c.testing.lis_result_source_did,
                     'oauth_consumer_key': Config.c.testing.oauth_consumer_key,
                 },
             },
@@ -57,4 +65,4 @@ def check_task_access(task_id):
     if check_admin():
         return True
     else:
-        return task_id in user_session['tasks']
+        return task_id in user_session['tasks'] or is_testing_active()
