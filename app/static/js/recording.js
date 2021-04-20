@@ -23,10 +23,16 @@ function startRecording() {
             time = 0;
             $("#timer").show();
             timer = setInterval(function () {
-                seconds = time % 60
-                minuts = time / 60 % 60
-                hour = time / 60 / 60 % 60
-                let strTimer = `Training time: ${Math.trunc(hour)}:${Math.trunc(minuts)}:${seconds}`;
+                seconds = time % 60;
+                if (seconds < 10) {
+                    seconds = `0${seconds}`;
+                }
+                minuts = time / 60 % 60;
+                if (minuts < 10) {
+                    minuts = `0${Math.trunc(minuts)}`;
+                }
+                hour = time / 60 / 60 % 60;
+                let strTimer = `Training time: ${Math.trunc(hour)}:${minuts}:${seconds}`;
                 $("#timer").html(strTimer);
                 if (maxTime && time >= maxTime) {
                     $("#timer").css("color", "red");
