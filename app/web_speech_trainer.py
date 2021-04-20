@@ -1,4 +1,5 @@
 import logging
+import sys
 
 from flask import Flask
 
@@ -59,7 +60,7 @@ def resubmit_failed_trainings():
 
 
 if __name__ == '__main__':
-    Config.init_config('config.ini')
+    Config.init_config(sys.argv[1])
     werkzeug_logger = logging.getLogger('werkzeug')
     werkzeug_logger.addHandler(get_logging_stdout_handler())
     werkzeug_logger.setLevel(logging.ERROR)

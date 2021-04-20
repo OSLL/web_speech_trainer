@@ -3,7 +3,7 @@ version: '2'
 services:
   web:
     image: base_image
-    command: python3 -m web_speech_trainer
+    command: python3 -m web_speech_trainer $APP_CONF
     restart: always
     ports:
       - 5000:5000
@@ -19,7 +19,7 @@ services:
 
   audio_processor:
     image: base_image
-    command: python3 -m audio_processor
+    command: python3 -m audio_processor $APP_CONF
     restart: always
     depends_on:
       - db
@@ -28,7 +28,7 @@ services:
 
   recognized_audio_processor:
     image: base_image
-    command: python3 -m recognized_audio_processor
+    command: python3 -m recognized_audio_processor $APP_CONF
     restart: always
     depends_on:
       - db
@@ -38,14 +38,14 @@ services:
   presentation_processor:
     image: base_image
     build: .
-    command: python3 -m presentation_processor
+    command: python3 -m presentation_processor $APP_CONF
     restart: always
     depends_on:
       - db
 
   recognized_presentation_processor:
     image: base_image
-    command: python3 -m recognized_presentation_processor
+    command: python3 -m recognized_presentation_processor $APP_CONF
     restart: always
     depends_on:
       - db
@@ -53,7 +53,7 @@ services:
 
   training_processor:
     image: base_image
-    command: python3 -m training_processor
+    command: python3 -m training_processor $APP_CONF
     restart: always
     depends_on:
       - db
@@ -62,7 +62,7 @@ services:
 
   task_attempt_to_pass_back_processor:
     image: base_image
-    command: python3 -m task_attempt_to_pass_back_processor
+    command: python3 -m task_attempt_to_pass_back_processor $APP_CONF
     restart: always
     depends_on:
       - db

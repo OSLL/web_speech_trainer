@@ -11,12 +11,11 @@ jobs:
 
     - name: Build docker-compose
       run: |
-        cd app
         docker-compose build
 
     - name: Run docker-compose
       run:
-        docker-compose up -d
+        APP_CONF=../app_conf/testing.ini docker-compose up -d
 
     - name: Run tests
       run: |

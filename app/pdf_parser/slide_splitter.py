@@ -7,6 +7,7 @@ from nltk.corpus import stopwords
 import os
 import argparse
 import re
+import shutil
 
 
 def text_processor(text, mode):
@@ -61,7 +62,6 @@ def parse_pdf(pdf_path, extract_dir):
         os.mkdir(extract_dir)
 
     pdf_doc = fitz.open(pdf_path)
-    print(pdf_doc)
     slide_dict = []
 
     for page in pdf_doc:
@@ -71,7 +71,7 @@ def parse_pdf(pdf_path, extract_dir):
 
         with open("{}/{}_slide.txt".format(extract_dir, page.number), "w") as f:
             f.write(l_text)
-
+    shutil.rmtree(extract_dir, ignore_errors=True)
     return slide_dict
 
 

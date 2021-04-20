@@ -1,3 +1,4 @@
+import sys
 from time import sleep
 
 from app.audio_recognizer import VoskAudioRecognizer
@@ -54,7 +55,7 @@ class AudioProcessor:
 
 
 if __name__ == "__main__":
-    Config.init_config('config.ini')
+    Config.init_config(sys.argv[1])
     audio_recognizer = VoskAudioRecognizer(host=Config.c.vosk.url)
     audio_processor = AudioProcessor(audio_recognizer)
     audio_processor.run()

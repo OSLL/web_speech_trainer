@@ -1,3 +1,4 @@
+import sys
 from time import sleep
 
 from lti import ToolProvider
@@ -6,6 +7,7 @@ from app.config import Config
 from app.mongo_odm import ConsumersDBManager, TaskAttemptsToPassBackDBManager, TaskAttemptsDBManager
 from app.root_logger import get_root_logger
 from app.status import PassBackStatus
+from app.utils import is_testing_active
 
 logger = get_root_logger(service_name='task_attempt_to_pass_back_processor')
 
@@ -26,7 +28,7 @@ class TaskAttemptToPassBackProcessor:
             headers=None,
             url=None
         ).post_replace_result(score=normalized_score)
-        if response.code_major == 'success' and response.severity == 'status':
+        if is_testing_active() or response.code_major == 'success' and response.severity == 'status':
             TaskAttemptsDBManager().set_pass_back_status(task_attempt_db, training_id, PassBackStatus.SUCCESS)
             logger.info('Score was successfully passed back: score = {}, task_attempt_db = {}, training_id = {}'
                         .format(normalized_score, task_attempt_db.pk, training_id))
@@ -60,6 +62,6 @@ class TaskAttemptToPassBackProcessor:
 
 
 if __name__ == "__main__":
-    Config.init_config('config.ini')
+    Config.init_config(sys.argv[1])
     task_attempt_to_pass_back_processor = TaskAttemptToPassBackProcessor()
     task_attempt_to_pass_back_processor.run()
