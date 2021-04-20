@@ -25,8 +25,8 @@ logger = get_root_logger(service_name='web')
 
 @app.route('/get_login')
 def get_login():
-    username = session.get('session_id', 'login')
-    full_name = session.get('full_name', 'user')
+    username = session.get('session_id', '')
+    full_name = session.get('full_name', '')
     user_info = {
         'username': username,
         'full_name': full_name
