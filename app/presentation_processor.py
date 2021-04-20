@@ -1,3 +1,4 @@
+import sys
 from time import sleep
 
 from app.config import Config
@@ -57,7 +58,7 @@ class PresentationProcessor:
 
 
 if __name__ == "__main__":
-    Config.init_config('config.ini')
+    Config.init_config(sys.argv[1])
     presentation_recognizer = SimplePresentationRecognizer()
     presentation_processor = PresentationProcessor(presentation_recognizer)
     presentation_processor.run()

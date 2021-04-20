@@ -1,5 +1,7 @@
-from flask import abort, session
+from flask import session
 
+from app.config import Config
+from app.mongo_models import Sessions
 from app.mongo_odm import SessionsDBManager
 
 
@@ -11,7 +13,28 @@ def check_auth():
     if user_session:
         return user_session
     else:
-        abort(401)
+        return None
+
+
+def _check_auth_testing():
+    return Sessions(
+        session_id=Config.c.testing.session_id,
+        consumer_key=Config.c.constants.lti_consumer_key,
+        tasks={
+            Config.c.testing.task_id: {
+                'params_for_passback': {
+                    'lis_outcome_service_url': Config.c.testing.lis_outcome_service_url,
+                    'lis_result_sourcedid': Config.c.testing.lis_result_sourcedid,
+                    'oauth_consumer_key': Config.c.testing.oauth_consumer_key,
+                },
+            },
+        },
+        is_admin=Config.c.testing.is_admin,
+    )
+
+
+def is_logged_in():
+    return check_auth() is not None
 
 
 def check_admin():
@@ -19,7 +42,11 @@ def check_admin():
     if user_session and user_session.is_admin:
         return user_session
     else:
-        abort(401)
+        return None
+
+
+def is_admin():
+    return check_admin() is not None
 
 
 def check_task_access(task_id):

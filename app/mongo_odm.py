@@ -34,7 +34,7 @@ class DBManager:
         return cls.instance
 
     def add_file(self, file, filename=uuid.uuid4()):
-        return str(self.storage.save(name=filename, content=file))
+        return self.storage.save(name=filename, content=file)
 
     def read_and_add_file(self, path, filename=None):
         if filename is None:
@@ -45,11 +45,9 @@ class DBManager:
         return _id
 
     def get_file_name(self, file_id):
-        file_id = ObjectId(file_id)
-        try:
-            file = self.storage.open(file_id).file
-        except (NoFile, ValidationError, InvalidId):
-            return None
+        file = self.get_file(file_id)
+        if file is None:
+            return
         file_name = file.filename
         file.close()
         return file_name
@@ -58,7 +56,8 @@ class DBManager:
         try:
             file_id = ObjectId(file_id)
             return self.storage.open(file_id).file
-        except (NoFile, ValidationError, InvalidId):
+        except (NoFile, ValidationError, InvalidId) as e:
+            logger.warning('file_id = {}, {}.'.format(file_id, e))
             return None
 
 
@@ -84,7 +83,8 @@ class TrainingsDBManager:
     ):
         if slide_switch_timestamps is None:
             slide_switch_timestamps = []
-        return Trainings(
+
+        saved = Trainings(
             task_attempt_id=task_attempt_id,
             username=username,
             full_name=full_name,
@@ -95,6 +95,12 @@ class TrainingsDBManager:
             presentation_status=presentation_status,
             criteria_pack_id=criteria_pack_id,
         ).save()
+        logger.info(
+            'Added training with training_id = {}, task_attempt_id = {}, presentation_file_id = {},\n'
+            'username = {}, full_name = {},  criteria_pack_id = {}.'
+            .format(saved.pk, task_attempt_id, presentation_file_id, username, full_name, criteria_pack_id)
+        )
+        return saved
 
     def get_trainings(self):
         return Trainings.objects.all()
@@ -103,15 +109,16 @@ class TrainingsDBManager:
         return Trainings.objects.model._mongometa.collection.find({})
 
     def get_trainings_filtered(self, filters):
-        for (key, value) in filters.copy().items():
-            if not value:
-                filters.pop(key)
         return Trainings.objects.raw(filters)
 
     def get_training(self, training_id):
         try:
             return Trainings.objects.get({'_id': ObjectId(training_id)})
-        except (Trainings.DoesNotExist, InvalidId):
+        except Trainings.DoesNotExist:
+            logger.info('No such training with training_id = {}.'.format(training_id))
+            return None
+        except InvalidId:
+            logger.info('Invalid training_id = {}.'.format(training_id))
             return None
 
     def get_training_by_presentation_file_id(self, presentation_file_id):
@@ -260,18 +267,30 @@ class TrainingsDBManager:
         return training.save()
 
     def append_timestamp(self, training_id, timestamp=None):
+        # TODO limit len(slide_switch_timestamps)
         if timestamp is None:
             timestamp = time.time()
         training = self.get_training(training_id)
         if training is None:
             return None
         training.slide_switch_timestamps.append(timestamp)
-        return training.save()
+        saved = training.save()
+        logger.debug('Timestamp = {} appended to the training with training_id={}.'.format(timestamp, training_id))
+        return saved
 
-    def add_presentation_record_file_id(self, training_id, presentation_record_file_id):
+    def add_presentation_record(self, training_id, presentation_record_file_id, presentation_record_duration):
         training = self.get_training(training_id)
+        if training is None:
+            return None
         training.presentation_record_file_id = presentation_record_file_id
-        return training.save()
+        training.presentation_record_duration = presentation_record_duration
+        saved = training.save()
+        logger.info(
+            'Attached presentation record with presentation_record_id = {} and duration = {} '
+            'to the training with training_id = {}.'
+            .format(presentation_record_file_id, presentation_record_duration, training_id)
+        )
+        return saved
 
     def get_slide_switch_timestamps(self, training_id):
         training = self.get_training(training_id)
@@ -306,7 +325,7 @@ class TrainingsDBManager:
         return training.save()
 
     def set_processing_start_timestamp(self, training_id, timestamp):
-        logger.info('Setting processing start timestamp = {} for a training with training_id = {}'
+        logger.info('Setting processing start timestamp = {} for the training with training_id = {}'
                     .format(timestamp, training_id))
         training = self.get_training(training_id)
         if training is None:
@@ -334,7 +353,8 @@ class TasksDBManager:
     def get_task(self, task_id):
         try:
             return Tasks.objects.get({'task_id': task_id})
-        except (Tasks.DoesNotExist, InvalidId):
+        except (Tasks.DoesNotExist, InvalidId) as e:
+            logger.warning('task_id = {}, {}: {}.'.format(task_id, e.__class__, e))
             return None
 
     def add_task(self, task_id, task_description, attempt_count, required_points):
@@ -396,7 +416,8 @@ class TaskAttemptsDBManager:
     def get_task_attempt(self, task_attempt_id):
         try:
             return TaskAttempts.objects.get({'_id': ObjectId(task_attempt_id)})
-        except (TaskAttempts.DoesNotExist, InvalidId):
+        except (TaskAttempts.DoesNotExist, InvalidId) as e:
+            logger.warning('task_attempt_id = {}, {}: {}.'.format(task_attempt_id, e.__class__, e))
             return None
 
     def get_attempts_count(self, username, task_id):
@@ -418,6 +439,9 @@ class TaskAttemptsDBManager:
             return
         task_attempt_db.training_scores[str(training_id)] = None
         task_attempt_db.is_passed_back[str(training_id)] = PassBackStatus.NOT_SENT
+        logger.info(
+            'Updated task attempt with task_attempt_id = {}, training_id = {}.'.format(task_attempt_id, training_id)
+        )
         return task_attempt_db.save()
 
     def update_scores(self, task_attempt_id, training_id, score):
@@ -462,7 +486,9 @@ class SessionsDBManager:
     def get_session(self, session_id, consumer_key):
         try:
             return Sessions.objects.get({'$and': [{'session_id': session_id, 'consumer_key': consumer_key}]})
-        except (Sessions.DoesNotExist, InvalidId):
+        except (Sessions.DoesNotExist, InvalidId) as e:
+            logger.warning('session_id = {}, consumer_key = {}, {}: {}.'
+                           .format(session_id, consumer_key, e.__class__, e))
             return None
 
 
@@ -576,6 +602,9 @@ class AudioToRecognizeDBManager:
             cls.init_done = True
         return cls.instance
 
+    def get_all_audio_to_recognize(self):
+        return AudioToRecognize.objects.all()
+
     def add_audio_to_recognize(self, file_id, training_id):
         return AudioToRecognize(
             file_id=file_id,
@@ -682,12 +711,18 @@ class PresentationFilesDBManager:
     def get_presentation_files(self):
         return PresentationFiles.objects.all()
 
-    def get_preview_id_by_file_id(self, file_id):
+    def get_presentation_file(self, file_id):
         try:
-            presentation_file = PresentationFiles.objects.get({'file_id': ObjectId(file_id)})
-            return presentation_file.preview_id
-        except (PresentationFiles.DoesNotExist, InvalidId):
+            return PresentationFiles.objects.get({'file_id': ObjectId(file_id)})
+        except (PresentationFiles.DoesNotExist, InvalidId) as e:
+            logger.warning('file_id = {}, {}.'.format(file_id, e))
             return None
+
+    def get_preview_id_by_file_id(self, file_id):
+        presentation_file = self.get_presentation_file(file_id)
+        if presentation_file is None:
+            return None
+        return presentation_file.preview_id
 
 
 class LogsDBManager:

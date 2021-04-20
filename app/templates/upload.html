@@ -1,7 +1,7 @@
 {% extends 'base.html' %} {% block content %}
 
 <h3>Загрузите pdf-файл с презентацией и нажмите "Начать тренировку"</h3>
-<form method=POST enctype=multipart/form-data action="{{ url_for('upload') }}">
+<form method=POST id="upload-presentation-form" enctype=multipart/form-data action="{{ url_for('routes_presentations.handle_presentation_upload') }}">
     <input type=file name=presentation>
     <input type="submit" value="Начать тренировку">
 </form>

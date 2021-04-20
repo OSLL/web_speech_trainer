@@ -1,3 +1,4 @@
+import sys
 from time import sleep
 
 from app.audio import Audio
@@ -85,6 +86,6 @@ class TrainingProcessor:
 
 
 if __name__ == "__main__":
-    Config.init_config('config.ini')
+    Config.init_config(sys.argv[1])
     training_processor = TrainingProcessor()
     training_processor.run()
