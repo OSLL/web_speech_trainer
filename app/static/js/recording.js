@@ -12,8 +12,6 @@ function startRecording() {
         $("#tutorial")[0].style = "visibility: hidden; font-size: 0";
         $("#denoising-note")[0].style = "visibility: visible; font-size: 14";
         setTimeout(function () {
-            $("#denoising-note")[0].style = "visibility: hidden; font-size: 0";
-
             maxTime = undefined;
             fetch(`/api/criteria/${trainingId}/SpeechIsNotTooLongCriterion/maximal_allowed_duration/`)
                 .then(response => response.json())
