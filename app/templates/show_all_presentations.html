@@ -1,18 +1,19 @@
 {% extends 'base.html' %}
 
 {% block header %}
-<link rel="stylesheet" href="static/css/index.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='/css/index.css') }}">
 {% endblock %}
 
 {% block content %}
-<form method=POST enctype=multipart/form-data action="{{ url_for('upload_pdf') }}?to={{ url_for('show_all_presentations')}}">
+<form method=POST enctype=multipart/form-data action="{{ url_for('routes_presentations.view_presentation_upload') }}?
+    to={{ url_for('routes_presentations.view_all_presentations')}}">
     <input type=file name=presentation>
     <input type="submit" value="Добавить презентацию">
 </form>
 
-<table id="all-presentations-table" class="table"></table>
-<script src="static/js/utils.js"></script>
-<script src="static/js/show_all_presentations.js"></script>
+<table id="all-presentations-table" class="table center-align-table"></table>
+<script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+<script src="{{ url_for('static', filename='js/show_all_presentations.js') }}"></script>
 <script type="text/javascript">
     call_get_all_presentations();
 </script>

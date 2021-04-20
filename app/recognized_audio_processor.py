@@ -1,3 +1,4 @@
+import sys
 from time import sleep
 
 from app.audio import Audio
@@ -44,6 +45,6 @@ class RecognizedAudioProcessor:
 
 
 if __name__ == "__main__":
-    Config.init_config('config.ini')
+    Config.init_config(sys.argv[1])
     recognized_audio_processor = RecognizedAudioProcessor()
     recognized_audio_processor.run()
