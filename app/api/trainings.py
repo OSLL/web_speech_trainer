@@ -307,10 +307,11 @@ def get_all_trainings() -> (dict, int):
     :return: Dictionary with information about all trainings and 'OK' message, or
         an empty dictionary with 404 HTTP code if access was denied.
     """
-    if not check_admin():
-        return {}, 404
     username = request.args.get('username', None)
     full_name = request.args.get('full_name', None)
+    authorized = check_auth() is not None
+    if not check_admin() or not authorized or (authorized and session.get('session_id') != username):
+        return {}, 404
     trainings = TrainingsDBManager().get_trainings_filtered(
         remove_blank_and_none({'username': username, 'full_name': full_name})
     )

@@ -2,6 +2,8 @@ import logging
 
 from flask import Blueprint, session
 
+from app.lti_session_passback.auth_checkers import check_auth
+
 api_sessions = Blueprint('api_sessions', __name__)
 logger = logging.getLogger('root_logger')
 
@@ -16,6 +18,6 @@ def get_session_info():
     """
     username = session.get('session_id')
     full_name = session.get('full_name')
-    if username is None:
+    if not check_auth() or username is None:
         return {}, 404
     return {'username': username, 'full_name': full_name, 'message': 'OK'}, 200
