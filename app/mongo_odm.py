@@ -354,7 +354,7 @@ class TasksDBManager:
         try:
             return Tasks.objects.get({'task_id': task_id})
         except (Tasks.DoesNotExist, InvalidId) as e:
-            logger.warning('task_id = {}, {}.'.format(task_id, e))
+            logger.warning('task_id = {}, {}: {}.'.format(task_id, e.__class__, e))
             return None
 
     def add_task(self, task_id, task_description, attempt_count, required_points):
@@ -487,7 +487,8 @@ class SessionsDBManager:
         try:
             return Sessions.objects.get({'$and': [{'session_id': session_id, 'consumer_key': consumer_key}]})
         except (Sessions.DoesNotExist, InvalidId) as e:
-            logger.warning('session_id = {}, consumer_key = {}, {}.'.format(session_id, consumer_key, e))
+            logger.warning('session_id = {}, consumer_key = {}, {}: {}.'
+                           .format(session_id, consumer_key, e.__class__, e))
             return None
 
 

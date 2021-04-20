@@ -6,6 +6,8 @@ import fitz
 from bson import ObjectId
 from pydub import AudioSegment
 
+from app.config import Config
+
 PDF_HEX_START = ['25', '50', '44', '46']
 SECONDS_PER_MINUTE = 60
 BYTES_PER_MEGABYTE = 1024 * 1024
@@ -73,3 +75,10 @@ def check_arguments_are_convertible_to_object_id(f):
                     }, 404
         return f(*args)
     return wrapper
+
+
+def is_testing_active():
+    try:
+        return Config.c.testing.active
+    except Exception:
+        return False
