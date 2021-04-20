@@ -4,6 +4,7 @@ import sys
 from flask import Flask
 
 from app.api.audio import api_audio
+from app.api.criteria import api_criteria
 from app.api.files import api_files
 from app.api.logs import api_logs
 from app.api.presentations import api_presentations
@@ -18,6 +19,7 @@ from app.routes.presentations import routes_presentations
 from app.routes.trainings import routes_trainings
 from app.status import TrainingStatus
 from app.training_manager import TrainingManager
+
 
 app = Flask(__name__)
 app.register_blueprint(api_audio)
