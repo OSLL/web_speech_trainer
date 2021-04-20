@@ -357,18 +357,19 @@ class TasksDBManager:
             logger.warning('task_id = {}, {}: {}.'.format(task_id, e.__class__, e))
             return None
 
-    def add_task(self, task_id, task_description, attempt_count, required_points):
+    def add_task(self, task_id, task_description, attempt_count, required_points, criteria_pack_id):
         return Tasks(
             task_id=task_id,
             task_description=task_description,
             attempt_count=attempt_count,
             required_points=required_points,
+            criteria_pack_id=criteria_pack_id,
         ).save()
 
     def add_task_if_absent(self, task_id, task_description, attempt_count, required_points, criteria_pack_id):
         task_db = self.get_task(task_id)
         if task_db is None:
-            return self.add_task(task_id, task_description, attempt_count, required_points)
+            return self.add_task(task_id, task_description, attempt_count, required_points, criteria_pack_id)
         if task_db.task_description != task_description:
             task_db.task_description = task_description
         if task_db.attempt_count != attempt_count:
