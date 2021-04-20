@@ -79,6 +79,6 @@ def check_arguments_are_convertible_to_object_id(f):
 
 def is_testing_active():
     try:
-        return Config.c.testing.active
+        return safe_strtobool(Config.c.testing.active)
     except Exception:
         return False

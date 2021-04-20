@@ -1,7 +1,7 @@
 import logging
 import sys
 
-from flask import Flask
+from flask import Flask, session
 
 from app.api.audio import api_audio
 from app.api.files import api_files
@@ -57,6 +57,41 @@ def resubmit_failed_trainings():
         current_training.feedback = {}
         current_training.save()
         TrainingManager().add_training(current_training.pk)
+
+
+@app.route('/init/', methods=['GET'])
+def init():
+    """
+    Route for session initialization. Enabled only if is_testing_active returns True.
+
+    :return: Empty dictionary
+    """
+    from app.utils import is_testing_active
+    if not is_testing_active():
+        return {}, 200
+    session['session_id'] = Config.c.testing.session_id
+    session['full_name'] = Config.c.testing.lis_person_name_full
+    session['consumer_key'] = Config.c.testing.oauth_consumer_key
+    session['task_id'] = Config.c.testing.custom_task_id
+    from app.mongo_odm import TasksDBManager, TaskAttemptsDBManager
+    session['task_attempt_id'] = str(TaskAttemptsDBManager().add_task_attempt(
+        username=session['session_id'],
+        task_id=session['task_id'],
+        params_for_passback={
+            'lis_outcome_service_url': Config.c.testing.lis_outcome_service_url,
+            'lis_result_sourcedid': Config.c.testing.lis_result_source_did,
+            'oauth_consumer_key': Config.c.testing.oauth_consumer_key,
+        },
+        training_count=3,
+    ).pk)
+    TasksDBManager().add_task_if_absent(
+        Config.c.testing.custom_task_id,
+        Config.c.testing.custom_task_description,
+        int(Config.c.testing.custom_attempt_count),
+        float(Config.c.testing.custom_required_points),
+        int(Config.c.testing.custom_criteria_pack_id),
+    )
+    return {}, 200
 
 
 if __name__ == '__main__':

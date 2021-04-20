@@ -29,10 +29,10 @@ def _check_auth_testing():
         session_id=Config.c.testing.session_id,
         consumer_key=Config.c.constants.lti_consumer_key,
         tasks={
-            Config.c.testing.task_id: {
+            Config.c.testing.custom_task_id: {
                 'params_for_passback': {
                     'lis_outcome_service_url': Config.c.testing.lis_outcome_service_url,
-                    'lis_result_sourcedid': Config.c.testing.lis_result_sourcedid,
+                    'lis_result_sourcedid': Config.c.testing.lis_result_source_did,
                     'oauth_consumer_key': Config.c.testing.oauth_consumer_key,
                 },
             },
