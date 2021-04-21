@@ -2,6 +2,7 @@ import logging
 
 from app.criteria import SpeechIsNotTooLongCriterion, SpeechPaceCriterion, FillersRatioCriterion, \
     SpeechIsNotInDatabaseCriterion
+from app.mongo_odm import TrainingsDBManager
 
 logger = logging.getLogger('root_logger')
 
@@ -21,6 +22,7 @@ class CriteriaPack:
             try:
                 criterion_result = criterion.apply(audio, presentation, training_id, self.criteria_results)
                 self.add_criterion_result(criterion.name, criterion_result)
+                TrainingsDBManager().add_criterion_result(training_id, criterion.name, criterion_result)
                 logger.info('Attached {} {} to a training with training_id = {}'
                             .format(criterion.name, criterion_result, training_id))
             except Exception as e:

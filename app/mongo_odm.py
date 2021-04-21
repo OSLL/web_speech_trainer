@@ -317,6 +317,22 @@ class TrainingsDBManager:
             )
         return True
 
+    def add_criterion_result(self, training_id, criterion_name, criterion_result):
+        document = None
+        while document is None:
+            current_training_db = self.get_training(training_id)
+            if current_training_db is None:
+                return False
+            old_criteria_results = current_training_db.feedback.get('criteria_results')
+            new_criteria_results = old_criteria_results.copy()
+            new_criteria_results.update({criterion_name: criterion_result})
+            document = Trainings.objects.model._mongometa.collection.find_one_and_update(
+                filter={'_id': ObjectId(training_id), 'feedback.criteria_results': old_criteria_results},
+                update={'$set': {'feedback.criteria_results': new_criteria_results}},
+                return_document=ReturnDocument.AFTER,
+            )
+        return True
+
     def set_score(self, training_id, score):
         training = self.get_training(training_id)
         if training is None:

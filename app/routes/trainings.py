@@ -7,6 +7,7 @@ from flask import Blueprint, render_template, request, session
 from app.api.task_attempts import build_current_points_str
 from app.api.trainings import get_training_statistics
 from app.check_access import check_access
+from app.criteria_pack import CriteriaPackFactory
 from app.lti_session_passback.auth_checkers import check_admin, check_auth
 from app.mongo_odm import TasksDBManager, TaskAttemptsDBManager
 from app.status import TrainingStatus, AudioStatus, PresentationStatus
@@ -60,6 +61,12 @@ def view_training_statistics(training_id: str):
         )
     else:
         remaining_processing_time_estimation_str = ''
+    criteria_results = training_statistics.get('criteria_results')
+    if criteria_results is not None:
+        criteria_results_str = '\n'.join(name + " = " + str(result) for (name, result) in criteria_results.items())
+    else:
+        criteria_results_str = ''
+    print(criteria_results_str)
     return render_template(
         'training/statistics.html',
         page_title='Статистика тренировки с ID: {}'.format(training_id),
@@ -73,6 +80,7 @@ def view_training_statistics(training_id: str):
         audio_status=audio_status_str,
         presentation_status=presentation_status_str,
         remaining_processing_time_estimation=remaining_processing_time_estimation_str,
+        criteria_results=criteria_results_str,
     ), 200
 
 
