@@ -1,9 +1,12 @@
 <!DOCTYPE html>
 <html>
-{% block header %} {% include "header.html" %} {% endblock %}
+{% block header %}
+{% include "header.html" %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/libraries/bootstrap.min.css') }}">
+{% endblock %}
 
 <body>
-    <div class='container'>
+    <div class="base-container">
         <div class="course_title">
             <h1>{{ page_title }}</h1>
         </div>
@@ -11,6 +14,7 @@
     {% block content %}  {% endblock %}
     {% include "bug_reports.html" %}
     {% block footer %} {% include "footer.html" %} {% endblock %}
+    <script src="{{ url_for('static', filename='js/base.js') }}"></script>
 </body>
 
 </html>

@@ -1,0 +1,43 @@
+import logging
+
+from flask import Blueprint, request
+
+from app.config import Config
+from app.lti_session_passback.auth_checkers import check_auth
+from packaging import version as version_util
+
+api_sessions = Blueprint('api_sessions', __name__)
+logger = logging.getLogger('root_logger')
+
+
+@api_sessions.route('/api/sessions/user-agent/', methods=['GET'])
+def get_session_info():
+    """
+    Endpoint to get user agent information.
+
+    :return: Dictionary with user agent information, or
+        an empty dictionary with 404 HTTP code if access was denied.
+    """
+    if not check_auth():
+        return {}, 404
+    response = {
+        'platform': request.user_agent.platform,
+        'browser': request.user_agent.browser,
+        'version': request.user_agent.version,
+        'message': 'OK',
+        'outdated': False,
+        'supportedPlatforms': list(Config.c.user_agent_platform.__dict__.keys()),
+        'supportedBrowsers': Config.c.user_agent_browser.__dict__,
+    }
+    if request.user_agent.platform not in Config.c.user_agent_platform.__dict__:
+        response['outdated'] = True
+    browser_found = False
+    for (browser, version) in Config.c.user_agent_browser.__dict__.items():
+        if request.user_agent.browser == browser:
+            browser_found = True
+            if version_util.parse(request.user_agent.version) < version_util.parse(version):
+                response['outdated'] = True
+                break
+    if not browser_found:
+        response['outdated'] = True
+    return response, 200
