@@ -7,6 +7,7 @@ from app.api.audio import api_audio
 from app.api.files import api_files
 from app.api.logs import api_logs
 from app.api.presentations import api_presentations
+from app.api.sessions import api_sessions
 from app.api.task_attempts import api_task_attempts
 from app.api.trainings import api_trainings
 from app.config import Config
@@ -24,6 +25,7 @@ app.register_blueprint(api_audio)
 app.register_blueprint(api_files)
 app.register_blueprint(api_logs)
 app.register_blueprint(api_presentations)
+app.register_blueprint(api_sessions)
 app.register_blueprint(api_task_attempts)
 app.register_blueprint(api_trainings)
 app.register_blueprint(routes_admin)
