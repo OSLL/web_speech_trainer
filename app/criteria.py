@@ -25,6 +25,7 @@ class Criterion:
         self.name = name
         self.parameters = parameters
         self.dependent_criteria = dependent_criteria
+        self.description = 'Критерий: {}, параметры: {}.'.format(self.name, self.parameters)
 
     def apply(self, audio, presentation, training_id, criteria_results):
         pass
@@ -49,7 +50,7 @@ class SpeechIsNotTooLongCriterion(Criterion):
 
 
 class SpeechIsNotInDatabaseCriterion(Criterion):
-    CLASS_NAME = 'SpeechIsNotTooLongCriterion'
+    CLASS_NAME = 'SpeechIsNotInDatabaseCriterion'
 
     '''
     Критерий проверяет, не является ли аудиофайл нечеткой копией

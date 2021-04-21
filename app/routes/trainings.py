@@ -7,6 +7,7 @@ from flask import Blueprint, render_template, request, session
 from app.api.task_attempts import build_current_points_str
 from app.api.trainings import get_training_statistics
 from app.check_access import check_access
+from app.criteria_pack import CriteriaPackFactory
 from app.lti_session_passback.auth_checkers import check_admin, check_auth
 from app.mongo_odm import TasksDBManager, TaskAttemptsDBManager
 from app.status import TrainingStatus, AudioStatus, PresentationStatus
@@ -142,6 +143,9 @@ def view_training_greeting():
     task_attempt_count = TaskAttemptsDBManager().get_attempts_count(username, task_id)
     current_points = build_current_points_str(current_task_attempt.training_scores.keys())
     session['task_attempt_id'] = str(current_task_attempt.pk)
+    criteria_pack_id = session['criteria_pack_id']
+    criteria_pack = CriteriaPackFactory().get_criteria_pack(criteria_pack_id)
+    maximal_points = training_number * 1
     return render_template(
         'training_greeting.html',
         task_id=task_id,
@@ -149,7 +153,10 @@ def view_training_greeting():
         task_description=task_description,
         current_points=current_points,
         required_points=required_points,
+        maximal_points=maximal_points,
         attempt_number=task_attempt_count,
         training_number=training_number,
         attempt_count=attempt_count,
+        criteria_pack_id=criteria_pack_id,
+        criteria_pack_description=criteria_pack.description.replace('\n', '\\n').replace('\'', ''),
     )
