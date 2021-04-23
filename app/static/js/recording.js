@@ -32,7 +32,7 @@ function startRecording() {
                     minuts = `0${Math.trunc(minuts)}`;
                 }
                 hour = time / 60 / 60 % 60;
-                let strTimer = `Training time: ${Math.trunc(hour)}:${minuts}:${seconds}`;
+                let strTimer = `Время тренировки: ${Math.trunc(hour)}:${minuts}:${seconds}`;
                 $("#timer").html(strTimer);
                 if (maxTime && time >= maxTime) {
                     $("#timer").css("color", "red");
