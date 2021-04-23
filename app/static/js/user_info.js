@@ -1,13 +1,13 @@
 $(document).ready(function() {
-    fetch('/get_login')
+    $("#header").hide();
+    fetch('/api/sessions/info/')
         .then(response => response.json())
         .then(responseJson => {
-            if (responseJson['username'] != '') {
+            if (responseJson['message'] === 'OK') {
                 $("#header").show();
                 $("#username").html("Login: " + responseJson['username']);
-                $("#trainings").href = `/api/trainings/?username=${responseJson['username']}&full_name=${responseJson['full_name']}`;
-            } else {
-                $("#header").hide();
+                $("#trainings").attr("href", `/show_all_trainings/?username=${responseJson['username']}&full_name=${responseJson['full_name']}`);
             }
+            console.log(responseJson)
         });
 })
