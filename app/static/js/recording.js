@@ -2,15 +2,43 @@ let gumStream,
     recorder,
     input,
     encodeAfterRecord,
-    currentTimestamp;
+    currentTimestamp,
+    timer;
 
 function startRecording() {
-    navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(function(stream) {
+    navigator.mediaDevices.getUserMedia({audio: true, video: false}).then(function (stream) {
         callShowPage();
         currentTimestamp = Date.now();
         $("#tutorial")[0].style = "visibility: hidden; font-size: 0";
         $("#denoising-note")[0].style = "visibility: visible; font-size: 14";
         setTimeout(function () {
+            maxTime = undefined;
+            fetch(`/api/criteria/${trainingId}/SpeechIsNotTooLongCriterion/maximal_allowed_duration/`)
+                .then(response => response.json())
+                .then(function (data) {
+                    if (data["message"] === "OK") {
+                        maxTime = data["parameterValue"];
+                    }
+                })
+            time = 0;
+            $("#timer").show();
+            timer = setInterval(function () {
+                seconds = time % 60;
+                if (seconds < 10) {
+                    seconds = `0${seconds}`;
+                }
+                minuts = time / 60 % 60;
+                if (minuts < 10) {
+                    minuts = `0${Math.trunc(minuts)}`;
+                }
+                hour = time / 60 / 60 % 60;
+                let strTimer = `Время тренировки: ${Math.trunc(hour)}:${minuts}:${seconds}`;
+                $("#timer").html(strTimer);
+                if (maxTime && time >= maxTime) {
+                    $("#timer").css("color", "red");
+                }
+                time++;
+            }, 1000)
             $("#denoising-note")[0].style = "visibility: hidden; font-size: 0";
         }, 3000);
         let audioContext = new window.AudioContext();
@@ -20,7 +48,7 @@ function startRecording() {
             workerDir: "/static/js/libraries/WebAudioRecorder.js/",
             encoding: "mp3",
         });
-        recorder.onComplete = function(recorder, blob) {
+        recorder.onComplete = function (recorder, blob) {
             $("#record-processing")[0].style = "visibility: hidden; font-size: 0";
             callAddPresentationRecord(blob);
         }
@@ -37,6 +65,8 @@ function startRecording() {
 }
 
 function stopRecording() {
+    clearInterval(timer)
+    $("#timer").hide();
     gumStream.getAudioTracks()[0].stop();
     $("#record")[0].disabled = false;
     $("#record-processing")[0].style = "visibility: visible; font-size: 14px";
@@ -62,7 +92,8 @@ function callAddPresentationRecord(blob) {
     });
 }
 
-$(document).ready(function() {
+$(document).ready(function () {
+    $("#timer").hide();
     encodeAfterRecord = true;
     $("#record").click(startRecording);
     $("#done").click(stopRecording);
