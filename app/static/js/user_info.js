@@ -8,6 +8,5 @@ $(document).ready(function() {
                 $("#username").html("Login: " + responseJson['username']);
                 $("#trainings").attr("href", `/show_all_trainings/?username=${responseJson['username']}&full_name=${responseJson['full_name']}`);
             }
-            console.log(responseJson)
         });
 })
