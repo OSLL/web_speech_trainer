@@ -1,4 +1,10 @@
-{% extends 'base.html' %} {% block content %}
+{% extends 'base.html' %}
+
+{% block header %}
+<link rel="stylesheet" href="/static/css/training.css">
+{% endblock %}
+
+{% block content %}
 
 <div id="controls">
   <button id="record">Record</button>
@@ -13,6 +19,7 @@
   Для окончания тренировки нажмите кнопку "Done".
 </div>
 <p id="denoising-note">Не говорите ничего первые 3 секунды после нажатия кнопки "Record". Это нужно для калибровки шума.</p>
+<div id="timer"></div>
 <p id="record-processing">Аудиозапись обрабатывается. Не уходите со страницы.</p>
 
 <div>

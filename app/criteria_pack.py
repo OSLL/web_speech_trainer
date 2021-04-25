@@ -28,6 +28,12 @@ class CriteriaPack:
                                .format(criterion.name, training_id, e))
         return self.criteria_results
 
+    def get_criterion_by_name(self, criterion_name):
+        for criterion in self.criteria:
+            if criterion.name == criterion_name:
+                return criterion
+        return None
+
 
 class SimpleCriteriaPack(CriteriaPack):
     CLASS_NAME = 'SimpleCriteriaPack'
