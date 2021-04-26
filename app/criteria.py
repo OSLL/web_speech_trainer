@@ -1,7 +1,6 @@
 import numpy as np
 import librosa
 import scipy
-from gridfs import NoFile
 from scipy.spatial.distance import cosine
 
 from app.mongo_odm import DBManager, TrainingsDBManager

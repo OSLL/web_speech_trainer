@@ -100,10 +100,11 @@ def view_all_trainings():
     :return: Page with all trainings,
         or an empty dictionary if access was denied.
     """
-    if not check_admin():
-        return {}, 404
     username = request.args.get('username', '')
     full_name = request.args.get('full_name', '')
+    authorized = check_auth() is not None
+    if not check_admin() or not authorized or (authorized and session.get('session_id') != username):
+        return {}, 404
     return render_template('show_all_trainings.html', username=username, full_name=full_name), 200
 
 
