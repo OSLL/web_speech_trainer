@@ -1,6 +1,6 @@
 import logging
 
-from flask import Blueprint, request
+from flask import Blueprint, request, session
 
 from app.config import Config
 from app.lti_session_passback.auth_checkers import check_auth
@@ -26,7 +26,7 @@ def get_session_info():
 
 
 @api_sessions.route('/api/sessions/user-agent/', methods=['GET'])
-def get_session_info():
+def get_user_agent():
     """
     Endpoint to get user agent information.
 
