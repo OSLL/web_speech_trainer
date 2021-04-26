@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 import librosa
 import scipy
@@ -25,6 +27,10 @@ class Criterion:
         self.parameters = parameters
         self.dependent_criteria = dependent_criteria
 
+    @property
+    def description(self):
+        return ''
+
     def apply(self, audio, presentation, training_id, criteria_results):
         pass
 
@@ -39,6 +45,14 @@ class SpeechIsNotTooLongCriterion(Criterion):
             dependent_criteria=dependent_criteria,
         )
 
+    @property
+    def description(self):
+        return 'Критерий: {},\nописание: проверяет, что продолжительность речи не больше {},\nоценка: 0, ' \
+               'если не выполнен, 1, если выполнен.\n'.format(
+                self.name,
+                time.strftime('%M:%S', time.gmtime(round(self.parameters['maximal_allowed_duration']))),
+            )
+
     def apply(self, audio, presentation, training_id, criteria_results):
         maximal_allowed_duration = self.parameters['maximal_allowed_duration']
         if audio.audio_stats['duration'] <= maximal_allowed_duration:
@@ -48,12 +62,13 @@ class SpeechIsNotTooLongCriterion(Criterion):
 
 
 class SpeechIsNotInDatabaseCriterion(Criterion):
-    CLASS_NAME = 'SpeechIsNotTooLongCriterion'
+    CLASS_NAME = 'SpeechIsNotInDatabaseCriterion'
 
     '''
     Критерий проверяет, не является ли аудиофайл нечеткой копией
     одного из имеющихся в базе от этого пользователя.
     '''
+
     def __init__(self, parameters, dependent_criteria):
         super().__init__(
             name=SpeechIsNotInDatabaseCriterion.CLASS_NAME,
@@ -71,7 +86,7 @@ class SpeechIsNotInDatabaseCriterion(Criterion):
         step = int(step_s * sample_rate)
 
         bins = [
-            signal[start:start+window_size]
+            signal[start:start + window_size]
             for start in range(0, signal.shape[0] - window_size + 1, step)
         ]
         fft_bins = [np.abs(scipy.fft.fft(b)) for b in bins]
@@ -120,6 +135,11 @@ class SpeechIsNotInDatabaseCriterion(Criterion):
                 break
 
         return length / min_len
+
+    @property
+    def description(self):
+        return 'Критерий: {},\nописание: проверяет, не является ли аудиофайл нечеткой копией одного из имеющихся в ' \
+               'базе от этого пользователя,\nоценка: 0, если не выполнен, 1, если выполнен.\n'.format(self.name)
 
     def apply(self, audio, presentation, training_id, criteria_results):
         current_audio_id = TrainingsDBManager().get_training(training_id).presentation_record_file_id
@@ -171,6 +191,14 @@ class SpeechPaceCriterion(Criterion):
             dependent_criteria=dependent_criteria,
         )
 
+    @property
+    def description(self):
+        return 'Критерий: {},\nописание: проверяет, что скорость речи находится в пределах [{}, {}] слов в минуту,\n' \
+               'оценка: 1, если выполнен, (1 - p / {}), если темп p слишком медленный, (1 - {} / p), ' \
+               'если темп p слишком быстрый.\n' \
+            .format(self.name, self.parameters['minimal_allowed_pace'], self.parameters['maximal_allowed_pace'],
+                    self.parameters['minimal_allowed_pace'], self.parameters['maximal_allowed_pace'])
+
     def apply(self, audio, presentation, training_id, criteria_results):
         minimal_allowed_pace = self.parameters['minimal_allowed_pace']
         maximal_allowed_pace = self.parameters['maximal_allowed_pace']
@@ -180,7 +208,7 @@ class SpeechPaceCriterion(Criterion):
         elif pace < minimal_allowed_pace:
             result = 1 - pace / minimal_allowed_pace
         else:
-            result = 1 - pace / maximal_allowed_pace
+            result = 1 - maximal_allowed_pace / pace
         return CriterionResult(result)
 
 
@@ -193,6 +221,11 @@ class FillersRatioCriterion(Criterion):
             parameters=parameters,
             dependent_criteria=dependent_criteria,
         )
+
+    @property
+    def description(self):
+        return 'Критерий: {},\nописание: проверяет, что в речи нет слов-паразитов, используются слова из списка {},\n' \
+               'оценка: (1 - доля слов-паразитов).\n'.format(self.name, self.parameters['fillers'])
 
     def apply(self, audio, presentation, training_id, criteria_results):
         fillers = self.parameters['fillers']

@@ -45,6 +45,7 @@ def lti():
     session['task_id'] = task_id
     session['consumer_key'] = consumer_key
     session['full_name'] = full_name
+    session['criteria_pack_id'] = criteria_pack_id
 
     TasksDBManager().add_task_if_absent(task_id, task_description, attempt_count, required_points, criteria_pack_id)
 

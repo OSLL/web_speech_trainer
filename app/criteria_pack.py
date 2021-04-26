@@ -11,12 +11,13 @@ class CriteriaPack:
         self.name = name
         self.criteria = criteria
         self.criteria_results = {}
+        self.description = '\n'.join(criterion.description for criterion in self.criteria)
 
     def add_criterion_result(self, name, criterion_result):
         self.criteria_results[name] = criterion_result
 
     def apply(self, audio, presentation, training_id):
-        logger.info('Called CriteriaPack.apply for a training with training_id={}'.format(training_id))
+        logger.info('Called CriteriaPack.apply for a training with training_id = {}'.format(training_id))
         for criterion in self.criteria:
             try:
                 criterion_result = criterion.apply(audio, presentation, training_id, self.criteria_results)
