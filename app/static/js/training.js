@@ -73,7 +73,7 @@ $(document).ready(function() {
 
     }).catch( err => {
         $('#alert').show()
-        str = "Microphone is not available!"
+        str = "Микрофон не доступен!"
         $('#error-text').html(str)
     })
 
