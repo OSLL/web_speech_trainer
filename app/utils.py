@@ -60,19 +60,23 @@ def remove_blank_and_none(d):
     return d
 
 
+def check_argument_is_convertible_to_object_id(arg):
+    try:
+        ObjectId(arg)
+    except Exception as e1:
+        try:
+            return {'message': '{} cannot be converted to ObjectId. {}: {}'.format(arg, e1.__class__, e1)}, 404
+        except Exception as e2:
+            return {
+                       'message': 'Some arguments cannot be converted to ObjectId or to str. {}: {}.'
+                           .format(e2.__class__, e2)
+                   }, 404
+
+
 def check_arguments_are_convertible_to_object_id(f):
     def wrapper(*args):
         for arg in args:
-            try:
-                ObjectId(arg)
-            except Exception as e1:
-                try:
-                    return {'message': '{} cannot be converted to ObjectId. {}: {}'.format(arg, e1.__class__, e1)}, 404
-                except Exception as e2:
-                    return {
-                        'message': 'Some arguments cannot be converted to ObjectId or to str. {}: {}.'
-                        .format(e2.__class__, e2)
-                    }, 404
+            check_argument_is_convertible_to_object_id(arg)
         return f(*args)
     return wrapper
 

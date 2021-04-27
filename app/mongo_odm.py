@@ -115,7 +115,7 @@ class TrainingsDBManager:
         try:
             return Trainings.objects.get({'_id': ObjectId(training_id)})
         except Trainings.DoesNotExist:
-            logger.info('No such training with training_id = {}.'.format(training_id))
+            logger.info('No training with training_id = {}.'.format(training_id))
             return None
         except InvalidId:
             logger.info('Invalid training_id = {}.'.format(training_id))

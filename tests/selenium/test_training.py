@@ -25,7 +25,7 @@ def test_basic_training():
     driver = Chrome(options=chrome_options)
     response = driver.request('POST', 'http://127.0.0.1:5000/lti', data={
         'lis_person_name_full': Config.c.testing.lis_person_name_full,
-        'ext_user_username': Config.c.testing.ext_user_username,
+        'ext_user_username': Config.c.testing.session_id,
         'custom_task_id': Config.c.testing.custom_task_id,
         'custom_task_description': Config.c.testing.custom_task_description,
         'custom_attempt_count': Config.c.testing.custom_attempt_count,

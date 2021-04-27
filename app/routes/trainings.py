@@ -107,10 +107,11 @@ def view_all_trainings():
     :return: Page with all trainings,
         or an empty dictionary if access was denied.
     """
-    if not check_admin():
-        return {}, 404
     username = request.args.get('username', '')
     full_name = request.args.get('full_name', '')
+    authorized = check_auth() is not None
+    if not check_admin() or not authorized or (authorized and session.get('session_id') != username):
+        return {}, 404
     return render_template('show_all_trainings.html', username=username, full_name=full_name), 200
 
 
@@ -150,6 +151,9 @@ def view_training_greeting():
     task_attempt_count = TaskAttemptsDBManager().get_attempts_count(username, task_id)
     current_points = build_current_points_str(current_task_attempt.training_scores.keys())
     session['task_attempt_id'] = str(current_task_attempt.pk)
+    criteria_pack_id = session['criteria_pack_id']
+    criteria_pack = CriteriaPackFactory().get_criteria_pack(criteria_pack_id)
+    maximal_points = training_number * 1
     return render_template(
         'training_greeting.html',
         task_id=task_id,
@@ -157,7 +161,10 @@ def view_training_greeting():
         task_description=task_description,
         current_points=current_points,
         required_points=required_points,
+        maximal_points=maximal_points,
         attempt_number=task_attempt_count,
         training_number=training_number,
         attempt_count=attempt_count,
+        criteria_pack_id=criteria_pack_id,
+        criteria_pack_description=criteria_pack.description.replace('\n', '\\n').replace('\'', ''),
     )

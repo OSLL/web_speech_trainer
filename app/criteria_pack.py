@@ -12,12 +12,13 @@ class CriteriaPack:
         self.name = name
         self.criteria = criteria
         self.criteria_results = {}
+        self.description = '\n'.join(criterion.description for criterion in self.criteria)
 
     def add_criterion_result(self, name, criterion_result):
         self.criteria_results[name] = criterion_result
 
     def apply(self, audio, presentation, training_id):
-        logger.info('Called CriteriaPack.apply for a training with training_id={}'.format(training_id))
+        logger.info('Called CriteriaPack.apply for a training with training_id = {}'.format(training_id))
         for criterion in self.criteria:
             try:
                 criterion_result = criterion.apply(audio, presentation, training_id, self.criteria_results)
@@ -29,6 +30,12 @@ class CriteriaPack:
                 logger.warning('Exception while applying {} for a training with training_id = {}.\n{}'
                                .format(criterion.name, training_id, e))
         return self.criteria_results
+
+    def get_criterion_by_name(self, criterion_name):
+        for criterion in self.criteria:
+            if criterion.name == criterion_name:
+                return criterion
+        return None
 
 
 class SimpleCriteriaPack(CriteriaPack):

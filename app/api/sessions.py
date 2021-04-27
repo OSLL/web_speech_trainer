@@ -1,6 +1,6 @@
 import logging
 
-from flask import Blueprint, request
+from flask import Blueprint, request, session
 
 from app.config import Config
 from app.lti_session_passback.auth_checkers import check_auth
@@ -10,8 +10,23 @@ api_sessions = Blueprint('api_sessions', __name__)
 logger = logging.getLogger('root_logger')
 
 
-@api_sessions.route('/api/sessions/user-agent/', methods=['GET'])
+@api_sessions.route('/api/sessions/info/', methods=['GET'])
 def get_session_info():
+    """
+    Endpoint to return session information consists of username and full name.
+
+    :return: Dictionary with username, full name, and  'OK' message, or
+        or an empty dictionary with 404 HTTP code if access was denied.
+    """
+    username = session.get('session_id')
+    full_name = session.get('full_name')
+    if not check_auth() or username is None:
+        return {}, 404
+    return {'username': username, 'full_name': full_name, 'message': 'OK'}, 200
+
+
+@api_sessions.route('/api/sessions/user-agent/', methods=['GET'])
+def get_user_agent():
     """
     Endpoint to get user agent information.
 
@@ -41,3 +56,4 @@ def get_session_info():
     if not browser_found:
         response['outdated'] = True
     return response, 200
+
