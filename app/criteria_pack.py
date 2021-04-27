@@ -1,5 +1,9 @@
+import logging
+
 from app.criteria import SpeechIsNotTooLongCriterion, SpeechPaceCriterion, FillersRatioCriterion, \
     SpeechIsNotInDatabaseCriterion
+
+logger = logging.getLogger('root_logger')
 
 
 class CriteriaPack:
@@ -7,15 +11,29 @@ class CriteriaPack:
         self.name = name
         self.criteria = criteria
         self.criteria_results = {}
+        self.description = '\n'.join(criterion.description for criterion in self.criteria)
 
     def add_criterion_result(self, name, criterion_result):
         self.criteria_results[name] = criterion_result
 
     def apply(self, audio, presentation, training_id):
+        logger.info('Called CriteriaPack.apply for a training with training_id = {}'.format(training_id))
         for criterion in self.criteria:
-            criterion_result = criterion.apply(audio, presentation, training_id, self.criteria_results)
-            self.add_criterion_result(criterion.name, criterion_result)
+            try:
+                criterion_result = criterion.apply(audio, presentation, training_id, self.criteria_results)
+                self.add_criterion_result(criterion.name, criterion_result)
+                logger.info('Attached {} {} to a training with training_id = {}'
+                            .format(criterion.name, criterion_result, training_id))
+            except Exception as e:
+                logger.warning('Exception while applying {} for a training with training_id = {}.\n{}'
+                               .format(criterion.name, training_id, e))
         return self.criteria_results
+
+    def get_criterion_by_name(self, criterion_name):
+        for criterion in self.criteria:
+            if criterion.name == criterion_name:
+                return criterion
+        return None
 
 
 class SimpleCriteriaPack(CriteriaPack):
@@ -239,7 +257,7 @@ CRITERIA_PACK_CLASS_BY_ID = {
 
 class CriteriaPackFactory:
     def get_criteria_pack(self, criteria_pack_id):
-        if criteria_pack_id is None:
+        if criteria_pack_id is None or criteria_pack_id not in CRITERIA_PACK_CLASS_BY_ID:
             return SimpleCriteriaPack()
         criteria_pack_class = CRITERIA_PACK_CLASS_BY_ID[criteria_pack_id]
         return criteria_pack_class()

@@ -49,7 +49,6 @@ class SameWeightFeedbackEvaluator(FeedbackEvaluator):
                     score += self.weights[class_name] * criteria_results[class_name].result
         else:
             for class_name in criteria_results:
-                print(class_name, criteria_results[class_name])
                 score += 1. / len(criteria_results) * criteria_results[class_name].result
         return Feedback(score)
 
@@ -118,7 +117,7 @@ FEEDBACK_EVALUATOR_CLASS_BY_ID = {
 
 class FeedbackEvaluatorFactory:
     def get_feedback_evaluator(self, feedback_evaluator_id):
-        if feedback_evaluator_id is None:
+        if feedback_evaluator_id is None or feedback_evaluator_id not in FEEDBACK_EVALUATOR_CLASS_BY_ID:
             return SameWeightFeedbackEvaluator()
         feedback_evaluator_class = FEEDBACK_EVALUATOR_CLASS_BY_ID[feedback_evaluator_id]
         return feedback_evaluator_class()

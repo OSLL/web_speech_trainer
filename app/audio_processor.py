@@ -1,9 +1,13 @@
+import sys
 from time import sleep
 
-from app.audio_recognizer import SimpleAudioRecognizer, VoskAudioRecognizer
+from app.audio_recognizer import VoskAudioRecognizer
 from app.config import Config
 from app.mongo_odm import DBManager, AudioToRecognizeDBManager, TrainingsDBManager, RecognizedAudioToProcessDBManager
+from app.root_logger import get_root_logger
 from app.status import AudioStatus
+
+logger = get_root_logger(service_name='audio_processor')
 
 
 class AudioProcessor:
@@ -12,21 +16,46 @@ class AudioProcessor:
 
     def run(self):
         while True:
-            presentation_record_file_id = AudioToRecognizeDBManager().extract_presentation_record_file_id_to_recognize()
-            if presentation_record_file_id:
-                TrainingsDBManager().change_audio_status(presentation_record_file_id, AudioStatus.RECOGNIZING)
+            try:
+                audio_to_recognize_db = AudioToRecognizeDBManager().extract_audio_to_recognize()
+                if not audio_to_recognize_db:
+                    sleep(10)
+                    continue
+                training_id = audio_to_recognize_db.training_id
+                presentation_record_file_id = audio_to_recognize_db.file_id
+                logger.info('Extracted audio to recognize with presentation_record_file_id = {}, training_id = {}.'
+                            .format(presentation_record_file_id, training_id))
+                TrainingsDBManager().change_audio_status(training_id, AudioStatus.RECOGNIZING)
                 presentation_record_file = DBManager().get_file(presentation_record_file_id)
-                recognized_audio = self.audio_recognizer.recognize(presentation_record_file)
+                if presentation_record_file is None:
+                    TrainingsDBManager().change_audio_status(training_id, AudioStatus.RECOGNITION_FAILED)
+                    verdict = 'Presentation record file with presentation_record_file_id = {} was not found.'\
+                        .format(presentation_record_file_id)
+                    TrainingsDBManager().append_verdict(training_id, verdict)
+                    TrainingsDBManager().set_score(training_id, 0)
+                    logger.warning(verdict)
+                    continue
+                try:
+                    recognized_audio = self.audio_recognizer.recognize(presentation_record_file)
+                except Exception as e:
+                    TrainingsDBManager().change_audio_status(training_id, AudioStatus.RECOGNITION_FAILED)
+                    verdict = 'Recognition of a presentation record file with presentation_record_file_id = {} '\
+                              'has failed.\n{}'.format(presentation_record_file_id, e)
+                    TrainingsDBManager().append_verdict(training_id, verdict)
+                    TrainingsDBManager().set_score(training_id, 0)
+                    logger.warning(verdict)
+                    continue
                 recognized_audio_id = DBManager().add_file(repr(recognized_audio))
-                TrainingsDBManager().add_recognized_audio_id(presentation_record_file_id, recognized_audio_id)
-                TrainingsDBManager().change_audio_status(presentation_record_file_id, AudioStatus.RECOGNIZED)
-                RecognizedAudioToProcessDBManager().add_recognized_audio_to_process(recognized_audio_id)
-            else:
-                sleep(10)
+                TrainingsDBManager().add_recognized_audio_id(training_id, recognized_audio_id)
+                TrainingsDBManager().change_audio_status(training_id, AudioStatus.RECOGNIZED)
+                RecognizedAudioToProcessDBManager().add_recognized_audio_to_process(recognized_audio_id, training_id)
+                TrainingsDBManager().change_audio_status(training_id, AudioStatus.SENT_FOR_PROCESSING)
+            except Exception as e:
+                logger.error('Unknown exception.\n{}'.format(e))
 
 
 if __name__ == "__main__":
-    Config.init_config('config.ini')
+    Config.init_config(sys.argv[1])
     audio_recognizer = VoskAudioRecognizer(host=Config.c.vosk.url)
     audio_processor = AudioProcessor(audio_recognizer)
     audio_processor.run()
