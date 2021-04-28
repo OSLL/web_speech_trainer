@@ -13,7 +13,7 @@ function startRecording() {
         $("#denoising-note")[0].style = "visibility: visible; font-size: 14";
         setTimeout(function () {
             maxTime = undefined;
-            fetch(`/api/criteria/${trainingId}/SpeechIsNotTooLongCriterion/maximal_allowed_duration/`)
+            fetch(`/api/criteria/${trainingId}/SpeechDurationCriterion/maximal_allowed_duration/`)
                 .then(response => response.json())
                 .then(function (data) {
                     if (data["message"] === "OK") {
