@@ -77,7 +77,7 @@ class TrainingProcessor:
                     TrainingsDBManager().set_score(training_id, 0)
                     logger.warning(verdict)
                     continue
-                TrainingsDBManager().add_feedback(training_id, feedback.to_dict())
+                TrainingsDBManager().set_score(training_id, feedback.score)
                 TrainingsDBManager().change_training_status_by_training_id(training_id, PresentationStatus.PROCESSED)
                 task_attempt_id = training_db.task_attempt_id
                 TaskAttemptsDBManager().update_scores(task_attempt_id, training_id, feedback.score)

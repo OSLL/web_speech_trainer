@@ -61,6 +61,17 @@ def view_training_statistics(training_id: str):
         )
     else:
         remaining_processing_time_estimation_str = ''
+    criteria_results = feedback.get('criteria_results')
+    if criteria_results is not None:
+        for (name, result) in criteria_results.items():
+            print(name, result)
+        criteria_results_str = '\n'.join('{} = {} {}'.format(
+            name,
+            result.get('result'),
+            '' if result.get('verdict') is None else ', ' + result.get('verdict'),
+        ) for (name, result) in criteria_results.items())
+    else:
+        criteria_results_str = ''
     return render_template(
         'training/statistics.html',
         page_title='Статистика тренировки с ID: {}'.format(training_id),
@@ -74,6 +85,7 @@ def view_training_statistics(training_id: str):
         audio_status=audio_status_str,
         presentation_status=presentation_status_str,
         remaining_processing_time_estimation=remaining_processing_time_estimation_str,
+        criteria_results=criteria_results_str.replace('\n', '\\n').replace('\'', ''),
     ), 200
 
 
@@ -137,7 +149,7 @@ def view_training_greeting():
         current_task_attempt = TaskAttemptsDBManager().add_task_attempt(
             username,
             task_id,
-            user_session.tasks.get(task_id, '').get('params_for_passback', ''),
+            user_session.tasks.get(task_id, {}).get('params_for_passback', ''),
             attempt_count,
         )
         training_number = 1
@@ -146,7 +158,7 @@ def view_training_greeting():
     session['task_attempt_id'] = str(current_task_attempt.pk)
     criteria_pack_id = session['criteria_pack_id']
     criteria_pack = CriteriaPackFactory().get_criteria_pack(criteria_pack_id)
-    maximal_points = training_number * 1
+    maximal_points = attempt_count * 1
     return render_template(
         'training_greeting.html',
         task_id=task_id,

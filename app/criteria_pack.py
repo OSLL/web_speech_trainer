@@ -2,6 +2,7 @@ import logging
 
 from app.criteria import SpeechIsNotTooLongCriterion, SpeechPaceCriterion, FillersRatioCriterion, \
     SpeechIsNotInDatabaseCriterion
+from app.mongo_odm import TrainingsDBManager
 
 logger = logging.getLogger('root_logger')
 
@@ -22,6 +23,7 @@ class CriteriaPack:
             try:
                 criterion_result = criterion.apply(audio, presentation, training_id, self.criteria_results)
                 self.add_criterion_result(criterion.name, criterion_result)
+                TrainingsDBManager().add_criterion_result(training_id, criterion.name, criterion_result)
                 logger.info('Attached {} {} to a training with training_id = {}'
                             .format(criterion.name, criterion_result, training_id))
             except Exception as e:
@@ -180,7 +182,6 @@ class TenMinutesTrainingCriteriaPack(CriteriaPack):
             criteria=[
                 speech_is_not_too_long_criterion,
                 speech_pace_criterion,
-                DEFAULT_SPEECH_IS_NOT_IN_DATABASE_CRITERION,
                 DEFAULT_FILLERS_RATIO_CRITERION,
             ],
         )
@@ -209,7 +210,6 @@ class FifteenMinutesTrainingCriteriaPack(CriteriaPack):
             criteria=[
                 speech_is_not_too_long_criterion,
                 speech_pace_criterion,
-                DEFAULT_SPEECH_IS_NOT_IN_DATABASE_CRITERION,
                 DEFAULT_FILLERS_RATIO_CRITERION,
             ],
         )
@@ -238,7 +238,6 @@ class TwentyMinutesTrainingCriteriaPack(CriteriaPack):
             criteria=[
                 speech_is_not_too_long_criterion,
                 speech_pace_criterion,
-                DEFAULT_SPEECH_IS_NOT_IN_DATABASE_CRITERION,
                 DEFAULT_FILLERS_RATIO_CRITERION,
             ],
         )

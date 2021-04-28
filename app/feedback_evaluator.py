@@ -21,7 +21,7 @@ class Feedback:
         }
 
     @staticmethod
-    def from_dict(self, dictionary):
+    def from_dict(dictionary):
         return Feedback(score=dictionary['score'])
 
 
