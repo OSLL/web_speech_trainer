@@ -8,7 +8,7 @@
 {% block content %}
 <div class="base-container">
     <h3 id="feedback">{{ feedback }}</h3>
-    <div id="per-criterion-feedback"></div>
+    <div id="criteria-results"></div>
     <div id="verdict"></div>
     <h3>{{ remaining_processing_time_estimation }}</h3>
     <h3>id тренировки: {{ training_id }}. {{ training_status }}</h3>
@@ -30,5 +30,6 @@
 <script type="text/javascript">
     setVerdict("{{ verdict }}");
     setPerSlideAudioTranscriptionTable("{{ training_id }}");
+    setCriteriaResults("{{ criteria_results }}");
 </script>
 {% endblock %}

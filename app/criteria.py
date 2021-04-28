@@ -1,3 +1,4 @@
+import json
 import time
 
 import numpy as np
@@ -14,11 +15,24 @@ class CriterionResult:
         self.result = result
         self.verdict = verdict
 
-    def __repr__(self):
+    def __str__(self):
         if self.verdict is not None:
             return 'Verdict: {}, result = {} points'.format(self.verdict, self.result)
         else:
             return 'Result = {:.3f} points'.format(self.result)
+
+    def to_json(self):
+        return {
+            'verdict': None if self.verdict is None else repr(self.verdict),
+            'result': self.result,
+        }
+
+    @staticmethod
+    def from_json(json_file):
+        json_obj = json.loads(json_file)
+        json_verdict = json_obj['verdict']
+        json_result = json_obj['result']
+        return CriterionResult(json_result, json_verdict)
 
 
 class Criterion:

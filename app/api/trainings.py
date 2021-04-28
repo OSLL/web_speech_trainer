@@ -174,7 +174,6 @@ def get_training_statistics(training_id: str) -> (dict, int):
         get_remaining_processing_time_by_training_id(training_id)
     if remaining_processing_time_estimation['message'] != 'OK':
         return remaining_processing_time_estimation, remaining_processing_time_estimation_code
-    criteria_results = training_db.feedback.get('criteria_results')
     return {
         'message': 'OK',
         'presentation_file_id': str(presentation_file_id),
@@ -185,7 +184,6 @@ def get_training_statistics(training_id: str) -> (dict, int):
         'audio_status': audio_status,
         'presentation_status': presentation_status,
         'remaining_processing_time_estimation': remaining_processing_time_estimation['processing_time_remaining'],
-        'criteria_results': criteria_results,
     }, 200
 
 

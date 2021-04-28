@@ -24,6 +24,7 @@ from app.training_manager import TrainingManager
 
 app = Flask(__name__)
 app.register_blueprint(api_audio)
+app.register_blueprint(api_criteria)
 app.register_blueprint(api_files)
 app.register_blueprint(api_logs)
 app.register_blueprint(api_presentations)

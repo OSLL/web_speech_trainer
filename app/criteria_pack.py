@@ -182,7 +182,6 @@ class TenMinutesTrainingCriteriaPack(CriteriaPack):
             criteria=[
                 speech_is_not_too_long_criterion,
                 speech_pace_criterion,
-                DEFAULT_SPEECH_IS_NOT_IN_DATABASE_CRITERION,
                 DEFAULT_FILLERS_RATIO_CRITERION,
             ],
         )
@@ -211,7 +210,6 @@ class FifteenMinutesTrainingCriteriaPack(CriteriaPack):
             criteria=[
                 speech_is_not_too_long_criterion,
                 speech_pace_criterion,
-                DEFAULT_SPEECH_IS_NOT_IN_DATABASE_CRITERION,
                 DEFAULT_FILLERS_RATIO_CRITERION,
             ],
         )
@@ -240,7 +238,6 @@ class TwentyMinutesTrainingCriteriaPack(CriteriaPack):
             criteria=[
                 speech_is_not_too_long_criterion,
                 speech_pace_criterion,
-                DEFAULT_SPEECH_IS_NOT_IN_DATABASE_CRITERION,
                 DEFAULT_FILLERS_RATIO_CRITERION,
             ],
         )

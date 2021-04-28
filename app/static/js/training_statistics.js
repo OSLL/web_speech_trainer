@@ -1,5 +1,5 @@
 function buildCurrentAttemptStatistics() {
-    const trainingId = window.location.pathname.split('/')[3];
+    const trainingId = window.location.pathname.split("/")[3];
     fetch(`/api/task-attempts/by-training/${trainingId}/?current_only=true`)
         .then(response => response.json())
         .then(response => {
@@ -26,13 +26,13 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 function buildAudioSlideTranscriptionRow(slideNumber, words) {
-    const currentSlideRowElement = document.createElement('tr');
+    const currentSlideRowElement = document.createElement("tr");
 
-    const slideNumberElement = document.createElement('td');
+    const slideNumberElement = document.createElement("td");
     slideNumberElement.textContent = slideNumber;
     currentSlideRowElement.appendChild(slideNumberElement);
 
-    const transcriptionElement = document.createElement('td');
+    const transcriptionElement = document.createElement("td");
     transcriptionElement.textContent = words;
     currentSlideRowElement.appendChild(transcriptionElement);
 
@@ -48,14 +48,14 @@ function buildPerSlideAudioTranscriptionTable(audioTranscriptionJson) {
     perSlideAudioTranscriptionTable.appendChild(titleRow);
     for (let i = 0; i < audioTranscriptionJson.length; i++) {
         perSlideAudioTranscriptionTable.appendChild(
-            buildAudioSlideTranscriptionRow(i + 1, audioTranscriptionJson['audio_transcription'][i])
+            buildAudioSlideTranscriptionRow(i + 1, audioTranscriptionJson["audio_transcription"][i])
         );
     }
 }
 
 function setPerSlideAudioTranscriptionTable(trainingId) {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('transcription')) {
+    if (params.get("transcription")) {
         fetch(`/api/audio/transcriptions/${trainingId}/`)
             .then(response => response.json())
             .then(responseJson => buildPerSlideAudioTranscriptionTable(responseJson));
@@ -63,5 +63,9 @@ function setPerSlideAudioTranscriptionTable(trainingId) {
 }
 
 function setVerdict(s) {
-    document.getElementById('verdict').innerText = `${s}`;
+    document.getElementById("verdict").innerText = `${s}`;
+}
+
+function setCriteriaResults(s) {
+    document.getElementById("criteria-results").innerText = `${s}`;
 }
