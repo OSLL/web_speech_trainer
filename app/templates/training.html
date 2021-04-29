@@ -1,10 +1,15 @@
 {% extends 'base.html' %}
 
 {% block header %}
+<link rel="stylesheet" href="/static/css/danger-alert.css">
 <link rel="stylesheet" href="/static/css/training.css">
 {% endblock %}
 
 {% block content %}
+
+<div id="alert" class="alert alert-danger" role="alert">
+<p id="error-text"></p>
+</div>
 
 <div id="controls">
   <button id="record">Record</button>
