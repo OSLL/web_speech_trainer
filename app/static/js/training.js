@@ -28,7 +28,7 @@ function renderPage(num) {
       }
     });
   });
-  $('#page_num')[0].textContent = num;
+  $("#page_num")[0].textContent = num;
 }
 
 function queueRenderPage(num) {
@@ -41,7 +41,7 @@ function queueRenderPage(num) {
 
 function callShowPage() {
   $.ajax({
-    type: 'PUT',
+    type: "PUT",
     url: `/api/trainings/timestamps/${trainingId}/`
   });
 }
@@ -60,21 +60,17 @@ function setupPresentationViewer(trainingId_) {
     let loadingTask = pdfjsLib.getDocument(`/api/files/presentations/by-training/${trainingId_}/`);
     loadingTask.promise.then(function(pdfDoc_) {
       pdfDoc = pdfDoc_;
-      $('#page_count')[0].textContent = pdfDoc.numPages;
+      $("#page_count")[0].textContent = pdfDoc.numPages;
       renderPage(pageNum);
     });
 }
 
 $(document).ready(function() {
-
-    $('#alert').hide()
-
+    $("#alert").hide();
     navigator.mediaDevices.getUserMedia({ audio: true}).then(stream => {
-
     }).catch( err => {
-        $('#alert').show()
-        str = "Микрофон не доступен!"
-        $('#error-text').html(str)
+        $("#alert").show();
+        $("#error-text").html("Микрофон не доступен!");
     })
 
     pdfDoc = null;
@@ -82,8 +78,8 @@ $(document).ready(function() {
     pageRendering = false;
     pageNumPending = null;
     scale = 1.1;
-    canvas = $('#the-canvas')[0];
-    ctx = canvas.getContext('2d');
-    $('#done').click(callShowPage);
-    $('#next').click(onNextPage);
+    canvas = $("#the-canvas")[0];
+    ctx = canvas.getContext("2d");
+    $("#done").click(callShowPage);
+    $("#next").click(onNextPage);
 });

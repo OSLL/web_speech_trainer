@@ -1,26 +1,23 @@
 const MAX_PRESENTATION_SIZE = 16;
 
-$('#alert').hide()
+$("#alert").hide();
 
-function onChange() {
-    $('#alert').hide()
-    if ($('#file-loading').prop('files').length < 1) {
-        $('#alert').show()
-        str = "Выберете файл!"
-        $('#error-text').html(str)
+function fileLoadingOnChange() {
+    $("#alert").hide();
+    if ($("#file-loading").prop("files").length < 1) {
+        $("#alert").show();
+        $("#error-text").html("Выберите файл!");
     } else {
-        var file = $('#file-loading').prop('files')[0]
-        parts = file.name.split('.')
-        if (parts.length <= 1 || parts.pop() != 'pdf') {
-            $('#alert').show()
-            str = "Презентация должна быть в формате PDF!"
-            $('#error-text').html(str)
-            return
+        const file = $("#file-loading").prop("files")[0];
+        let parts = file.name.split(".");
+        if (parts.length <= 1 || parts.pop() !== "pdf") {
+            $("#alert").show();
+            $("#error-text").html("Презентация должна быть в формате PDF!");
+            return;
         }
-        if (file.size > MAX_PRESENTATION_SIZE *1024*1024) {
-            $('#alert').show()
-            str = `Размер файла с презентацией не должен привышать ${MAX_PRESENTATION_SIZE}MB`
-            $('#error-text').html(str)
+        if (file.size > MAX_PRESENTATION_SIZE * 1024 * 1024) {
+            $("#alert").show();
+            $("#error-text").html(`Размер файла с презентацией не должен превышать ${MAX_PRESENTATION_SIZE} мегабайт!`);
         }
     }
 }
