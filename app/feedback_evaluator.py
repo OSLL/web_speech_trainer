@@ -1,6 +1,6 @@
 import json
 
-from app.criteria import SpeechDurationCriterion, SpeechPaceCriterion, FillersRatioCriterion
+from app.criteria import SpeechDurationCriterion, SpeechPaceCriterion, FillersRatioCriterion, FillersNumberCriterion
 
 
 class Feedback:
@@ -31,7 +31,20 @@ class FeedbackEvaluator:
         self.weights = weights
 
     def evaluate_feedback(self, criteria_results):
-        pass
+        score = 0
+        for class_name in self.weights:
+            if class_name in criteria_results:
+                score += self.weights[class_name] * criteria_results[class_name].result
+        return Feedback(score)
+
+    def get_result_as_sum_str(self, criteria_results):
+        result = ''
+        for class_name in self.weights:
+            if class_name in criteria_results:
+                if result:
+                    result += ' + '
+                result += '{:.4f} * {:.2f}'.format(self.weights[class_name], criteria_results[class_name].result)
+        return result
 
 
 class SameWeightFeedbackEvaluator(FeedbackEvaluator):
@@ -44,9 +57,7 @@ class SameWeightFeedbackEvaluator(FeedbackEvaluator):
     def evaluate_feedback(self, criteria_results):
         score = 0
         if self.weights is not None:
-            for class_name in self.weights:
-                if class_name in criteria_results:
-                    score += self.weights[class_name] * criteria_results[class_name].result
+            return super().evaluate_feedback(criteria_results)
         else:
             for class_name in criteria_results:
                 score += 1. / len(criteria_results) * criteria_results[class_name].result
@@ -66,13 +77,6 @@ class PaceAndDurationFeedbackEvaluator(FeedbackEvaluator):
 
         super().__init__(name=PaceAndDurationFeedbackEvaluator.CLASS_NAME, weights=weights)
 
-    def evaluate_feedback(self, criteria_results):
-        score = criteria_results[SpeechDurationCriterion.CLASS_NAME].result \
-                * self.weights[SpeechDurationCriterion.CLASS_NAME] \
-            + criteria_results[PaceAndDurationFeedbackEvaluator.CLASS_NAME].result \
-                * self.weights[PaceAndDurationFeedbackEvaluator.CLASS_NAME]
-        return Feedback(score)
-
 
 class FillersRatioFeedbackEvaluator(FeedbackEvaluator):
     CLASS_NAME = 'FillersRatioFeedbackEvaluator'
@@ -83,15 +87,10 @@ class FillersRatioFeedbackEvaluator(FeedbackEvaluator):
             weights = {FillersRatioFeedbackEvaluator: 1}
         super().__init__(name=FillersRatioFeedbackEvaluator.CLASS_NAME, weights=weights)
 
-    def evaluate_feedback(self, criteria_results):
-        score = criteria_results[FillersRatioCriterion.CLASS_NAME].result \
-                * self.weights[FillersRatioCriterion.CLASS_NAME]
-        return Feedback(score)
-
 
 class SimpleFeedbackEvaluator(FeedbackEvaluator):
     CLASS_NAME = 'SimpleFeedbackEvaluator'
-    FEEDBACK_EVALUATOR_ID = 3
+    FEEDBACK_EVALUATOR_ID = 4
 
     def __init__(self, weights=None):
         if weights is None:
@@ -101,10 +100,20 @@ class SimpleFeedbackEvaluator(FeedbackEvaluator):
 
         super().__init__(name=SimpleFeedbackEvaluator.CLASS_NAME, weights=weights)
 
-    def evaluate_feedback(self, criteria_results):
-        score = criteria_results[SpeechDurationCriterion.CLASS_NAME].result \
-                * self.weights[SpeechDurationCriterion.CLASS_NAME]
-        return Feedback(score)
+
+class PredefenceEightToTenMinutesFeedbackEvaluator(FeedbackEvaluator):
+    CLASS_NAME = 'PredefenceEightToTenMinutesFeedbackEvaluator'
+    FEEDBACK_EVALUATOR_ID = 5
+
+    def __init__(self, weights=None):
+        if weights is None:
+            weights = {
+                SpeechDurationCriterion.CLASS_NAME: 0.6,
+                SpeechPaceCriterion.CLASS_NAME: 0.2,
+                FillersNumberCriterion.CLASS_NAME: 0.2,
+            }
+
+        super().__init__(name=PredefenceEightToTenMinutesFeedbackEvaluator.CLASS_NAME, weights=weights)
 
 
 FEEDBACK_EVALUATOR_CLASS_BY_ID = {
@@ -112,6 +121,7 @@ FEEDBACK_EVALUATOR_CLASS_BY_ID = {
     PaceAndDurationFeedbackEvaluator.FEEDBACK_EVALUATOR_ID: PaceAndDurationFeedbackEvaluator,
     FillersRatioFeedbackEvaluator.FEEDBACK_EVALUATOR_ID: FillersRatioFeedbackEvaluator,
     SimpleFeedbackEvaluator.FEEDBACK_EVALUATOR_ID: SimpleFeedbackEvaluator,
+    PredefenceEightToTenMinutesFeedbackEvaluator.FEEDBACK_EVALUATOR_ID: PredefenceEightToTenMinutesFeedbackEvaluator,
 }
 
 

@@ -1,19 +1,17 @@
+body {
+    width: 100%;
+}
 #header {
     font-size: 22px;
-    hight: 110px;
     display: inline-flex;
     align-content: center;
     border-style: double;
     border-color: #006666;
+    width: 100%;
 }
 
-#trainings {
+#trainings, #username {
     align-self: center;
-    margin-left: 20px;
-    margin-right: 20px;
-}
-
-#username {
     margin-left: 20px;
     margin-right: 20px;
 }

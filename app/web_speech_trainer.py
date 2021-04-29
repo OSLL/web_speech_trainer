@@ -79,6 +79,7 @@ def init():
     session['consumer_key'] = Config.c.testing.oauth_consumer_key
     session['task_id'] = Config.c.testing.custom_task_id
     session['criteria_pack_id'] = Config.c.testing.custom_criteria_pack_id
+    session['feedback_evaluator_id'] = Config.c.testing.custom_feedback_evaluator_id
     from app.mongo_odm import TasksDBManager, TaskAttemptsDBManager
     session['task_attempt_id'] = str(TaskAttemptsDBManager().add_task_attempt(
         username=session['session_id'],

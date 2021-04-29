@@ -80,6 +80,7 @@ class TrainingsDBManager:
             audio_status=AudioStatus.NEW,
             presentation_status=PresentationStatus.NEW,
             criteria_pack_id=None,
+            feedback_evaluator_id=None,
     ):
         if slide_switch_timestamps is None:
             slide_switch_timestamps = []
@@ -94,6 +95,7 @@ class TrainingsDBManager:
             audio_status=audio_status,
             presentation_status=presentation_status,
             criteria_pack_id=criteria_pack_id,
+            feedback_evaluator_id=feedback_evaluator_id,
         ).save()
         logger.info(
             'Added training with training_id = {}, task_attempt_id = {}, presentation_file_id = {},\n'

@@ -49,10 +49,21 @@ class Criterion:
         pass
 
 
+def get_linear_proportional_result(value, lower_bound, upper_bound):
+    if lower_bound <= value <= upper_bound:
+        return 1
+    elif value < lower_bound:
+        return 1 - value / lower_bound
+    else:
+        return 1 - upper_bound / value
+
+
 class SpeechDurationCriterion(Criterion):
     CLASS_NAME = 'SpeechDurationCriterion'
 
     def __init__(self, parameters, dependent_criteria):
+        if 'minimal_allowed_duration' not in parameters and 'maximal_allowed_duration' not in parameters:
+            raise ValueError('parameters should contain \'minimal_allowed_duration\' or \'maximal_allowed_duration\'.')
         super().__init__(
             name=SpeechDurationCriterion.CLASS_NAME,
             parameters=parameters,
@@ -62,26 +73,35 @@ class SpeechDurationCriterion(Criterion):
     @property
     def description(self):
         boundaries = ''
+        evaluation = ''
         if 'minimal_allowed_duration' in self.parameters:
             boundaries = 'от {}'.format(
                 time.strftime('%M:%S', time.gmtime(round(self.parameters['minimal_allowed_duration'])))
             )
+            evaluation = '(1 - t / {}), если продолжительность речи в секундах t слишком короткая'.format(
+                self.parameters['minimal_allowed_duration']
+            )
         if 'maximal_allowed_duration' in self.parameters:
             if boundaries:
                 boundaries += ' '
+            if evaluation:
+                evaluation += ' '
             boundaries += 'до {}'.format(
                 time.strftime('%M:%S', time.gmtime(round(self.parameters['maximal_allowed_duration'])))
             )
-        return 'Критерий: {},\nописание: проверяет, что продолжительность речи {},\nоценка: 0, ' \
-               'если не выполнен, 1, если выполнен.\n'.format(self.name, boundaries)
+            evaluation += ', (1 - {} / p), если продолжительность речи в секундах t слишком длинная.'.format(
+                self.parameters['maximal_allowed_duration']
+            )
+        return 'Критерий: {},\nописание: проверяет, что продолжительность речи {},\n' \
+               'оценка: 1, если выполнен, {}\n'.format(self.name, boundaries, evaluation)
 
     def apply(self, audio, presentation, training_id, criteria_results):
         maximal_allowed_duration = self.parameters['maximal_allowed_duration']
         minimal_allowed_duration = self.parameters['minimal_allowed_duration']
-        if minimal_allowed_duration <= audio.audio_stats['duration'] <= maximal_allowed_duration:
-            return CriterionResult(result=1)
-        else:
-            return CriterionResult(result=0)
+        duration = audio.audio_stats['duration']
+        return CriterionResult(
+            get_linear_proportional_result(duration, minimal_allowed_duration, maximal_allowed_duration)
+        )
 
 
 class SpeechIsNotInDatabaseCriterion(Criterion):
@@ -208,6 +228,9 @@ class SpeechPaceCriterion(Criterion):
     CLASS_NAME = 'SpeechPaceCriterion'
 
     def __init__(self, parameters, dependent_criteria):
+        for parameter in ['minimal_allowed_pace', 'maximal_allowed_pace']:
+            if parameter not in parameters:
+                raise ValueError('parameters should contain {}.'.format(parameter))
         super().__init__(
             name=SpeechPaceCriterion.CLASS_NAME,
             parameters=parameters,
@@ -216,8 +239,8 @@ class SpeechPaceCriterion(Criterion):
 
     @property
     def description(self):
-        return 'Критерий: {},\nописание: проверяет, что скорость речи находится в пределах [{}, {}] слов в минуту,\n' \
-               'оценка: 1, если выполнен, (1 - p / {}), если темп p слишком медленный, (1 - {} / p), ' \
+        return 'Критерий: {},\nописание: проверяет, что скорость речи находится в пределах от {} до {} слов в минуту,' \
+               '\nоценка: 1, если выполнен, (1 - p / {}), если темп p слишком медленный, (1 - {} / p), ' \
                'если темп p слишком быстрый.\n' \
             .format(self.name, self.parameters['minimal_allowed_pace'], self.parameters['maximal_allowed_pace'],
                     self.parameters['minimal_allowed_pace'], self.parameters['maximal_allowed_pace'])
@@ -226,13 +249,7 @@ class SpeechPaceCriterion(Criterion):
         minimal_allowed_pace = self.parameters['minimal_allowed_pace']
         maximal_allowed_pace = self.parameters['maximal_allowed_pace']
         pace = audio.audio_stats['words_per_minute']
-        if minimal_allowed_pace <= pace <= maximal_allowed_pace:
-            result = 1
-        elif pace < minimal_allowed_pace:
-            result = 1 - pace / minimal_allowed_pace
-        else:
-            result = 1 - maximal_allowed_pace / pace
-        return CriterionResult(result)
+        return CriterionResult(get_linear_proportional_result(pace, minimal_allowed_pace, maximal_allowed_pace))
 
 
 def get_fillers_number(fillers, audio):
@@ -288,10 +305,10 @@ class FillersNumberCriterion(Criterion):
     def description(self):
         return 'Критерий: {},\nописание: проверяет, что в речи нет слов-паразитов, используются слова из списка {},\n' \
                'оценка: 1, если слов-паразитов не больше {}, иначе 0.\n'.format(
-            self.name,
-            self.parameters['fillers'],
-            self.parameters['maximum_fillers_number']
-        )
+                    self.name,
+                    self.parameters['fillers'],
+                    self.parameters['maximum_fillers_number'],
+                )
 
     def apply(self, audio, presentation, training_id, criteria_results):
         total_words = audio.audio_stats['total_words']

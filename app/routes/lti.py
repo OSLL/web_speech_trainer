@@ -36,7 +36,8 @@ def lti():
     task_description = custom_params.get('task_description', '')
     attempt_count = int(custom_params.get('attempt_count', 1))
     required_points = float(custom_params.get('required_points', 0))
-    criteria_pack_id = int(custom_params.get('criteria_pack_id', 0))
+    criteria_pack_id = int(custom_params.get('criteria_pack_id', 1))
+    feedback_evaluator_id = int(custom_params.get('feedback_evaluator_id', 1))
     role = utils.get_role(params)
     params_for_passback = utils.extract_passback_params(params)
 
@@ -46,6 +47,7 @@ def lti():
     session['consumer_key'] = consumer_key
     session['full_name'] = full_name
     session['criteria_pack_id'] = criteria_pack_id
+    session['feedback_evaluator_id'] = feedback_evaluator_id
 
     TasksDBManager().add_task_if_absent(task_id, task_description, attempt_count, required_points, criteria_pack_id)
 

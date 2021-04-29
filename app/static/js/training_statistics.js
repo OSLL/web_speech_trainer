@@ -11,7 +11,7 @@ function buildCurrentAttemptStatistics() {
             document.getElementById("training-number").textContent
                 = "Номер тренировки: " + response["training_number"] + " / " + response["attempt_count"];
             document.getElementById("current-points").textContent
-                = "Баллы за предыдущие тренировки: " + response["current_points_str"];
+                = "Сумма баллов за предыдущие тренировки: " + response["current_points_sum"];
             let next_training = document.getElementById("next-training");
             next_training.style.visibility = "visible";
             next_training.style.fontSize = "14pt";

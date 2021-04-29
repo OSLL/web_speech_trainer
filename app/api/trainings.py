@@ -65,12 +65,14 @@ def add_training(presentation_file_id) -> (dict, int):
     if task_db is None:
         return {'message': 'No task with task_id = {}.'.format(task_id)}, 404
     criteria_pack_id = task_db.criteria_pack_id
+    feedback_evaluator_id = session.get('feedback_evaluator_id')
     training_id = TrainingsDBManager().add_training(
         task_attempt_id=task_attempt_id,
         username=username,
         full_name=full_name,
         presentation_file_id=presentation_file_id,
         criteria_pack_id=criteria_pack_id,
+        feedback_evaluator_id=feedback_evaluator_id,
     ).pk
     TaskAttemptsDBManager().add_training(task_attempt_id, training_id)
     return {
@@ -109,7 +111,7 @@ def get_remaining_processing_time_by_training_id(training_id: str) -> (dict, int
     for training in trainings_with_recognizing_audio_status:
         time_since_audio_status_last_update = datetime.now().timestamp() - training.audio_status_last_update.time
         estimated_remaining_recognition_time = \
-            training.presentation_record_duration / 2 - time_since_audio_status_last_update + 20
+            training.presentation_record_duration / 2 - time_since_audio_status_last_update
         message = 'Audio status is RECOGNIZING, training_id = {}, status last update = {}, {} seconds ago, '\
                   'presentation record duration = {}.\nEstimated remaining recognition time = {}.'\
             .format(training.pk, training.audio_status_last_update, time_since_audio_status_last_update,
@@ -310,7 +312,7 @@ def get_all_trainings() -> (dict, int):
     username = request.args.get('username', None)
     full_name = request.args.get('full_name', None)
     authorized = check_auth() is not None
-    if not check_admin() or not authorized or (authorized and session.get('session_id') != username):
+    if not (check_admin() or (authorized and session.get('session_id') == username)):
         return {}, 404
     trainings = TrainingsDBManager().get_trainings_filtered(
         remove_blank_and_none({'username': username, 'full_name': full_name})

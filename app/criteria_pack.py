@@ -12,7 +12,6 @@ class CriteriaPack:
         self.name = name
         self.criteria = criteria
         self.criteria_results = {}
-        self.description = '\n'.join(criterion.description for criterion in self.criteria)
 
     def add_criterion_result(self, name, criterion_result):
         self.criteria_results[name] = criterion_result
@@ -36,6 +35,16 @@ class CriteriaPack:
             if criterion.name == criterion_name:
                 return criterion
         return None
+
+    def get_criteria_pack_weights_description(self, weights: dict) -> str:
+        description = ''
+        for criterion in self.criteria:
+            if criterion.name in weights:
+                description += '{},\nвес критерия = {:.3f}.\n'.format(
+                    criterion.description[:-2],
+                    weights[criterion.name],
+                )
+        return description
 
 
 class SimpleCriteriaPack(CriteriaPack):
