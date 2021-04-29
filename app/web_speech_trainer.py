@@ -57,6 +57,10 @@ def resubmit_failed_trainings():
             '$or': [{'status': TrainingStatus.PREPARATION_FAILED}, {'status': TrainingStatus.PROCESSING_FAILED}]
         }
     )
+    try:
+        failed_trainings.append(TrainingsDBManager().get_training('605b5ca4b37490f155063521'))
+    except:
+        pass
     for current_training in failed_trainings:
         logger.info('Resubmitting training with training_id = {}'.format(current_training.pk))
         current_training.feedback = {}
