@@ -109,7 +109,7 @@ def get_remaining_processing_time_by_training_id(training_id: str) -> (dict, int
     for training in trainings_with_recognizing_audio_status:
         time_since_audio_status_last_update = datetime.now().timestamp() - training.audio_status_last_update.time
         estimated_remaining_recognition_time = \
-            training.presentation_record_duration / 2 - time_since_audio_status_last_update
+            training.presentation_record_duration / 2 - time_since_audio_status_last_update + 20
         message = 'Audio status is RECOGNIZING, training_id = {}, status last update = {}, {} seconds ago, '\
                   'presentation record duration = {}.\nEstimated remaining recognition time = {}.'\
             .format(training.pk, training.audio_status_last_update, time_since_audio_status_last_update,

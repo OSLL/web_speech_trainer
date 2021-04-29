@@ -1,6 +1,6 @@
 import json
 
-from app.criteria import SpeechIsNotTooLongCriterion, SpeechPaceCriterion, FillersRatioCriterion
+from app.criteria import SpeechDurationCriterion, SpeechPaceCriterion, FillersRatioCriterion
 
 
 class Feedback:
@@ -60,15 +60,15 @@ class PaceAndDurationFeedbackEvaluator(FeedbackEvaluator):
     def __init__(self, weights=None):
         if weights is None:
             weights = {
-                SpeechIsNotTooLongCriterion.CLASS_NAME: 0.5,
+                SpeechDurationCriterion.CLASS_NAME: 0.5,
                 SpeechPaceCriterion.CLASS_NAME: 0.5,
             }
 
         super().__init__(name=PaceAndDurationFeedbackEvaluator.CLASS_NAME, weights=weights)
 
     def evaluate_feedback(self, criteria_results):
-        score = criteria_results[SpeechIsNotTooLongCriterion.CLASS_NAME].result \
-                * self.weights[SpeechIsNotTooLongCriterion.CLASS_NAME] \
+        score = criteria_results[SpeechDurationCriterion.CLASS_NAME].result \
+                * self.weights[SpeechDurationCriterion.CLASS_NAME] \
             + criteria_results[PaceAndDurationFeedbackEvaluator.CLASS_NAME].result \
                 * self.weights[PaceAndDurationFeedbackEvaluator.CLASS_NAME]
         return Feedback(score)
@@ -96,14 +96,14 @@ class SimpleFeedbackEvaluator(FeedbackEvaluator):
     def __init__(self, weights=None):
         if weights is None:
             weights = {
-                SpeechIsNotTooLongCriterion.CLASS_NAME: 1,
+                SpeechDurationCriterion.CLASS_NAME: 1,
             }
 
         super().__init__(name=SimpleFeedbackEvaluator.CLASS_NAME, weights=weights)
 
     def evaluate_feedback(self, criteria_results):
-        score = criteria_results[SpeechIsNotTooLongCriterion.CLASS_NAME].result \
-                * self.weights[SpeechIsNotTooLongCriterion.CLASS_NAME]
+        score = criteria_results[SpeechDurationCriterion.CLASS_NAME].result \
+                * self.weights[SpeechDurationCriterion.CLASS_NAME]
         return Feedback(score)
 
 

@@ -17,7 +17,7 @@ def build_current_points_str(training_ids: list) -> str:
         training_db = TrainingsDBManager().get_training(training_id)
         if training_db is not None:
             score = training_db.feedback.get('score', None)
-            score_str = str(round(score, 2)) if score is not None else '...'
+            score_str = '{:.2f}'.format(score) if score is not None else '...'
             current_points += score_str
         else:
             current_points += '...'

@@ -35,7 +35,7 @@ def view_training_statistics(training_id: str):
         return training_statistics, training_statistics_status_code
     feedback = training_statistics['feedback']
     if 'score' in feedback:
-        feedback_str = 'feedback.score = {}'.format(round(feedback.get('score'), 2))
+        feedback_str = 'feedback.score = {}'.format('{:.2f}'.format(feedback.get('score')))
     else:
         feedback_str = 'Тренировка обрабатывается. Обновите страницу.'
     if 'verdict' in feedback:
@@ -63,11 +63,9 @@ def view_training_statistics(training_id: str):
         remaining_processing_time_estimation_str = ''
     criteria_results = feedback.get('criteria_results')
     if criteria_results is not None:
-        for (name, result) in criteria_results.items():
-            print(name, result)
         criteria_results_str = '\n'.join('{} = {} {}'.format(
             name,
-            result.get('result'),
+            '{:.2f}'.format(result.get('result')),
             '' if result.get('verdict') is None else ', ' + result.get('verdict'),
         ) for (name, result) in criteria_results.items())
     else:

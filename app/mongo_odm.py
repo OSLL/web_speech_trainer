@@ -315,7 +315,6 @@ class TrainingsDBManager:
                 update={'$set': {'feedback.verdict': new_verdict}},
                 return_document=ReturnDocument.AFTER,
             )
-            print(document)
         return True
 
     def add_criterion_result(self, training_id, criterion_name, criterion_result):

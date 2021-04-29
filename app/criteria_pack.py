@@ -1,7 +1,7 @@
 import logging
 
-from app.criteria import SpeechIsNotTooLongCriterion, SpeechPaceCriterion, FillersRatioCriterion, \
-    SpeechIsNotInDatabaseCriterion
+from app.criteria import SpeechDurationCriterion, SpeechPaceCriterion, FillersRatioCriterion, \
+    SpeechIsNotInDatabaseCriterion, FillersNumberCriterion
 from app.mongo_odm import TrainingsDBManager
 
 logger = logging.getLogger('root_logger')
@@ -43,14 +43,14 @@ class SimpleCriteriaPack(CriteriaPack):
     CRITERIA_PACK_ID = 1
 
     def __init__(self):
-        speech_is_not_too_long_criterion = SpeechIsNotTooLongCriterion(
+        speech_duration_criterion = SpeechDurationCriterion(
             parameters={'maximal_allowed_duration': 7 * 60},
             dependent_criteria=[],
         )
 
         super().__init__(
             name=SimpleCriteriaPack.CLASS_NAME,
-            criteria=[speech_is_not_too_long_criterion],
+            criteria=[speech_duration_criterion],
         )
 
 
@@ -59,7 +59,7 @@ class PaceAndDurationCriteriaPack(CriteriaPack):
     CRITERIA_PACK_ID = 2
 
     def __init__(self):
-        speech_is_not_too_long_criterion = SpeechIsNotTooLongCriterion(
+        speech_duration_criterion = SpeechDurationCriterion(
             parameters={'maximal_allowed_duration': 7 * 60},
             dependent_criteria=[],
         )
@@ -75,51 +75,56 @@ class PaceAndDurationCriteriaPack(CriteriaPack):
         super().__init__(
             name=PaceAndDurationCriteriaPack.CLASS_NAME,
             criteria=[
-                speech_is_not_too_long_criterion,
+                speech_duration_criterion,
                 speech_pace_criterion,
             ],
         )
 
 
+DEFAULT_FILLERS = [
+    'короче',
+    'однако',
+    'это',
+    'типа',
+    'как бы',
+    'это самое',
+    'как сказать',
+    'в общем-то',
+    'в общем то',
+    'знаешь',
+    'ну',
+    'то есть',
+    'так сказать',
+    'понимаешь',
+    'собственно',
+    'в принципе',
+    'допустим',
+    'например',
+    'слушай',
+    'собственно говоря',
+    'кстати',
+    'вообще',
+    'кажется',
+    'вероятно',
+    'значит',
+    'на самом деле',
+    'просто',
+    'сложно сказать',
+    'конкретно',
+    'вот',
+    'ладно',
+    'блин',
+    'так',
+    'походу',
+]
+
 DEFAULT_FILLERS_RATIO_CRITERION = FillersRatioCriterion(
-    parameters={
-        'fillers': [
-            'короче',
-            'однако',
-            'это',
-            'типа',
-            'как бы',
-            'это самое',
-            'как сказать',
-            'в общем-то',
-            'в общем то',
-            'знаешь',
-            'ну',
-            'то есть',
-            'так сказать',
-            'понимаешь',
-            'собственно',
-            'в принципе',
-            'допустим',
-            'например',
-            'слушай',
-            'собственно говоря',
-            'кстати',
-            'вообще',
-            'кажется',
-            'вероятно',
-            'значит',
-            'на самом деле',
-            'просто',
-            'сложно сказать',
-            'конкретно',
-            'вот',
-            'ладно',
-            'блин',
-            'так',
-            'походу',
-        ]
-    },
+    parameters={'fillers': DEFAULT_FILLERS},
+    dependent_criteria=[],
+)
+
+DEFAULT_FILLERS_NUMBER_CRITERION = FillersNumberCriterion(
+    parameters={'fillers': DEFAULT_FILLERS, 'maximum_fillers_number': 20},
     dependent_criteria=[],
 )
 
@@ -147,6 +152,13 @@ DEFAULT_SPEECH_IS_NOT_IN_DATABASE_CRITERION = SpeechIsNotInDatabaseCriterion(
     dependent_criteria=[],
 )
 
+DEFAULT_SPEECH_PACE_CRITERION = SpeechPaceCriterion(
+    parameters={
+        'minimal_allowed_pace': 75,
+        'maximal_allowed_pace': 175,
+    },
+    dependent_criteria=[],
+)
 
 class DuplicateAudioCriteriaPack(CriteriaPack):
     CLASS_NAME = 'DuplicateAudioCriteriaPack'
@@ -164,24 +176,16 @@ class TenMinutesTrainingCriteriaPack(CriteriaPack):
     CRITERIA_PACK_ID = 5
 
     def __init__(self):
-        speech_is_not_too_long_criterion = SpeechIsNotTooLongCriterion(
+        speech_duration_criterion = SpeechDurationCriterion(
             parameters={'maximal_allowed_duration': 10 * 60},
-            dependent_criteria=[],
-        )
-
-        speech_pace_criterion = SpeechPaceCriterion(
-            parameters={
-                'minimal_allowed_pace': 75,
-                'maximal_allowed_pace': 175,
-            },
             dependent_criteria=[],
         )
 
         super().__init__(
             name=TenMinutesTrainingCriteriaPack.CLASS_NAME,
             criteria=[
-                speech_is_not_too_long_criterion,
-                speech_pace_criterion,
+                speech_duration_criterion,
+                DEFAULT_SPEECH_PACE_CRITERION,
                 DEFAULT_FILLERS_RATIO_CRITERION,
             ],
         )
@@ -192,24 +196,16 @@ class FifteenMinutesTrainingCriteriaPack(CriteriaPack):
     CRITERIA_PACK_ID = 6
 
     def __init__(self):
-        speech_is_not_too_long_criterion = SpeechIsNotTooLongCriterion(
+        speech_duration_criterion = SpeechDurationCriterion(
             parameters={'maximal_allowed_duration': 15 * 60},
-            dependent_criteria=[],
-        )
-
-        speech_pace_criterion = SpeechPaceCriterion(
-            parameters={
-                'minimal_allowed_pace': 75,
-                'maximal_allowed_pace': 175,
-            },
             dependent_criteria=[],
         )
 
         super().__init__(
             name=FifteenMinutesTrainingCriteriaPack.CLASS_NAME,
             criteria=[
-                speech_is_not_too_long_criterion,
-                speech_pace_criterion,
+                speech_duration_criterion,
+                DEFAULT_SPEECH_PACE_CRITERION,
                 DEFAULT_FILLERS_RATIO_CRITERION,
             ],
         )
@@ -220,25 +216,37 @@ class TwentyMinutesTrainingCriteriaPack(CriteriaPack):
     CRITERIA_PACK_ID = 7
 
     def __init__(self):
-        speech_is_not_too_long_criterion = SpeechIsNotTooLongCriterion(
+        speech_duration_criterion = SpeechDurationCriterion(
             parameters={'maximal_allowed_duration': 20 * 60},
-            dependent_criteria=[],
-        )
-
-        speech_pace_criterion = SpeechPaceCriterion(
-            parameters={
-                'minimal_allowed_pace': 75,
-                'maximal_allowed_pace': 175,
-            },
             dependent_criteria=[],
         )
 
         super().__init__(
             name=TwentyMinutesTrainingCriteriaPack.CLASS_NAME,
             criteria=[
-                speech_is_not_too_long_criterion,
-                speech_pace_criterion,
+                speech_duration_criterion,
+                DEFAULT_SPEECH_PACE_CRITERION,
                 DEFAULT_FILLERS_RATIO_CRITERION,
+            ],
+        )
+
+
+class PredefenceEightToTenMinutesCriteriaPack(CriteriaPack):
+    CLASS_NAME = 'PredefenceEightToTenMinutesCriteriaPack'
+    CRITERIA_PACK_ID = 8
+
+    def __init__(self):
+        speech_duration_criterion = SpeechDurationCriterion(
+            parameters={'minimal_allowed_duration': 8 * 60, 'maximal_allowed_duration': 10 * 60},
+            dependent_criteria=[],
+        )
+
+        super().__init__(
+            name=PredefenceEightToTenMinutesCriteriaPack.CLASS_NAME,
+            criteria=[
+                speech_duration_criterion,
+                DEFAULT_SPEECH_PACE_CRITERION,
+                DEFAULT_FILLERS_NUMBER_CRITERION,
             ],
         )
 
@@ -251,6 +259,7 @@ CRITERIA_PACK_CLASS_BY_ID = {
     TenMinutesTrainingCriteriaPack.CRITERIA_PACK_ID: TenMinutesTrainingCriteriaPack,
     FifteenMinutesTrainingCriteriaPack.CRITERIA_PACK_ID: FifteenMinutesTrainingCriteriaPack,
     TwentyMinutesTrainingCriteriaPack.CRITERIA_PACK_ID: TwentyMinutesTrainingCriteriaPack,
+    PredefenceEightToTenMinutesCriteriaPack.CRITERIA_PACK_ID: PredefenceEightToTenMinutesCriteriaPack,
 }
 
 
