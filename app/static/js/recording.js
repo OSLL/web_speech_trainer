@@ -61,6 +61,9 @@ function startRecording() {
         $("#next")[0].disabled = false;
         $("#record")[0].disabled = true;
         $("#done")[0].disabled = false;
+    }).catch( err => {
+        $("#alert").show();
+        $("#error-text").html("Микрофон не доступен!");
     });
 }
 

@@ -124,7 +124,7 @@ DEFAULT_FILLERS_RATIO_CRITERION = FillersRatioCriterion(
 )
 
 DEFAULT_FILLERS_NUMBER_CRITERION = FillersNumberCriterion(
-    parameters={'fillers': DEFAULT_FILLERS},
+    parameters={'fillers': DEFAULT_FILLERS, 'maximum_fillers_number': 20},
     dependent_criteria=[],
 )
 

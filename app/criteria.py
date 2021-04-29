@@ -77,7 +77,8 @@ class SpeechDurationCriterion(Criterion):
 
     def apply(self, audio, presentation, training_id, criteria_results):
         maximal_allowed_duration = self.parameters['maximal_allowed_duration']
-        if audio.audio_stats['duration'] <= maximal_allowed_duration:
+        minimal_allowed_duration = self.parameters['minimal_allowed_duration']
+        if minimal_allowed_duration <= audio.audio_stats['duration'] <= maximal_allowed_duration:
             return CriterionResult(result=1)
         else:
             return CriterionResult(result=0)

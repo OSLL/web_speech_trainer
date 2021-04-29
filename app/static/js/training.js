@@ -67,12 +67,6 @@ function setupPresentationViewer(trainingId_) {
 
 $(document).ready(function() {
     $("#alert").hide();
-    navigator.mediaDevices.getUserMedia({ audio: true}).then(stream => {
-    }).catch( err => {
-        $("#alert").show();
-        $("#error-text").html("Микрофон не доступен!");
-    })
-
     pdfDoc = null;
     pageNum = 1;
     pageRendering = false;
