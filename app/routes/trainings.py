@@ -169,7 +169,7 @@ def view_training_greeting():
         'training_greeting.html',
         task_id=task_id,
         task_description=task_description,
-        current_points_sum=current_points_sum,
+        current_points_sum='{:.2f}'.format(current_points_sum),
         required_points=required_points,
         maximal_points=maximal_points,
         attempt_number=task_attempt_count,

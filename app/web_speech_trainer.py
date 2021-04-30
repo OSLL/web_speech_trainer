@@ -18,7 +18,7 @@ from app.routes.admin import routes_admin
 from app.routes.lti import routes_lti
 from app.routes.presentations import routes_presentations
 from app.routes.trainings import routes_trainings
-from app.status import TrainingStatus
+from app.status import TrainingStatus, PresentationStatus, AudioStatus
 from app.training_manager import TrainingManager
 
 
@@ -57,10 +57,6 @@ def resubmit_failed_trainings():
             '$or': [{'status': TrainingStatus.PREPARATION_FAILED}, {'status': TrainingStatus.PROCESSING_FAILED}]
         }
     )
-    try:
-        failed_trainings.append(TrainingsDBManager().get_training('605b5ca4b37490f155063521'))
-    except:
-        pass
     for current_training in failed_trainings:
         logger.info('Resubmitting training with training_id = {}'.format(current_training.pk))
         current_training.feedback = {}

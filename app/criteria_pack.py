@@ -2,6 +2,7 @@ import logging
 
 from app.criteria import SpeechDurationCriterion, SpeechPaceCriterion, FillersRatioCriterion, \
     SpeechIsNotInDatabaseCriterion, FillersNumberCriterion
+from app.feedback_evaluator import FeedbackEvaluator
 from app.mongo_odm import TrainingsDBManager
 
 logger = logging.getLogger('root_logger')
@@ -36,13 +37,19 @@ class CriteriaPack:
                 return criterion
         return None
 
+    # TODO move to feedback evaluator
     def get_criteria_pack_weights_description(self, weights: dict) -> str:
         description = ''
         for criterion in self.criteria:
-            if criterion.name in weights:
+            if weights and criterion.name in weights:
                 description += '{},\nвес критерия = {:.3f}.\n'.format(
                     criterion.description[:-2],
                     weights[criterion.name],
+                )
+            else:
+                description += '{},\nвес критерия = 1 / {}.\n'.format(
+                    criterion.description[:-2],
+                    len(self.criteria),
                 )
         return description
 
@@ -168,6 +175,7 @@ DEFAULT_SPEECH_PACE_CRITERION = SpeechPaceCriterion(
     },
     dependent_criteria=[],
 )
+
 
 class DuplicateAudioCriteriaPack(CriteriaPack):
     CLASS_NAME = 'DuplicateAudioCriteriaPack'

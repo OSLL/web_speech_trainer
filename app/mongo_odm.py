@@ -69,6 +69,10 @@ class TrainingsDBManager:
             cls.init_done = True
         return cls.instance
 
+    def delete_training(self, training_id):
+        training_id = ObjectId(training_id)
+        return Trainings.objects.model._mongometa.collection.delete_one({'_id': training_id})
+
     def add_training(
             self,
             task_attempt_id,

@@ -53,9 +53,9 @@ def get_linear_proportional_result(value, lower_bound, upper_bound):
     if lower_bound <= value <= upper_bound:
         return 1
     elif value < lower_bound:
-        return 1 - value / lower_bound
+        return value / lower_bound
     else:
-        return 1 - upper_bound / value
+        return upper_bound / value
 
 
 class SpeechDurationCriterion(Criterion):
@@ -78,7 +78,7 @@ class SpeechDurationCriterion(Criterion):
             boundaries = 'от {}'.format(
                 time.strftime('%M:%S', time.gmtime(round(self.parameters['minimal_allowed_duration'])))
             )
-            evaluation = '(1 - t / {}), если продолжительность речи в секундах t слишком короткая'.format(
+            evaluation = '(t / {}), если продолжительность речи в секундах t слишком короткая'.format(
                 self.parameters['minimal_allowed_duration']
             )
         if 'maximal_allowed_duration' in self.parameters:
@@ -89,7 +89,7 @@ class SpeechDurationCriterion(Criterion):
             boundaries += 'до {}'.format(
                 time.strftime('%M:%S', time.gmtime(round(self.parameters['maximal_allowed_duration'])))
             )
-            evaluation += ', (1 - {} / p), если продолжительность речи в секундах t слишком длинная.'.format(
+            evaluation += ', ({} / p), если продолжительность речи в секундах t слишком длинная.'.format(
                 self.parameters['maximal_allowed_duration']
             )
         return 'Критерий: {},\nописание: проверяет, что продолжительность речи {},\n' \
@@ -240,7 +240,7 @@ class SpeechPaceCriterion(Criterion):
     @property
     def description(self):
         return 'Критерий: {},\nописание: проверяет, что скорость речи находится в пределах от {} до {} слов в минуту,' \
-               '\nоценка: 1, если выполнен, (1 - p / {}), если темп p слишком медленный, (1 - {} / p), ' \
+               '\nоценка: 1, если выполнен, (p / {}), если темп p слишком медленный, ({} / p), ' \
                'если темп p слишком быстрый.\n' \
             .format(self.name, self.parameters['minimal_allowed_pace'], self.parameters['maximal_allowed_pace'],
                     self.parameters['minimal_allowed_pace'], self.parameters['maximal_allowed_pace'])
