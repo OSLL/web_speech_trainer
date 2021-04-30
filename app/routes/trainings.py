@@ -37,10 +37,10 @@ def view_training_statistics(training_id: str):
     feedback_evaluator = FeedbackEvaluatorFactory().get_feedback_evaluator(session.get('feedback_evaluator_id'))
     criteria_results = feedback.get('criteria_results')
     if 'score' in feedback:
-        feedback_str = 'Оценка за тренировку = {} = {}'.format(
-            '{:.2f}'.format(feedback.get('score')),
-            feedback_evaluator.get_result_as_sum_str(criteria_results),
-        )
+        feedback_str = 'Оценка за тренировку = {}'.format('{:.2f}'.format(feedback.get('score')))
+        results_as_sum_str = feedback_evaluator.get_result_as_sum_str(criteria_results)
+        if results_as_sum_str:
+            feedback_str += ' = {}'.format(results_as_sum_str)
     else:
         feedback_str = 'Тренировка обрабатывается. Обновите страницу.'
     if criteria_results is not None:

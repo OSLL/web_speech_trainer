@@ -38,6 +38,8 @@ class FeedbackEvaluator:
         return Feedback(score)
 
     def get_result_as_sum_str(self, criteria_results):
+        if criteria_results is None:
+            return None
         result = ''
         for class_name in self.weights:
             if class_name in criteria_results:
