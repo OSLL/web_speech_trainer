@@ -33,8 +33,9 @@ def append_slide_switch_timestamp(training_id: str) -> (dict, int):
         training_db = TrainingsDBManager().get_training(training_id)
         if training_db.status != TrainingStatus.NEW:
             return {}, 404
-    TrainingsDBManager().append_timestamp(training_id)
-    logger.debug('Slide switch: training_id = {}, timestamp = {}.'.format(training_id, time.time()))
+    timestamp = request.args.get('timestamp', time.time(), float)
+    TrainingsDBManager().append_timestamp(training_id, timestamp)
+    logger.debug('Slide switch: training_id = {}, timestamp = {}, time.time() = {}.'.format(training_id, timestamp, time.time()))
     return {'message': 'OK'}, 200
 
 

@@ -46,7 +46,7 @@ function buildPerSlideAudioTranscriptionTable(audioTranscriptionJson) {
     const perSlideAudioTranscriptionTable = document.getElementById("per-slide-audio-transcription-table");
     const titleRow = buildTitleRow(["Номер слайда", "Транскрипция"]);
     perSlideAudioTranscriptionTable.appendChild(titleRow);
-    for (let i = 0; i < audioTranscriptionJson.length; i++) {
+    for (let i = 0; i < audioTranscriptionJson["audio_transcription"].length; i++) {
         perSlideAudioTranscriptionTable.appendChild(
             buildAudioSlideTranscriptionRow(i + 1, audioTranscriptionJson["audio_transcription"][i])
         );

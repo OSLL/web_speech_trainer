@@ -3,10 +3,12 @@ from datetime import datetime
 
 from bson import ObjectId
 
+from app.audio import Audio
 from app.audio_recognizer import AudioRecognizer, VoskAudioRecognizer
 from app.config import Config
 from app.mongo_models import Trainings
 from app.mongo_odm import DBManager, AudioToRecognizeDBManager, TrainingsDBManager, RecognizedAudioToProcessDBManager
+from app.recognized_audio import RecognizedAudio
 from app.root_logger import get_root_logger
 from app.status import AudioStatus
 from app.utils import RepeatedTimer
@@ -94,7 +96,6 @@ class StuckAudioResender:
     def _resend_stuck_audio(self):
         try:
             trainings_db = TrainingsDBManager().get_trainings_filtered({'audio_status': AudioStatus.RECOGNIZING})
-            logger.debug('trainings_db.count() = {}'.format(trainings_db.count()))
             for training_db in trainings_db:
                 if not self._is_stuck_predicate(training_db):
                     logger.info('Training with training_id = {} has audio_status = RECOGNIZING and it\'s fresh enough.'
@@ -126,3 +127,4 @@ if __name__ == "__main__":
     audio_processor.run()
     stuck_audio_resender = StuckAudioResender()
     stuck_audio_resender.run()
+
