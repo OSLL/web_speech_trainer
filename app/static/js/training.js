@@ -5,7 +5,6 @@ let pdfDoc,
     scale,
     canvas,
     ctx,
-    presentationFileId,
     trainingId;
 
 function renderPage(num) {
@@ -29,7 +28,7 @@ function renderPage(num) {
       }
     });
   });
-  $('#page_num')[0].textContent = num;
+  $("#page_num")[0].textContent = num;
 }
 
 function queueRenderPage(num) {
@@ -42,16 +41,9 @@ function queueRenderPage(num) {
 
 function callShowPage() {
   $.ajax({
-    type: 'GET',
-    url: '/show_page',
-    data: {
-      trainingId: trainingId
-    }
+    type: "PUT",
+    url: `/api/trainings/timestamps/${trainingId}/`
   });
-}
-
-function returnToUploadPage() {
-  window.location.replace("/upload");
 }
 
 function onNextPage() {
@@ -63,25 +55,25 @@ function onNextPage() {
   queueRenderPage(pageNum);
 }
 
-function setupPresentationViewer(presentationFileId_, trainingId_) {
-    presentationFileId = presentationFileId_;
+function setupPresentationViewer(trainingId_) {
     trainingId = trainingId_;
-    let loadingTask = pdfjsLib.getDocument(`/get_presentation_file?presentationFileId=${presentationFileId}`);
+    let loadingTask = pdfjsLib.getDocument(`/api/files/presentations/by-training/${trainingId_}/`);
     loadingTask.promise.then(function(pdfDoc_) {
       pdfDoc = pdfDoc_;
-      $('#page_count')[0].textContent = pdfDoc.numPages;
+      $("#page_count")[0].textContent = pdfDoc.numPages;
       renderPage(pageNum);
     });
 }
 
 $(document).ready(function() {
+    $("#alert").hide();
     pdfDoc = null;
     pageNum = 1;
     pageRendering = false;
     pageNumPending = null;
     scale = 1.1;
-    canvas = $('#the-canvas')[0];
-    ctx = canvas.getContext('2d');
-    $('#done').click(callShowPage);
-    $('#next').click(onNextPage);
+    canvas = $("#the-canvas")[0];
+    ctx = canvas.getContext("2d");
+    $("#done").click(callShowPage);
+    $("#next").click(onNextPage);
 });

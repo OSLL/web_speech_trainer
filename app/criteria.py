@@ -1,7 +1,9 @@
+import json
+import time
+
 import numpy as np
 import librosa
 import scipy
-from gridfs import NoFile
 from scipy.spatial.distance import cosine
 
 from app.mongo_odm import DBManager, TrainingsDBManager
@@ -13,11 +15,24 @@ class CriterionResult:
         self.result = result
         self.verdict = verdict
 
-    def __repr__(self):
+    def __str__(self):
         if self.verdict is not None:
             return 'Verdict: {}, result = {} points'.format(self.verdict, self.result)
         else:
             return 'Result = {:.3f} points'.format(self.result)
+
+    def to_json(self):
+        return {
+            'verdict': None if self.verdict is None else repr(self.verdict),
+            'result': self.result,
+        }
+
+    @staticmethod
+    def from_json(json_file):
+        json_obj = json.loads(json_file)
+        json_verdict = json_obj['verdict']
+        json_result = json_obj['result']
+        return CriterionResult(json_result, json_verdict)
 
 
 class Criterion:
@@ -26,35 +41,57 @@ class Criterion:
         self.parameters = parameters
         self.dependent_criteria = dependent_criteria
 
+    @property
+    def description(self):
+        return ''
+
     def apply(self, audio, presentation, training_id, criteria_results):
         pass
 
 
-class SpeechIsNotTooLongCriterion(Criterion):
-    CLASS_NAME = 'SpeechIsNotTooLongCriterion'
+class SpeechDurationCriterion(Criterion):
+    CLASS_NAME = 'SpeechDurationCriterion'
 
     def __init__(self, parameters, dependent_criteria):
         super().__init__(
-            name=SpeechIsNotTooLongCriterion.CLASS_NAME,
+            name=SpeechDurationCriterion.CLASS_NAME,
             parameters=parameters,
             dependent_criteria=dependent_criteria,
         )
 
+    @property
+    def description(self):
+        boundaries = ''
+        if 'minimal_allowed_duration' in self.parameters:
+            boundaries = 'от {}'.format(
+                time.strftime('%M:%S', time.gmtime(round(self.parameters['minimal_allowed_duration'])))
+            )
+        if 'maximal_allowed_duration' in self.parameters:
+            if boundaries:
+                boundaries += ' '
+            boundaries += 'до {}'.format(
+                time.strftime('%M:%S', time.gmtime(round(self.parameters['maximal_allowed_duration'])))
+            )
+        return 'Критерий: {},\nописание: проверяет, что продолжительность речи {},\nоценка: 0, ' \
+               'если не выполнен, 1, если выполнен.\n'.format(self.name, boundaries)
+
     def apply(self, audio, presentation, training_id, criteria_results):
         maximal_allowed_duration = self.parameters['maximal_allowed_duration']
-        if audio.audio_stats['duration'] <= maximal_allowed_duration:
+        minimal_allowed_duration = self.parameters['minimal_allowed_duration']
+        if minimal_allowed_duration <= audio.audio_stats['duration'] <= maximal_allowed_duration:
             return CriterionResult(result=1)
         else:
             return CriterionResult(result=0)
 
 
 class SpeechIsNotInDatabaseCriterion(Criterion):
-    CLASS_NAME = 'SpeechIsNotTooLongCriterion'
+    CLASS_NAME = 'SpeechIsNotInDatabaseCriterion'
 
     '''
     Критерий проверяет, не является ли аудиофайл нечеткой копией
     одного из имеющихся в базе от этого пользователя.
     '''
+
     def __init__(self, parameters, dependent_criteria):
         super().__init__(
             name=SpeechIsNotInDatabaseCriterion.CLASS_NAME,
@@ -72,7 +109,7 @@ class SpeechIsNotInDatabaseCriterion(Criterion):
         step = int(step_s * sample_rate)
 
         bins = [
-            signal[start:start+window_size]
+            signal[start:start + window_size]
             for start in range(0, signal.shape[0] - window_size + 1, step)
         ]
         fft_bins = [np.abs(scipy.fft.fft(b)) for b in bins]
@@ -122,10 +159,18 @@ class SpeechIsNotInDatabaseCriterion(Criterion):
 
         return length / min_len
 
+    @property
+    def description(self):
+        return 'Критерий: {},\nописание: проверяет, не является ли аудиофайл нечеткой копией одного из имеющихся в ' \
+               'базе от этого пользователя,\nоценка: 0, если не выполнен, 1, если выполнен.\n'.format(self.name)
+
     def apply(self, audio, presentation, training_id, criteria_results):
         current_audio_id = TrainingsDBManager().get_training(training_id).presentation_record_file_id
         current_audio_file = DBManager().get_file(current_audio_id)
-        current_audio_file = convert_from_mp3_to_wav(current_audio_file, frame_rate=self.parameters['sample_rate'])
+        try:
+            current_audio_file = convert_from_mp3_to_wav(current_audio_file, frame_rate=self.parameters['sample_rate'])
+        except:
+            return CriterionResult(result=0, verdict='Cannot convert from mp3 to wav')
         current_audio_file, _ = librosa.load(current_audio_file.name)
         db_audio_ids = [
             training.presentation_record_file_id
@@ -137,7 +182,7 @@ class SpeechIsNotInDatabaseCriterion(Criterion):
             db_audio_mp3 = DBManager().get_file(db_audio_id)
             try:
                 db_audio = convert_from_mp3_to_wav(db_audio_mp3, frame_rate=self.parameters['sample_rate'])
-            except NoFile:
+            except:
                 continue
             db_audio, _ = librosa.load(db_audio.name)
             aligned_audio = self.align(current_audio_file,
@@ -169,6 +214,14 @@ class SpeechPaceCriterion(Criterion):
             dependent_criteria=dependent_criteria,
         )
 
+    @property
+    def description(self):
+        return 'Критерий: {},\nописание: проверяет, что скорость речи находится в пределах [{}, {}] слов в минуту,\n' \
+               'оценка: 1, если выполнен, (1 - p / {}), если темп p слишком медленный, (1 - {} / p), ' \
+               'если темп p слишком быстрый.\n' \
+            .format(self.name, self.parameters['minimal_allowed_pace'], self.parameters['maximal_allowed_pace'],
+                    self.parameters['minimal_allowed_pace'], self.parameters['maximal_allowed_pace'])
+
     def apply(self, audio, presentation, training_id, criteria_results):
         minimal_allowed_pace = self.parameters['minimal_allowed_pace']
         maximal_allowed_pace = self.parameters['maximal_allowed_pace']
@@ -178,8 +231,23 @@ class SpeechPaceCriterion(Criterion):
         elif pace < minimal_allowed_pace:
             result = 1 - pace / minimal_allowed_pace
         else:
-            result = 1 - pace / maximal_allowed_pace
+            result = 1 - maximal_allowed_pace / pace
         return CriterionResult(result)
+
+
+def get_fillers_number(fillers, audio):
+    fillers_number = 0
+    for audio_slide in audio.audio_slides:
+        audio_slide_words = [recognized_word.word.value for recognized_word in audio_slide.recognized_words]
+        for i in range(len(audio_slide_words)):
+            for filler in fillers:
+                filler_split = filler.split()
+                filler_length = len(filler_split)
+                if i + filler_length > len(audio_slide_words):
+                    continue
+                if audio_slide_words[i: i + filler_length] == filler_split:
+                    fillers_number += 1
+    return fillers_number
 
 
 class FillersRatioCriterion(Criterion):
@@ -192,20 +260,43 @@ class FillersRatioCriterion(Criterion):
             dependent_criteria=dependent_criteria,
         )
 
+    @property
+    def description(self):
+        return 'Критерий: {},\nописание: проверяет, что в речи нет слов-паразитов, используются слова из списка {},\n' \
+               'оценка: (1 - доля слов-паразитов).\n'.format(self.name, self.parameters['fillers'])
+
     def apply(self, audio, presentation, training_id, criteria_results):
-        fillers = self.parameters['fillers']
         total_words = audio.audio_stats['total_words']
         if total_words == 0:
             return CriterionResult(1)
-        fillers_count = 0
-        for audio_slide in audio.audio_slides:
-            audio_slide_words = [recognized_word.word.value for recognized_word in audio_slide.recognized_words]
-            for i in range(len(audio_slide_words)):
-                for filler in fillers:
-                    filler_split = filler.split()
-                    filler_length = len(filler_split)
-                    if i + filler_length > len(audio_slide_words):
-                        continue
-                    if audio_slide_words[i: i + filler_length] == filler_split:
-                        fillers_count += 1
-        return CriterionResult(1 - fillers_count / total_words)
+        fillers = self.parameters['fillers']
+        fillers_number = get_fillers_number(fillers, audio)
+        return CriterionResult(1 - fillers_number / total_words)
+
+
+class FillersNumberCriterion(Criterion):
+    CLASS_NAME = 'FillersNumberCriterion'
+
+    def __init__(self, parameters, dependent_criteria):
+        super().__init__(
+            name=FillersNumberCriterion.CLASS_NAME,
+            parameters=parameters,
+            dependent_criteria=dependent_criteria,
+        )
+
+    @property
+    def description(self):
+        return 'Критерий: {},\nописание: проверяет, что в речи нет слов-паразитов, используются слова из списка {},\n' \
+               'оценка: 1, если слов-паразитов не больше {}, иначе 0.\n'.format(
+            self.name,
+            self.parameters['fillers'],
+            self.parameters['maximum_fillers_number']
+        )
+
+    def apply(self, audio, presentation, training_id, criteria_results):
+        total_words = audio.audio_stats['total_words']
+        if total_words == 0:
+            return CriterionResult(1)
+        fillers = self.parameters['fillers']
+        fillers_number = get_fillers_number(fillers, audio)
+        return CriterionResult(1 if fillers_number <= self.parameters['maximum_fillers_number'] else 0)

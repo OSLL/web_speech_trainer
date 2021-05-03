@@ -6,4 +6,4 @@ sudo scripts/setup_apache_config.sh $apache_config_filename $apache_ssl_mod
 
 mkdir -p ../mongo_data
 docker-compose build
-docker-compose up -d --remove-orphans
+APP_CONF=../app_conf/config.ini docker-compose up -d --remove-orphans

@@ -16,6 +16,8 @@ pymorphy2-dicts-ru ==    2.4.417127.4579844
 PyMuPDF
 pytest
 scipy
+selenium
+selenium-requests
 vext
 vext.gi
 websockets

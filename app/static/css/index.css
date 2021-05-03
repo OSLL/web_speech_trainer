@@ -1,11 +1,15 @@
 .table {
     border-collapse: collapse;
-    text-align: center;
     margin-top: 5px;
 }
+
+.center-align-table {
+    text-align: center;
+}
+
 .table > tr > td,
 .table > tr > th {
     border: 1px solid black;
-    padding-left: 10px;
-    padding-right: 10px;
+    padding-left: 5px;
+    padding-right: 5px;
 }

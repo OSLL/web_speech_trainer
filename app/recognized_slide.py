@@ -1,7 +1,5 @@
 import json
 
-from app.word import Word
-
 
 class RecognizedSlide:
     def __init__(self, words):

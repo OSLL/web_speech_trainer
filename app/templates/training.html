@@ -1,4 +1,15 @@
-{% extends 'base.html' %} {% block content %}
+{% extends 'base.html' %}
+
+{% block header %}
+<link rel="stylesheet" href="/static/css/danger-alert.css">
+<link rel="stylesheet" href="/static/css/training.css">
+{% endblock %}
+
+{% block content %}
+
+<div id="alert" class="alert alert-danger" role="alert">
+<p id="error-text"></p>
+</div>
 
 <div id="controls">
   <button id="record">Record</button>
@@ -13,6 +24,7 @@
   Для окончания тренировки нажмите кнопку "Done".
 </div>
 <p id="denoising-note">Не говорите ничего первые 3 секунды после нажатия кнопки "Record". Это нужно для калибровки шума.</p>
+<div id="timer"></div>
 <p id="record-processing">Аудиозапись обрабатывается. Не уходите со страницы.</p>
 
 <div>
@@ -24,7 +36,7 @@
 <script src="{{ url_for('static', filename='js/libraries/WebAudioRecorder.js/WebAudioRecorder.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/training.js') }}"></script>
 <script type="text/javascript">
-    setupPresentationViewer("{{ presentation_file_id }}", "{{ training_id }}");
+    setupPresentationViewer("{{ training_id }}");
 </script>
 <script src="{{ url_for('static', filename='js/recording.js') }}"></script>
 

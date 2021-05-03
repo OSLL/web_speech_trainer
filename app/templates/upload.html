@@ -1,25 +1,21 @@
 {% extends 'base.html' %}
 
 {% block header %}
-<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
-<script>
-
-    function onChange(){
-        if($('#file-loading').val()!=""){
-            $('#button-submit').removeAttr('disabled');
-        } else {
-            $('#button-submit').attr('disabled',true);
-        }
-    }
-</script>
+<link rel="stylesheet" href="/static/css/danger-alert.css">
 {% endblock %}
 
 {% block content %}
 
+<div id="alert" class="alert alert-danger" role="alert">
+<p id="error-text"></p>
+</div>
+
 <h3>Загрузите pdf-файл с презентацией и нажмите "Начать тренировку"</h3>
-<form method=POST enctype=multipart/form-data action="{{ url_for('upload') }}">
-    <input id="file-loading" type=file name=presentation onchange="onChange()">
+<form method=POST id="upload-presentation-form" enctype=multipart/form-data action="{{ url_for('routes_presentations.handle_presentation_upload') }}">
+    <input id="file-loading" type=file name=presentation onchange="fileLoadingOnChange()">
     <input id="button-submit" type="submit" value="Начать тренировку" disabled="True">
 </form>
 
+<script src="/static/js/libraries/jquery.min.js"></script>
+<script src="/static/js/upload.js"></script>
 {% endblock %}
