@@ -25,6 +25,9 @@ def perfomance_score(pdf_path, txt_path, pass_slide_headers, word_weight_scale=F
     n = m
     print(m)
     for i in range(m):
+        #print('Номер:', i)
+        #print('Processed slide text:\n', slide_list[i])
+        #print('Processed speech part:\n', txt_list[i])
         # Проверяем заголовки слайдов на совпадение с теми, что нужно пропустить
         if check_headder(slide_list[i], pass_slide_headers):
             n -= 1
