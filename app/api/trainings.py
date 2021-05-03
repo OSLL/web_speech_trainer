@@ -8,8 +8,7 @@ from flask import Blueprint, session, request
 from app.check_access import check_access
 from app.lti_session_passback.auth_checkers import is_admin, check_auth, check_admin
 from app.mongo_models import Trainings
-from app.mongo_odm import TrainingsDBManager, TaskAttemptsDBManager, TasksDBManager, DBManager, \
-    AudioToRecognizeDBManager
+from app.mongo_odm import TrainingsDBManager, TaskAttemptsDBManager, TasksDBManager, DBManager
 from app.status import TrainingStatus, AudioStatus, PassBackStatus, PresentationStatus
 from app.training_manager import TrainingManager
 from app.utils import remove_blank_and_none, check_arguments_are_convertible_to_object_id
@@ -65,12 +64,14 @@ def add_training(presentation_file_id) -> (dict, int):
     if task_db is None:
         return {'message': 'No task with task_id = {}.'.format(task_id)}, 404
     criteria_pack_id = task_db.criteria_pack_id
+    feedback_evaluator_id = session.get('feedback_evaluator_id')
     training_id = TrainingsDBManager().add_training(
         task_attempt_id=task_attempt_id,
         username=username,
         full_name=full_name,
         presentation_file_id=presentation_file_id,
         criteria_pack_id=criteria_pack_id,
+        feedback_evaluator_id=feedback_evaluator_id,
     ).pk
     TaskAttemptsDBManager().add_training(task_attempt_id, training_id)
     return {
@@ -118,32 +119,56 @@ def get_remaining_processing_time_by_training_id(training_id: str) -> (dict, int
             message += ' Setting to 0.'
         logger.debug(message)
         time_estimation += max(0, estimated_remaining_recognition_time)
-    if current_training_status == TrainingStatus.PROCESSING:
-        time_estimation_add = 20
-        logger.debug('Current audio status is PROCESSING, training_id = {}. Adding {} seconds.'
-                     .format(training_id, time_estimation_add))
-        time_estimation += time_estimation_add
     current_presentation_record_file_id = current_training_db.presentation_record_file_id
     current_presentation_record_file_generation_time = current_presentation_record_file_id.generation_time
-    all_audio_to_recognize = AudioToRecognizeDBManager().get_all_audio_to_recognize()
-    for audio_to_recognize in all_audio_to_recognize:
-        presentation_record_file_generation_time = audio_to_recognize.file_id.generation_time
-        training_id = audio_to_recognize.training_id
-        training_db = TrainingsDBManager().get_training(training_id)
-        time_estimation_add = training_db.presentation_record_duration / 2
-        if presentation_record_file_generation_time < current_presentation_record_file_generation_time:
-            logger.debug(
-                'Presentation record file generation time for a training with training_id = {} is {}. '
-                'It is earlier than for the current training with training_id = {} that is {}. Adding {} seconds.'
-                .format(
-                    training_id,
-                    presentation_record_file_generation_time,
-                    training_id,
-                    current_presentation_record_file_generation_time,
-                    time_estimation_add,
-                )
+    trainings_with_audio_status_before_recognizing = TrainingsDBManager().get_trainings_filtered(
+        filters={'$or': [{'audio_status': {'$in': [AudioStatus.NEW, AudioStatus.SENT_FOR_RECOGNITION]}}]},
+    )
+    for training in trainings_with_audio_status_before_recognizing:
+        if training.presentation_record_file_id is None:
+            continue
+        presentation_record_file_generation_time = training.presentation_record_file_id.generation_time
+        training_id = training.pk
+        try:
+            time_estimation_add = training.presentation_record_duration / 2
+        except (AttributeError, TypeError):
+            continue
+        if presentation_record_file_generation_time > current_presentation_record_file_generation_time:
+            continue
+        logger.debug(
+            'Presentation record file generation time for a training with training_id = {} is {}. '
+            'It is earlier than or equals to generation time for the current training with training_id = {} '
+            'that is {}. Adding {} seconds.'
+            .format(
+                training_id,
+                presentation_record_file_generation_time,
+                training_id,
+                current_presentation_record_file_generation_time,
+                time_estimation_add,
             )
-            time_estimation += time_estimation_add
+        )
+        time_estimation += time_estimation_add
+    trainings_with_sent_for_processing_or_processing_status = TrainingsDBManager().get_trainings_filtered(
+        filters={'$or': [{'status': {'$in': [
+            TrainingStatus.PREPARED, TrainingStatus.SENT_FOR_PROCESSING, TrainingStatus.PROCESSING
+        ]}}]},
+    )
+    if current_training_status not in \
+            [TrainingStatus.NEW, TrainingStatus.SENT_FOR_PREPARATION, TrainingStatus.PREPARING]:
+        current_recognized_audio_generation_time = current_training_db.recognized_audio_id.generation_time
+    else:
+        current_recognized_audio_generation_time = None
+    for training in trainings_with_sent_for_processing_or_processing_status:
+        recognized_audio_generation_time = training.recognized_audio_id.generation_time
+        if not current_recognized_audio_generation_time or \
+                recognized_audio_generation_time > current_recognized_audio_generation_time:
+            continue
+        time_estimation_add = 20
+        logger.debug('Current audio status is {}, training_id = {}. Adding {} seconds.'
+                     .format(training.status, training_id, time_estimation_add))
+        time_estimation += time_estimation_add
+    if time_estimation == 0:
+        time_estimation = 20
     return {'processing_time_remaining': round(time_estimation), 'message': 'OK'}, 200
 
 
@@ -310,7 +335,7 @@ def get_all_trainings() -> (dict, int):
     username = request.args.get('username', None)
     full_name = request.args.get('full_name', None)
     authorized = check_auth() is not None
-    if not check_admin() or not authorized or (authorized and session.get('session_id') != username):
+    if not (check_admin() or (authorized and session.get('session_id') == username)):
         return {}, 404
     trainings = TrainingsDBManager().get_trainings_filtered(
         remove_blank_and_none({'username': username, 'full_name': full_name})

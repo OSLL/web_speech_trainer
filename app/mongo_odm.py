@@ -69,6 +69,10 @@ class TrainingsDBManager:
             cls.init_done = True
         return cls.instance
 
+    def delete_training(self, training_id):
+        training_id = ObjectId(training_id)
+        return Trainings.objects.model._mongometa.collection.delete_one({'_id': training_id})
+
     def add_training(
             self,
             task_attempt_id,
@@ -80,6 +84,7 @@ class TrainingsDBManager:
             audio_status=AudioStatus.NEW,
             presentation_status=PresentationStatus.NEW,
             criteria_pack_id=None,
+            feedback_evaluator_id=None,
     ):
         if slide_switch_timestamps is None:
             slide_switch_timestamps = []
@@ -94,6 +99,7 @@ class TrainingsDBManager:
             audio_status=audio_status,
             presentation_status=presentation_status,
             criteria_pack_id=criteria_pack_id,
+            feedback_evaluator_id=feedback_evaluator_id,
         ).save()
         logger.info(
             'Added training with training_id = {}, task_attempt_id = {}, presentation_file_id = {},\n'
@@ -318,20 +324,13 @@ class TrainingsDBManager:
         return True
 
     def add_criterion_result(self, training_id, criterion_name, criterion_result):
-        document = None
-        while document is None:
-            current_training_db = self.get_training(training_id)
-            if current_training_db is None:
-                return False
-            old_criteria_results = current_training_db.feedback.get('criteria_results')
-            new_criteria_results = {} if old_criteria_results is None else old_criteria_results.copy()
-            new_criteria_results.update({criterion_name: criterion_result.to_json()})
-            document = Trainings.objects.model._mongometa.collection.find_one_and_update(
-                filter={'_id': ObjectId(training_id), 'feedback.criteria_results': old_criteria_results},
-                update={'$set': {'feedback.criteria_results': new_criteria_results}},
-                return_document=ReturnDocument.AFTER,
-            )
-        return True
+        training_db = self.get_training(training_id)
+        if training_db is None:
+            return False
+        criteria_results = training_db.feedback.get('criteria_results') or {}
+        criteria_results.update({criterion_name: criterion_result.to_json()})
+        training_db.feedback['criteria_results'] = criteria_results
+        return training_db.save()
 
     def set_score(self, training_id, score):
         training = self.get_training(training_id)

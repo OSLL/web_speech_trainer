@@ -45,7 +45,9 @@ function buildCurrentTrainingRow(trainingId, trainingJson) {
     currentTrainingRowElement.appendChild(trainingPassBackStatusElement);
 
     const trainingScoreElement = document.createElement("td");
-    trainingScoreElement.textContent = trainingJson["score"];
+    if (trainingJson["score"] != null) {
+        trainingScoreElement.textContent = trainingJson["score"].toFixed(2);
+    }
     currentTrainingRowElement.appendChild(trainingScoreElement);
 
     return currentTrainingRowElement;
