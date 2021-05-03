@@ -8,8 +8,7 @@ from flask import Blueprint, session, request
 from app.check_access import check_access
 from app.lti_session_passback.auth_checkers import is_admin, check_auth, check_admin
 from app.mongo_models import Trainings
-from app.mongo_odm import TrainingsDBManager, TaskAttemptsDBManager, TasksDBManager, DBManager, \
-    AudioToRecognizeDBManager
+from app.mongo_odm import TrainingsDBManager, TaskAttemptsDBManager, TasksDBManager, DBManager
 from app.status import TrainingStatus, AudioStatus, PassBackStatus, PresentationStatus
 from app.training_manager import TrainingManager
 from app.utils import remove_blank_and_none, check_arguments_are_convertible_to_object_id
@@ -132,7 +131,7 @@ def get_remaining_processing_time_by_training_id(training_id: str) -> (dict, int
         training_id = training.pk
         try:
             time_estimation_add = training.presentation_record_duration / 2
-        except:
+        except (AttributeError, TypeError):
             continue
         if presentation_record_file_generation_time > current_presentation_record_file_generation_time:
             continue

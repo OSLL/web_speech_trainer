@@ -45,7 +45,7 @@ class FeedbackEvaluator:
             if class_name in criteria_results:
                 if result:
                     result += ' + '
-                result += '{:.3f} * {:.2f}'.format(self.weights[class_name], criteria_results[class_name]["result"])
+                result += '{:.3f} * {:.2f}'.format(self.weights[class_name], criteria_results[class_name]['result'])
         return result
 
 
@@ -60,12 +60,21 @@ class SameWeightFeedbackEvaluator(FeedbackEvaluator):
         score = 0
         if self.weights is not None:
             return super().evaluate_feedback(criteria_results)
-        else:
-            self.weights = {}
-            for class_name in criteria_results:
-                self.weights[class_name] = 1. / len(criteria_results)
-                score += 1. / len(criteria_results) * criteria_results[class_name].result
+        for class_name in criteria_results:
+            score += 1. / len(criteria_results) * criteria_results[class_name].result
         return Feedback(score)
+
+    def get_result_as_sum_str(self, criteria_results):
+        if self.weights is not None:
+            return super().get_result_as_sum_str(criteria_results)
+        if criteria_results is None:
+            return None
+        result = ''
+        for class_name in criteria_results:
+            if result:
+                result += ' + '
+            result += '{:.3f} * {:.2f}'.format(1. / len(criteria_results), criteria_results[class_name]['result'])
+        return result
 
 
 class PaceAndDurationFeedbackEvaluator(FeedbackEvaluator):

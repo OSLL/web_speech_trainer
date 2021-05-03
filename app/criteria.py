@@ -1,4 +1,5 @@
 import json
+import math
 import time
 
 import numpy as np
@@ -17,7 +18,7 @@ class CriterionResult:
 
     def __str__(self):
         if self.verdict is not None:
-            return 'Verdict: {}, result = {} points'.format(self.verdict, self.result)
+            return 'Verdict: {}, result = {:.3f} points'.format(self.verdict, self.result)
         else:
             return 'Result = {:.3f} points'.format(self.result)
 
@@ -50,6 +51,8 @@ class Criterion:
 
 
 def get_linear_proportional_result(value, lower_bound, upper_bound):
+    lower_bound = lower_bound or -math.inf
+    upper_bound = upper_bound or math.inf
     if lower_bound <= value <= upper_bound:
         return 1
     elif value < lower_bound:
@@ -96,8 +99,8 @@ class SpeechDurationCriterion(Criterion):
                'оценка: 1, если выполнен, {}\n'.format(self.name, boundaries, evaluation)
 
     def apply(self, audio, presentation, training_id, criteria_results):
-        maximal_allowed_duration = self.parameters['maximal_allowed_duration']
-        minimal_allowed_duration = self.parameters['minimal_allowed_duration']
+        maximal_allowed_duration = self.parameters.get('maximal_allowed_duration')
+        minimal_allowed_duration = self.parameters.get('minimal_allowed_duration')
         duration = audio.audio_stats['duration']
         return CriterionResult(
             get_linear_proportional_result(duration, minimal_allowed_duration, maximal_allowed_duration)
