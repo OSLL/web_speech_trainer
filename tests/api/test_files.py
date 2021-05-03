@@ -6,6 +6,12 @@ from app.api.files import get_presentation_record_file, get_presentation_file_by
     upload_presentation
 from app.utils import BYTES_PER_MEGABYTE
 from app.web_speech_trainer import app
+
+import sys
+from pathlib import Path
+import os
+sys.path.append(os.getcwd())
+sys.path.append(str(Path(os.getcwd()).parent.absolute()))
 # noinspection PyUnresolvedReferences
 from mock_data import PRESENTATION_RECORD_FILE_ID, get_mock_logger, TRAINING_ID, \
     PRESENTATION_FILE_ID, TRAINING_WITH_PRESENTATION_FILE_ID, PREVIEW_ID, \

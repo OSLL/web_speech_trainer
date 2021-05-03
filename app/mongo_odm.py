@@ -281,7 +281,7 @@ class TrainingsDBManager:
             return None
         training.slide_switch_timestamps.append(timestamp)
         saved = training.save()
-        logger.debug('Timestamp = {} appended to the training with training_id={}.'.format(timestamp, training_id))
+        logger.debug('Timestamp = {} appended to the training with training_id = {}.'.format(timestamp, training_id))
         return saved
 
     def add_presentation_record(self, training_id, presentation_record_file_id, presentation_record_duration):

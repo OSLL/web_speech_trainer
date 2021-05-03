@@ -7,11 +7,11 @@ let gumStream,
 
 function startRecording() {
     navigator.mediaDevices.getUserMedia({audio: true, video: false}).then(function (stream) {
-        callShowPage();
         currentTimestamp = Date.now();
         $("#tutorial")[0].style = "visibility: hidden; font-size: 0";
         $("#denoising-note")[0].style = "visibility: visible; font-size: 14";
         setTimeout(function () {
+            callShowPage();
             maxTime = undefined;
             fetch(`/api/criteria/${trainingId}/SpeechDurationCriterion/maximal_allowed_duration/`)
                 .then(response => response.json())

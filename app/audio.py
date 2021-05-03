@@ -1,11 +1,15 @@
 import json
+from typing import Optional
 
 from app.audio_slide import AudioSlide
+from app.recognized_audio import RecognizedAudio
 from app.utils import SECONDS_PER_MINUTE
 
 
 class Audio:
-    def __init__(self, recognized_audio=None, slide_switch_timestamps=None):
+    def __init__(self,
+                 recognized_audio: Optional[RecognizedAudio] = None,
+                 slide_switch_timestamps: Optional[list] = None):
         if recognized_audio is None or slide_switch_timestamps is None:
             self.audio_slides = None
             self.audio_stats = None
@@ -13,7 +17,7 @@ class Audio:
             self.audio_slides = self.split_into_slides(recognized_audio, slide_switch_timestamps)
             self.audio_stats = self.calculate_audio_stats(recognized_audio, slide_switch_timestamps)
 
-    def split_into_slides(self, recognized_audio, slide_switch_timestamps):
+    def split_into_slides(self, recognized_audio: RecognizedAudio, slide_switch_timestamps: list) -> list:
         if len(recognized_audio.recognized_words) == 0:
             return []
         current_slide_number = 0
@@ -24,19 +28,29 @@ class Audio:
             if recognized_word.begin_timestamp + delta_time < slide_switch_timestamps[current_slide_number + 1]:
                 current_slide.append(recognized_word)
             else:
-                slides.append(AudioSlide(current_slide))
+                slides.append(
+                    AudioSlide(
+                        current_slide,
+                        slide_switch_timestamps[current_slide_number],
+                        slide_switch_timestamps[current_slide_number + 1],
+                    )
+                )
                 current_slide = [recognized_word]
                 current_slide_number += 1
-        slides.append(AudioSlide(current_slide))
+        slides.append(
+            AudioSlide(
+                current_slide,
+                slide_switch_timestamps[current_slide_number],
+                slide_switch_timestamps[current_slide_number + 1],
+            )
+        )
         return slides
 
-    def calculate_audio_stats(self, recognized_audio, slide_switch_timestamps):
-        if len(recognized_audio.recognized_words) == 0:
+    def calculate_audio_stats(self, recognized_audio: RecognizedAudio, slide_switch_timestamps: list) -> dict:
+        if len(recognized_audio.recognized_words) == 0 or len(slide_switch_timestamps) == 0:
             duration = 0
         else:
-            begin = recognized_audio.recognized_words[0].begin_timestamp
-            end = recognized_audio.recognized_words[-1].end_timestamp
-            duration = end - begin
+            duration = slide_switch_timestamps[-1] - slide_switch_timestamps[0]
 
         total_words = 0
         for audio_slide in self.audio_slides:
@@ -53,7 +67,7 @@ class Audio:
             'words_per_minute': words_per_minute,
         }
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         tmp = json.dumps({
             'audio_slides': [repr(audio_slide) for audio_slide in self.audio_slides],
             'audio_stats': json.dumps(self.audio_stats),

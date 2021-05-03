@@ -44,7 +44,7 @@ def view_training_statistics(training_id: str):
     else:
         feedback_str = 'Тренировка обрабатывается. Обновите страницу.'
     if criteria_results is not None:
-        criteria_results_str = '\n'.join('{} = {} {}'.format(
+        criteria_results_str = '\n'.join('{} = {}{}'.format(
             name,
             '{:.2f}'.format(result.get('result')),
             '' if result.get('verdict') is None else ', ' + result.get('verdict'),
@@ -87,7 +87,7 @@ def view_training_statistics(training_id: str):
         audio_status=audio_status_str,
         presentation_status=presentation_status_str,
         remaining_processing_time_estimation=remaining_processing_time_estimation_str,
-        criteria_results=criteria_results_str.replace('\n', '\\n').replace('\'', ''),
+        criteria_results=criteria_results_str.replace('\n', '\\n').replace('\'', '').replace('"', ''),
     ), 200
 
 

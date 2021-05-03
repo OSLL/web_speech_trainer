@@ -1,18 +1,22 @@
 import json
 import math
 import time
+from typing import Union, Optional
 
 import numpy as np
 import librosa
 import scipy
+from bson import ObjectId
 from scipy.spatial.distance import cosine
 
+from app.audio import Audio
 from app.mongo_odm import DBManager, TrainingsDBManager
+from app.presentation import Presentation
 from app.utils import convert_from_mp3_to_wav
 
 
 class CriterionResult:
-    def __init__(self, result, verdict=None):
+    def __init__(self, result: float, verdict: Optional[str] = None):
         self.result = result
         self.verdict = verdict
 
@@ -22,7 +26,7 @@ class CriterionResult:
         else:
             return 'Result = {:.3f} points'.format(self.result)
 
-    def to_json(self):
+    def to_json(self) -> dict:
         return {
             'verdict': None if self.verdict is None else repr(self.verdict),
             'result': self.result,
@@ -37,20 +41,21 @@ class CriterionResult:
 
 
 class Criterion:
-    def __init__(self, name, parameters, dependent_criteria):
+    def __init__(self, name: str, parameters: dict, dependent_criteria: list):
         self.name = name
         self.parameters = parameters
         self.dependent_criteria = dependent_criteria
 
     @property
-    def description(self):
+    def description(self) -> str:
         return ''
 
-    def apply(self, audio, presentation, training_id, criteria_results):
+    def apply(self, audio: Audio, presentation: Presentation, training_id: ObjectId, criteria_results: dict) \
+            -> CriterionResult:
         pass
 
 
-def get_linear_proportional_result(value, lower_bound, upper_bound):
+def get_linear_proportional_result(value: float, lower_bound: Optional[float], upper_bound: Optional[float]) -> float:
     lower_bound = lower_bound or -math.inf
     upper_bound = upper_bound or math.inf
     if lower_bound <= value <= upper_bound:
@@ -230,7 +235,7 @@ class SpeechIsNotInDatabaseCriterion(Criterion):
 class SpeechPaceCriterion(Criterion):
     CLASS_NAME = 'SpeechPaceCriterion'
 
-    def __init__(self, parameters, dependent_criteria):
+    def __init__(self, parameters: dict, dependent_criteria: list):
         for parameter in ['minimal_allowed_pace', 'maximal_allowed_pace']:
             if parameter not in parameters:
                 raise ValueError('parameters should contain {}.'.format(parameter))
@@ -241,23 +246,46 @@ class SpeechPaceCriterion(Criterion):
         )
 
     @property
-    def description(self):
+    def description(self) -> str:
         return 'Критерий: {},\nописание: проверяет, что скорость речи находится в пределах от {} до {} слов в минуту,' \
                '\nоценка: 1, если выполнен, (p / {}), если темп p слишком медленный, ({} / p), ' \
                'если темп p слишком быстрый.\n' \
             .format(self.name, self.parameters['minimal_allowed_pace'], self.parameters['maximal_allowed_pace'],
                     self.parameters['minimal_allowed_pace'], self.parameters['maximal_allowed_pace'])
 
-    def apply(self, audio, presentation, training_id, criteria_results):
+    def apply(self, audio: Audio, presentation: Presentation, training_id: ObjectId, criteria_results: dict) \
+            -> CriterionResult:
         minimal_allowed_pace = self.parameters['minimal_allowed_pace']
         maximal_allowed_pace = self.parameters['maximal_allowed_pace']
         pace = audio.audio_stats['words_per_minute']
-        return CriterionResult(get_linear_proportional_result(pace, minimal_allowed_pace, maximal_allowed_pace))
+        verdict = ''
+        for i in range(len(audio.audio_slides)):
+            audio_slide = audio.audio_slides[i]
+            audio_slide_pace = audio_slide.audio_slide_stats['words_per_minute']
+            audio_slide_grade = get_linear_proportional_result(
+                audio_slide_pace, minimal_allowed_pace, maximal_allowed_pace,
+            )
+            verdict += 'Слайд {}: оценка = {}, слов в минуту = {}, слов сказано {} за {}.\n'.format(
+                    i + 1,
+                    '{:.2f}'.format(audio_slide_grade),
+                    '{:.2f}'.format(audio_slide.audio_slide_stats['words_per_minute']),
+                    audio_slide.audio_slide_stats['total_words'],
+                    time.strftime('%M:%S', time.gmtime(round(audio_slide.audio_slide_stats['slide_duration']))),
+            )
+        if verdict == '':
+            verdict = None
+        else:
+            verdict = 'Оценки по слайдам:\n{}'.format(verdict[:-1])
+        return CriterionResult(
+            result=get_linear_proportional_result(pace, minimal_allowed_pace, maximal_allowed_pace),
+            verdict=verdict,
+        )
 
 
-def get_fillers_number(fillers, audio):
-    fillers_number = 0
+def get_fillers(fillers: list, audio: Audio) -> list:
+    found_fillers = []
     for audio_slide in audio.audio_slides:
+        found_slide_fillers = []
         audio_slide_words = [recognized_word.word.value for recognized_word in audio_slide.recognized_words]
         for i in range(len(audio_slide_words)):
             for filler in fillers:
@@ -266,8 +294,13 @@ def get_fillers_number(fillers, audio):
                 if i + filler_length > len(audio_slide_words):
                     continue
                 if audio_slide_words[i: i + filler_length] == filler_split:
-                    fillers_number += 1
-    return fillers_number
+                    found_slide_fillers.append(filler)
+        found_fillers.append(found_slide_fillers)
+    return found_fillers
+
+
+def get_fillers_number(fillers: list, audio: Audio) -> int:
+    return sum(map(len, get_fillers(fillers, audio)))
 
 
 class FillersRatioCriterion(Criterion):
@@ -318,5 +351,15 @@ class FillersNumberCriterion(Criterion):
         if total_words == 0:
             return CriterionResult(1)
         fillers = self.parameters['fillers']
-        fillers_number = get_fillers_number(fillers, audio)
-        return CriterionResult(1 if fillers_number <= self.parameters['maximum_fillers_number'] else 0)
+        found_fillers = get_fillers(fillers, audio)
+        fillers_number = sum(map(len, found_fillers))
+        verdict = ''
+        for i in range(len(found_fillers)):
+            if len(found_fillers[i]) == 0:
+                continue
+            verdict += 'Слайд {}: {}.\n'.format(i + 1, found_fillers[i])
+        if verdict != '':
+            verdict = 'Использование слов-паразитов по слайдам:\n{}'.format(verdict[:-1])
+        else:
+            verdict = None
+        return CriterionResult(1 if fillers_number <= self.parameters['maximum_fillers_number'] else 0, verdict)

@@ -58,7 +58,7 @@ def test_basic_training():
         driver.get('http://127.0.0.1:5000/trainings/statistics/{}/'.format(training_id))
         try:
             feedback_element = WebDriverWait(driver, step).until(EC.presence_of_element_located((By.ID, 'feedback')))
-            if feedback_element.text.startswith('feedback.score'):
+            if feedback_element.text.startswith('Оценка за тренировку'):
                 break
             else:
                 wait_time += step
