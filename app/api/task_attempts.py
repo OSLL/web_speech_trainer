@@ -11,23 +11,6 @@ api_task_attempts = Blueprint('api_task_attempts', __name__)
 logger = logging.getLogger('root_logger')
 
 
-def build_current_points_str(training_ids: list) -> str:
-    current_points = '['
-    for training_id in training_ids:
-        training_db = TrainingsDBManager().get_training(training_id)
-        if training_db is not None:
-            score = training_db.feedback.get('score', None)
-            score_str = '{:.2f}'.format(score) if score is not None else '...'
-            current_points += score_str
-        else:
-            current_points += '...'
-        current_points += ', '
-    if current_points == '[':
-        return '[]'
-    else:
-        return current_points[:-2] + ']'
-
-
 @check_arguments_are_convertible_to_object_id
 @api_task_attempts.route('/api/task-attempts/by-training/<training_id>/', methods=['GET'])
 def get_current_task_attempt(training_id: str) -> (dict, int):
@@ -59,7 +42,8 @@ def get_current_task_attempt(training_id: str) -> (dict, int):
     return {
         'message': 'OK',
         'training_scores': current_task_attempt.training_scores,
-        'current_points_str': build_current_points_str(current_task_attempt.training_scores.keys()),
+        'current_points_sum':
+            sum([score if score is not None else 0 for score in current_task_attempt.training_scores.values()]),
         'training_number': len(current_task_attempt.training_scores),
         'attempt_count': task_db.attempt_count,
     }, 200

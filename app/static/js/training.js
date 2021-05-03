@@ -42,7 +42,7 @@ function queueRenderPage(num) {
 function callShowPage() {
   $.ajax({
     type: "PUT",
-    url: `/api/trainings/timestamps/${trainingId}/`
+    url: `/api/trainings/timestamps/${trainingId}/?timestamp=${Date.now() / 1000}`
   });
 }
 

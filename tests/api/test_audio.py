@@ -1,6 +1,11 @@
 import json
 from unittest.mock import patch, Mock
 
+import sys
+from pathlib import Path
+import os
+sys.path.append(os.getcwd())
+sys.path.append(str(Path(os.getcwd()).parent.absolute()))
 # noinspection PyUnresolvedReferences
 from mock_data import TRAINING_ID, TRAINING_WITH_AUDIO_ID, AUDIO_ID, \
     check_created_with_no_args_and_get_file_called_once, check_created_with_no_args_and_get_training_called_once, \

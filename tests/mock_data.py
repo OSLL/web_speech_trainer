@@ -4,6 +4,9 @@ from unittest.mock import Mock
 
 from bson import ObjectId
 
+from app.audio import Audio
+from app.recognized_audio import RecognizedAudio
+
 TRAINING_ID = ObjectId('60789142b542f0da21e68805')
 AUDIO_ID = ObjectId('60789430cc5ecfdb1b92f53e')
 PRESENTATION_FILE_ID = ObjectId('6078dba93f6fba333aa420d4')
@@ -11,6 +14,13 @@ PRESENTATION_RECORD_FILE_ID = ObjectId('6078ca0e375721468bb08a14')
 PREVIEW_ID = ObjectId('6079618b8025b6f4c8e22083')
 TRAINING_WITH_AUDIO_ID = Mock(audio_id=AUDIO_ID)
 TRAINING_WITH_PRESENTATION_FILE_ID = Mock(presentation_file_id=PRESENTATION_FILE_ID)
+TIMESTAMP = 1620046125.832949
+with open('test_data/recognized_audio_6.json', 'rb') as json_file:
+    ts = TIMESTAMP
+    AUDIO = Audio(
+        RecognizedAudio.from_json_file(json_file),
+        slide_switch_timestamps=[ts, ts + 10, ts + 20, ts + 100, ts + 250, ts + 340],
+    )
 
 
 class ListHandler(logging.Handler):

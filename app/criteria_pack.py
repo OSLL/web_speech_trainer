@@ -2,6 +2,7 @@ import logging
 
 from app.criteria import SpeechDurationCriterion, SpeechPaceCriterion, FillersRatioCriterion, \
     SpeechIsNotInDatabaseCriterion, FillersNumberCriterion
+from app.feedback_evaluator import FeedbackEvaluator
 from app.mongo_odm import TrainingsDBManager
 
 logger = logging.getLogger('root_logger')
@@ -12,7 +13,6 @@ class CriteriaPack:
         self.name = name
         self.criteria = criteria
         self.criteria_results = {}
-        self.description = '\n'.join(criterion.description for criterion in self.criteria)
 
     def add_criterion_result(self, name, criterion_result):
         self.criteria_results[name] = criterion_result
@@ -27,8 +27,8 @@ class CriteriaPack:
                 logger.info('Attached {} {} to a training with training_id = {}'
                             .format(criterion.name, criterion_result, training_id))
             except Exception as e:
-                logger.warning('Exception while applying {} for a training with training_id = {}.\n{}'
-                               .format(criterion.name, training_id, e))
+                logger.warning('Exception while applying {} for a training with training_id = {}.\n{}: {}'
+                               .format(criterion.name, training_id, e.__class__, e))
         return self.criteria_results
 
     def get_criterion_by_name(self, criterion_name):
@@ -36,6 +36,22 @@ class CriteriaPack:
             if criterion.name == criterion_name:
                 return criterion
         return None
+
+    # TODO move to feedback evaluator
+    def get_criteria_pack_weights_description(self, weights: dict) -> str:
+        description = ''
+        for criterion in self.criteria:
+            if weights and criterion.name in weights:
+                description += '{},\nвес критерия = {:.3f}.\n'.format(
+                    criterion.description[:-2],
+                    weights[criterion.name],
+                )
+            else:
+                description += '{},\nвес критерия = 1 / {}.\n'.format(
+                    criterion.description[:-2],
+                    len(self.criteria),
+                )
+        return description
 
 
 class SimpleCriteriaPack(CriteriaPack):
@@ -159,6 +175,7 @@ DEFAULT_SPEECH_PACE_CRITERION = SpeechPaceCriterion(
     },
     dependent_criteria=[],
 )
+
 
 class DuplicateAudioCriteriaPack(CriteriaPack):
     CLASS_NAME = 'DuplicateAudioCriteriaPack'

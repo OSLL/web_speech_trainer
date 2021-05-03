@@ -4,10 +4,10 @@ import time
 from bson import ObjectId
 from flask import Blueprint, render_template, request, session
 
-from app.api.task_attempts import build_current_points_str
 from app.api.trainings import get_training_statistics
 from app.check_access import check_access
 from app.criteria_pack import CriteriaPackFactory
+from app.feedback_evaluator import FeedbackEvaluatorFactory
 from app.lti_session_passback.auth_checkers import check_admin, check_auth
 from app.mongo_odm import TasksDBManager, TaskAttemptsDBManager
 from app.status import TrainingStatus, AudioStatus, PresentationStatus
@@ -34,10 +34,23 @@ def view_training_statistics(training_id: str):
     if training_statistics.get('message') != 'OK':
         return training_statistics, training_statistics_status_code
     feedback = training_statistics['feedback']
+    feedback_evaluator = FeedbackEvaluatorFactory().get_feedback_evaluator(session.get('feedback_evaluator_id'))
+    criteria_results = feedback.get('criteria_results')
     if 'score' in feedback:
-        feedback_str = 'feedback.score = {}'.format('{:.2f}'.format(feedback.get('score')))
+        feedback_str = 'Оценка за тренировку = {}'.format('{:.2f}'.format(feedback.get('score')))
+        results_as_sum_str = feedback_evaluator.get_result_as_sum_str(criteria_results)
+        if results_as_sum_str:
+            feedback_str += ' = {}'.format(results_as_sum_str)
     else:
         feedback_str = 'Тренировка обрабатывается. Обновите страницу.'
+    if criteria_results is not None:
+        criteria_results_str = '\n'.join('{} = {}{}'.format(
+            name,
+            '{:.2f}'.format(result.get('result')),
+            '' if result.get('verdict') is None else ', ' + result.get('verdict'),
+        ) for (name, result) in criteria_results.items())
+    else:
+        criteria_results_str = ''
     if 'verdict' in feedback:
         verdict_str = feedback.get('verdict').replace('\n', '\\n')
     else:
@@ -61,15 +74,6 @@ def view_training_statistics(training_id: str):
         )
     else:
         remaining_processing_time_estimation_str = ''
-    criteria_results = feedback.get('criteria_results')
-    if criteria_results is not None:
-        criteria_results_str = '\n'.join('{} = {} {}'.format(
-            name,
-            '{:.2f}'.format(result.get('result')),
-            '' if result.get('verdict') is None else ', ' + result.get('verdict'),
-        ) for (name, result) in criteria_results.items())
-    else:
-        criteria_results_str = ''
     return render_template(
         'training/statistics.html',
         page_title='Статистика тренировки с ID: {}'.format(training_id),
@@ -83,7 +87,7 @@ def view_training_statistics(training_id: str):
         audio_status=audio_status_str,
         presentation_status=presentation_status_str,
         remaining_processing_time_estimation=remaining_processing_time_estimation_str,
-        criteria_results=criteria_results_str.replace('\n', '\\n').replace('\'', ''),
+        criteria_results=criteria_results_str.replace('\n', '\\n').replace('\'', '').replace('"', ''),
     ), 200
 
 
@@ -113,7 +117,7 @@ def view_all_trainings():
     username = request.args.get('username', '')
     full_name = request.args.get('full_name', '')
     authorized = check_auth() is not None
-    if not check_admin() or not authorized or (authorized and session.get('session_id') != username):
+    if not (check_admin() or (authorized and session.get('session_id') == username)):
         return {}, 404
     return render_template('show_all_trainings.html', username=username, full_name=full_name), 200
 
@@ -152,22 +156,25 @@ def view_training_greeting():
         )
         training_number = 1
     task_attempt_count = TaskAttemptsDBManager().get_attempts_count(username, task_id)
-    current_points = build_current_points_str(current_task_attempt.training_scores.keys())
+    current_points_sum = \
+        sum([score if score is not None else 0 for score in current_task_attempt.training_scores.values()])
     session['task_attempt_id'] = str(current_task_attempt.pk)
-    criteria_pack_id = session['criteria_pack_id']
+    criteria_pack_id = session.get('criteria_pack_id')
     criteria_pack = CriteriaPackFactory().get_criteria_pack(criteria_pack_id)
     maximal_points = attempt_count * 1
+    criteria_pack_description = criteria_pack.get_criteria_pack_weights_description(
+        FeedbackEvaluatorFactory().get_feedback_evaluator(session.get('feedback_evaluator_id')).weights,
+    )
     return render_template(
         'training_greeting.html',
         task_id=task_id,
-        username=username,
         task_description=task_description,
-        current_points=current_points,
+        current_points_sum='{:.2f}'.format(current_points_sum),
         required_points=required_points,
         maximal_points=maximal_points,
         attempt_number=task_attempt_count,
         training_number=training_number,
         attempt_count=attempt_count,
         criteria_pack_id=criteria_pack_id,
-        criteria_pack_description=criteria_pack.description.replace('\n', '\\n').replace('\'', ''),
+        criteria_pack_description=criteria_pack_description.replace('\n', '\\n').replace('\'', ''),
     )

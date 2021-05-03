@@ -24,7 +24,3 @@ class Config:
         config_raw = ConfigParser()
         config_raw.read(config_path)
         Config.c = DictToObject(config_raw._sections)
-
-
-if __name__ == "__main__":
-    Config.init_config('config.ini')

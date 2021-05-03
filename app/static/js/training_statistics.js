@@ -11,7 +11,7 @@ function buildCurrentAttemptStatistics() {
             document.getElementById("training-number").textContent
                 = "Номер тренировки: " + response["training_number"] + " / " + response["attempt_count"];
             document.getElementById("current-points").textContent
-                = "Баллы за предыдущие тренировки: " + response["current_points_str"];
+                = "Сумма баллов за предыдущие тренировки: " + response["current_points_sum"].toFixed(2);
             let next_training = document.getElementById("next-training");
             next_training.style.visibility = "visible";
             next_training.style.fontSize = "14pt";
@@ -46,7 +46,7 @@ function buildPerSlideAudioTranscriptionTable(audioTranscriptionJson) {
     const perSlideAudioTranscriptionTable = document.getElementById("per-slide-audio-transcription-table");
     const titleRow = buildTitleRow(["Номер слайда", "Транскрипция"]);
     perSlideAudioTranscriptionTable.appendChild(titleRow);
-    for (let i = 0; i < audioTranscriptionJson.length; i++) {
+    for (let i = 0; i < audioTranscriptionJson["audio_transcription"].length; i++) {
         perSlideAudioTranscriptionTable.appendChild(
             buildAudioSlideTranscriptionRow(i + 1, audioTranscriptionJson["audio_transcription"][i])
         );
