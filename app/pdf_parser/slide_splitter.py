@@ -7,6 +7,7 @@ from nltk.corpus import stopwords
 import os
 import argparse
 import re
+import shutil
 
 
 def text_processor(text, mode):
@@ -61,9 +62,9 @@ def parse_pdf(pdf_path, extract_dir=None, ret_lematize_slides=False):
     :return: ['slide1 - full text', ..., 'slideN - full text]
     '''
     pdf_doc = fitz.open(pdf_path)
-    print(pdf_doc)
     slide_list = []
     lematize_slide_list = []
+    slide_dict = []
 
     for page in pdf_doc:
         text = page.getText("text")

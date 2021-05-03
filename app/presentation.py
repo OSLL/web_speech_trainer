@@ -17,7 +17,7 @@ class Presentation:
 
     def split_into_slides(self, recognized_presentation, slide_switch_timestamps):
         slides = []
-        for i in range(len(recognized_presentation.recognized_slides)):
+        for i in range(min(len(recognized_presentation.recognized_slides), len(slide_switch_timestamps) - 1)):
             slides.append(Slide(
                 recognized_presentation.recognized_slides[i].words,
                 slide_stats={
@@ -43,6 +43,10 @@ class Presentation:
             'slides': [repr(slide) for slide in self.slides],
             'presentation_stats': json.dumps(self.presentation_stats),
         }, ensure_ascii=False)
+
+    def __eq__(self, other):
+        return isinstance(other, Presentation) \
+               and self.slides == other.slides and self.presentation_stats == other.presentation_stats
 
     @staticmethod
     def from_json_file(json_file):

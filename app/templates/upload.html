@@ -1,9 +1,21 @@
-{% extends 'base.html' %} {% block content %}
+{% extends 'base.html' %}
+
+{% block header %}
+<link rel="stylesheet" href="/static/css/danger-alert.css">
+{% endblock %}
+
+{% block content %}
+
+<div id="alert" class="alert alert-danger" role="alert">
+<p id="error-text"></p>
+</div>
 
 <h3>Загрузите pdf-файл с презентацией и нажмите "Начать тренировку"</h3>
-<form method=POST enctype=multipart/form-data action="{{ url_for('upload') }}">
-    <input type=file name=presentation>
+<form method=POST id="upload-presentation-form" enctype=multipart/form-data action="{{ url_for('routes_presentations.handle_presentation_upload') }}">
+    <input id="file-loading" type=file name=presentation onchange="fileLoadingOnChange()">
     <input type="submit" value="Начать тренировку">
 </form>
 
+<script src="/static/js/libraries/jquery.min.js"></script>
+<script src="/static/js/upload.js"></script>
 {% endblock %}

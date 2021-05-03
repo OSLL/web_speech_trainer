@@ -1,14 +1,17 @@
 {% extends 'base.html' %} {% block content %}
-<div class='container'>
-    <h2>Пользователь: {{ username }}</h2>
-    <h2>Задание для тренировки: {{ task_id }}</h2>
-    <h2>Описание задания: {{ task_description }}</h2>
-    <h2>Номер попытки: {{ attempt_number }}</h2>
-    <h2>Номер тренировки: {{ training_number }} / {{ attempt_count }}</h2>
-    <h2>Баллы за предыдущие тренировки: {{ current_points }}</h2>
-    <h2>Проходной балл: {{ required_points }}</h2>
-    <form method=POST enctype=multipart/form-data action="{{ url_for('upload') }}">
-        <input type="submit" value="Начать">
-    </form>
+<div class="base-container">
+    <h3>Задание для тренировки: {{ task_id }}</h3>
+    <h3>Описание задания: {{ task_description }}</h3>
+    <h3>Проходной балл: {{ required_points }} / {{ maximal_points}}</h3>
+    <h3>Номер попытки: {{ attempt_number }}</h3>
+    <h3>Номер тренировки: {{ training_number }} / {{ attempt_count }}</h3>
+    <h3>Сумма баллов за предыдущие тренировки: {{ current_points_sum }}</h3>
+    <h3>Номер набора критериев: {{ criteria_pack_id }}</h3>
+    <div id="criteria-pack-description">{{ criteria_pack_description }}</div>
+    <button id="start-training-button" type="button" onclick="location.href={{ url_for('routes_presentations.view_presentation_upload') }}">Начать</button>
 </div>
+<script src="{{ url_for('static', filename='js/training_greeting.js') }}"></script>
+<script type="text/javascript">
+    setCriteriaPackDescription("{{ criteria_pack_description }}");
+</script>
 {% endblock %}

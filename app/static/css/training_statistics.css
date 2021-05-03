@@ -1,0 +1,12 @@
+.transcription-table {
+    max-width: 100%;
+}
+
+.transcription-table > tr > th {
+    text-align: left;
+}
+
+.transcription-table > tr > td,
+.transcription-table > tr > th {
+    overflow: auto;
+}

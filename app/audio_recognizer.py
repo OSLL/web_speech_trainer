@@ -10,6 +10,7 @@ from app.recognized_word import RecognizedWord
 from app.word import Word
 from playground.noise_reduction.denoiser import Denoiser
 
+
 class AudioRecognizer:
     def recognize(self, audio):
         pass
@@ -26,7 +27,8 @@ class SimpleAudioRecognizer(AudioRecognizer):
 
 class VoskAudioRecognizer(AudioRecognizer):
     def __init__(self, host):
-        self.host = host
+        self._host = host
+        self._event_loop = asyncio.get_event_loop()
 
     def parse_recognizer_result(self, recognizer_result):
         return RecognizedWord(
@@ -37,7 +39,7 @@ class VoskAudioRecognizer(AudioRecognizer):
         )
 
     def recognize_wav(self, audio):
-        recognizer_results = asyncio.get_event_loop().run_until_complete(
+        recognizer_results = self._event_loop.run_until_complete(
             self.send_audio_to_recognizer(audio.name)
         )
         recognized_words = list(map(self.parse_recognizer_result, recognizer_results))
@@ -50,7 +52,7 @@ class VoskAudioRecognizer(AudioRecognizer):
 
     async def send_audio_to_recognizer(self, file_name):
         recognizer_results = []
-        async with websockets.connect(self.host) as websocket:
+        async with websockets.connect(self._host) as websocket:
             wf = wave.open(file_name, "rb")
             await websocket.send('''{"config" : { "sample_rate" : 8000.0 }}''')
             while True:
