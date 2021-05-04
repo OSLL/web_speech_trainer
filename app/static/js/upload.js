@@ -4,6 +4,7 @@ $("#alert").hide();
 
 function fileLoadingOnChange() {
     $("#alert").hide();
+    $("#button-submit").attr("disabled", true);
     if ($("#file-loading").prop("files").length < 1) {
         $("#alert").show();
         $("#error-text").html("Выберите файл!");
@@ -18,6 +19,8 @@ function fileLoadingOnChange() {
         if (file.size > MAX_PRESENTATION_SIZE * 1024 * 1024) {
             $("#alert").show();
             $("#error-text").html(`Размер файла с презентацией не должен превышать ${MAX_PRESENTATION_SIZE} мегабайт!`);
+            return;
         }
+        $("#button-submit").removeAttr("disabled");
     }
 }
