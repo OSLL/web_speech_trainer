@@ -2,6 +2,7 @@ import logging
 import os
 import time
 import uuid
+from typing import Union
 
 import pymongo
 from bson import ObjectId
@@ -20,6 +21,7 @@ from app.mongo_models import Trainings, AudioToRecognize, TrainingsToProcess, \
     PresentationsToRecognize, RecognizedAudioToProcess, RecognizedPresentationsToProcess, PresentationFiles, \
     Sessions, Consumers, Tasks, TaskAttempts, TaskAttemptsToPassBack, Logs
 from app.status import AudioStatus, PresentationStatus, TrainingStatus, PassBackStatus
+from app.utils import remove_blank_and_none
 
 logger = logging.getLogger('root_logger')
 

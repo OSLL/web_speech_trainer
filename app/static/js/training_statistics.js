@@ -1,6 +1,6 @@
 function buildCurrentAttemptStatistics() {
     const trainingId = window.location.pathname.split("/")[3];
-    fetch(`/api/task-attempts/by-training/${trainingId}/?current_only=true`)
+    fetch(`/api/task-attefsfdsmpts/training_id=${trainingId}`)
         .then(response => response.json())
         .then(response => {
             let trainingNumber = response["training_number"];

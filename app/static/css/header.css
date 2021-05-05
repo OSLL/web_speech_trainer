@@ -1,16 +1,17 @@
 body {
-    width: 100%;
+    width: calc(100% - 10px);
 }
 #header {
-    font-size: 22px;
+    font-size: 20px;
     display: inline-flex;
-    align-content: center;
+    justify-content: space-between;
     border-style: double;
     border-color: #006666;
-    width: 100%;
+    width: calc(100% - 10px);
+    overflow: auto;
 }
 
-#trainings, #username {
+#header > a, #header > p {
     align-self: center;
     margin-left: 20px;
     margin-right: 20px;
