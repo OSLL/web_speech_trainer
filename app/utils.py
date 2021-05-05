@@ -1,9 +1,7 @@
 import os
 import tempfile
-from datetime import datetime
 from distutils.util import strtobool
 from threading import Timer
-from time import sleep
 
 import fitz
 from bson import ObjectId
@@ -72,7 +70,7 @@ def check_argument_is_convertible_to_object_id(arg):
         except Exception as e2:
             return {
                        'message': 'Some arguments cannot be converted to ObjectId or to str. {}: {}.'
-                           .format(e2.__class__, e2)
+                       .format(e2.__class__, e2)
                    }, 404
 
 
