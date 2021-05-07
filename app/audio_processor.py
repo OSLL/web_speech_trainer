@@ -3,12 +3,10 @@ from datetime import datetime
 
 from bson import ObjectId
 
-from app.audio import Audio
 from app.audio_recognizer import AudioRecognizer, VoskAudioRecognizer
 from app.config import Config
 from app.mongo_models import Trainings
 from app.mongo_odm import DBManager, AudioToRecognizeDBManager, TrainingsDBManager, RecognizedAudioToProcessDBManager
-from app.recognized_audio import RecognizedAudio
 from app.root_logger import get_root_logger
 from app.status import AudioStatus
 from app.utils import RepeatedTimer
@@ -23,11 +21,9 @@ class AudioProcessor:
 
     def __init__(self,
                  audio_recognizer: AudioRecognizer,
-                 extract_audio_to_recognize_timeout_seconds=10,
-                 resend_stuck_audio_timeout_seconds=30):
+                 extract_audio_to_recognize_timeout_seconds=10):
         self._audio_recognizer = audio_recognizer
         self._extract_audio_to_recognize_timeout_seconds = extract_audio_to_recognize_timeout_seconds
-        self._resend_stuck_audio_timeout_seconds = resend_stuck_audio_timeout_seconds
 
     def _hangle_error(self,
                       training_id: ObjectId,
