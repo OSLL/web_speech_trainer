@@ -572,13 +572,6 @@ class TaskAttemptsToPassBackDBManager:
             training_id=training_id,
         ).save()
 
-    def resubmit_failed_pass_back_task_attempts(self):
-        task_attempts = TaskAttempts.objects.all()
-        for task_attempt in task_attempts:
-            for (training_id, pass_back_status) in task_attempt.is_passed_back.items():
-                if pass_back_status == PassBackStatus.FAILED:
-                    self.add_task_attempt_to_pass_back(task_attempt.pk, training_id)
-
     def extract_task_attempt_to_pass_back(self):
         document = TaskAttemptsToPassBack.objects.model._mongometa.collection.find_one_and_delete(
             filter={},
