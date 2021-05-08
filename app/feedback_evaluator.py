@@ -1,6 +1,7 @@
 import json
 
-from app.criteria import SpeechDurationCriterion, SpeechPaceCriterion, FillersRatioCriterion, FillersNumberCriterion
+from app.criteria import SpeechDurationCriterion, SpeechPaceCriterion, FillersRatioCriterion, FillersNumberCriterion, \
+    StrictSpeechDurationCriterion
 
 
 class Feedback:
@@ -121,12 +122,23 @@ class PredefenceEightToTenMinutesFeedbackEvaluator(FeedbackEvaluator):
     def __init__(self, weights=None):
         if weights is None:
             weights = {
-                SpeechDurationCriterion.CLASS_NAME: 0.6,
+                StrictSpeechDurationCriterion.CLASS_NAME: 0.6,
                 SpeechPaceCriterion.CLASS_NAME: 0.2,
                 FillersNumberCriterion.CLASS_NAME: 0.2,
             }
 
         super().__init__(name=PredefenceEightToTenMinutesFeedbackEvaluator.CLASS_NAME, weights=weights)
+
+    def evaluate_feedback(self, criteria_results):
+        if not criteria_results.get('SpeechDurationCriterion.CLASS_NAME'):
+            return Feedback(0)
+        return super().evaluate_feedback(criteria_results)
+
+    def get_result_as_sum_str(self, criteria_results):
+        if criteria_results is None or self.weights is None or \
+                criteria_results.get(StrictSpeechDurationCriterion.CLASS_NAME, {}).get('result') == 0:
+            return None
+        return super().get_result_as_sum_str(criteria_results)
 
 
 FEEDBACK_EVALUATOR_CLASS_BY_ID = {

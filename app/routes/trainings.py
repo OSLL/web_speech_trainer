@@ -34,8 +34,9 @@ def view_training_statistics(training_id: str):
     if training_statistics.get('message') != 'OK':
         return training_statistics, training_statistics_status_code
     feedback = training_statistics['feedback']
-    feedback_evaluator = FeedbackEvaluatorFactory().get_feedback_evaluator(session.get('feedback_evaluator_id'))
-    criteria_results = feedback.get('criteria_results')
+    feedback_evaluator_id = training_statistics['feedback_evaluator_id']
+    feedback_evaluator = FeedbackEvaluatorFactory().get_feedback_evaluator(feedback_evaluator_id)
+    criteria_results = feedback.get('criteria_results', {})
     if 'score' in feedback:
         feedback_str = 'Оценка за тренировку = {}'.format('{:.2f}'.format(feedback.get('score')))
         results_as_sum_str = feedback_evaluator.get_result_as_sum_str(criteria_results)

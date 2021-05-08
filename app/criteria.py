@@ -1,7 +1,7 @@
 import json
 import math
 import time
-from typing import Union, Optional
+from typing import Union, Optional, Callable
 
 import numpy as np
 import librosa
@@ -55,15 +55,18 @@ class Criterion:
         pass
 
 
-def get_linear_proportional_result(value: float, lower_bound: Optional[float], upper_bound: Optional[float]) -> float:
+def get_proportional_result(value: float,
+                            lower_bound: Optional[float],
+                            upper_bound: Optional[float],
+                            f: Callable = lambda x: x) -> float:
     lower_bound = lower_bound or -math.inf
     upper_bound = upper_bound or math.inf
     if lower_bound <= value <= upper_bound:
         return 1
     elif value < lower_bound:
-        return value / lower_bound
+        return f(value / lower_bound)
     else:
-        return upper_bound / value
+        return f(upper_bound / value)
 
 
 class SpeechDurationCriterion(Criterion):
@@ -108,7 +111,77 @@ class SpeechDurationCriterion(Criterion):
         minimal_allowed_duration = self.parameters.get('minimal_allowed_duration')
         duration = audio.audio_stats['duration']
         return CriterionResult(
-            get_linear_proportional_result(duration, minimal_allowed_duration, maximal_allowed_duration)
+            get_proportional_result(duration, minimal_allowed_duration, maximal_allowed_duration)
+        )
+
+
+class StrictSpeechDurationCriterion(Criterion):
+    CLASS_NAME = 'StrictSpeechDurationCriterion'
+
+    def __init__(self, parameters, dependent_criteria):
+        if 'minimal_allowed_duration' not in parameters and 'maximal_allowed_duration' not in parameters:
+            raise ValueError('parameters should contain \'minimal_allowed_duration\' or \'maximal_allowed_duration\'.')
+        if 'strict_minimal_allowed_duration' not in parameters and 'strict_maximal_allowed_duration' not in parameters:
+            raise ValueError(
+                'parameters should contain \'strict_minimal_allowed_duration\' or \'strict_maximal_allowed_duration\'.'
+            )
+        super().__init__(
+            name=StrictSpeechDurationCriterion.CLASS_NAME,
+            parameters=parameters,
+            dependent_criteria=dependent_criteria,
+        )
+
+    @property
+    def description(self):
+        boundaries = ''
+        evaluation = ''
+        if 'minimal_allowed_duration' in self.parameters:
+            boundaries = 'от {}'.format(
+                time.strftime('%M:%S', time.gmtime(round(self.parameters['minimal_allowed_duration'])))
+            )
+            evaluation = '(t / {})^2, если продолжительность речи в секундах t слишком короткая'.format(
+                self.parameters['minimal_allowed_duration']
+            )
+        if 'maximal_allowed_duration' in self.parameters:
+            if boundaries:
+                boundaries += ' '
+            if evaluation:
+                evaluation += ' '
+            boundaries += 'до {}'.format(
+                time.strftime('%M:%S', time.gmtime(round(self.parameters['maximal_allowed_duration'])))
+            )
+            evaluation += ', ({} / p)^2, если продолжительность речи в секундах t слишком длинная.'.format(
+                self.parameters['maximal_allowed_duration']
+            )
+        strict_boundaries = ''
+        if 'strict_minimal_allowed_duration' in self.parameters:
+            strict_boundaries = 'Если продолжительность речи меньше, чем {}'.format(
+                time.strftime('%M:%S', time.gmtime(round(self.parameters['strict_minimal_allowed_duration'])))
+            )
+        if 'strict_maximal_allowed_duration' in self.parameters:
+            if strict_boundaries:
+                strict_boundaries += ', или больше, чем '
+            else:
+                strict_boundaries = 'Если продолжительность речи больше, чем '
+            strict_boundaries += '{}'.format(
+                time.strftime('%M:%S', time.gmtime(round(self.parameters['strict_maximal_allowed_duration'])))
+            )
+        if strict_boundaries:
+            strict_boundaries += ', то оценка за этот критерий и за всю тренировку равна 0.'
+        return 'Критерий: {},\nописание: проверяет, что продолжительность речи {},\n' \
+               'оценка: 1, если выполнен, {}\n{}\n'.format(self.name, boundaries, evaluation, strict_boundaries)
+
+    def apply(self, audio, presentation, training_id, criteria_results):
+        minimal_allowed_duration = self.parameters.get('minimal_allowed_duration')
+        maximal_allowed_duration = self.parameters.get('maximal_allowed_duration')
+        strict_minimal_allowed_duration = self.parameters.get('strict_minimal_allowed_duration')
+        strict_maximal_allowed_duration = self.parameters.get('strict_maximal_allowed_duration')
+        duration = audio.audio_stats['duration']
+        if strict_minimal_allowed_duration and duration < strict_minimal_allowed_duration or \
+                strict_maximal_allowed_duration and duration > strict_maximal_allowed_duration:
+            return CriterionResult(0)
+        return CriterionResult(
+            get_proportional_result(duration, minimal_allowed_duration, maximal_allowed_duration, f=lambda x: x * x)
         )
 
 
@@ -262,7 +335,7 @@ class SpeechPaceCriterion(Criterion):
         for i in range(len(audio.audio_slides)):
             audio_slide = audio.audio_slides[i]
             audio_slide_pace = audio_slide.audio_slide_stats['words_per_minute']
-            audio_slide_grade = get_linear_proportional_result(
+            audio_slide_grade = get_proportional_result(
                 audio_slide_pace, minimal_allowed_pace, maximal_allowed_pace,
             )
             verdict += 'Слайд {}: оценка = {}, слов в минуту = {}, слов сказано {} за {}.\n'.format(
@@ -277,7 +350,7 @@ class SpeechPaceCriterion(Criterion):
         else:
             verdict = 'Оценки по слайдам:\n{}'.format(verdict[:-1])
         return CriterionResult(
-            result=get_linear_proportional_result(pace, minimal_allowed_pace, maximal_allowed_pace),
+            result=get_proportional_result(pace, minimal_allowed_pace, maximal_allowed_pace),
             verdict=verdict,
         )
 
