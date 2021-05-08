@@ -45,13 +45,12 @@ def get_current_task_attempt() -> (dict, int):
     task_db = TasksDBManager().get_task(task_id)
     if task_db is None:
         return {'message': 'No task with task_id = {}.'.format(task_id)}, 404
-    current_points_sum_str = '{:.2f}'.format(
-        sum([score if score is not None else 0 for score in current_task_attempt.training_scores.values()]),
-    )
+    current_points_sum = \
+        sum([score if score is not None else 0 for score in current_task_attempt.training_scores.values()])
     return {
         'message': 'OK',
         'training_scores': current_task_attempt.training_scores,
-        'current_points_sum': current_points_sum_str,
+        'current_points_sum': current_points_sum,
         'training_number': len(current_task_attempt.training_scores),
         'attempt_count': task_db.attempt_count,
     }, 200
