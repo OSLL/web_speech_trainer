@@ -1,5 +1,14 @@
-function buildCurrentTrainingRow(trainingId, trainingJson) {
+function get_time_string(timestamp){
     options = { weekday: 'short', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit', timeZoneName: 'short' }
+    if (!isNaN(timestamp)) {
+        processing_time = new Date(timestamp);
+        return processing_time.toLocaleString("ru-RU", options);
+    } else {
+        return "";
+    }
+}
+
+function buildCurrentTrainingRow(trainingId, trainingJson) {
 
     const currentTrainingRowElement = document.createElement("tr");
 
@@ -24,22 +33,12 @@ function buildCurrentTrainingRow(trainingId, trainingJson) {
 
     const trainingProcessingStartTimestampElement = document.createElement("td");
     timestamp_start = Date.parse(trainingJson["processing_start_timestamp"]);
-    if (isNaN(timestamp_start) == false) {
-        processing_start_time = new Date(timestamp_start);
-        trainingProcessingStartTimestampElement.textContent = processing_start_time.toLocaleString("ru-RU", options);
-    } else {
-        trainingProcessingStartTimestampElement.textContent = "";
-    }
+    trainingProcessingStartTimestampElement.textContent = get_time_string(timestamp_start);
     currentTrainingRowElement.appendChild(trainingProcessingStartTimestampElement);
 
     const trainingProcessingFinishTimestampElement = document.createElement("td");
     timestamp_finish = Date.parse(trainingJson["processing_finish_timestamp"]);
-    if (isNaN(timestamp_finish) == false) {
-        processing_finish_time = new Date(timestamp_finish);
-        trainingProcessingFinishTimestampElement.textContent = processing_finish_time.toLocaleString("ru-RU", options);
-    } else {
-        trainingProcessingFinishTimestampElement.textContent = "";
-    }
+    trainingProcessingFinishTimestampElement.textContent = get_time_string(timestamp_finish);
     currentTrainingRowElement.appendChild(trainingProcessingFinishTimestampElement);
 
     const trainingStatusElement = document.createElement("td");
