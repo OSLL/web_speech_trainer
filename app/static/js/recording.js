@@ -50,6 +50,7 @@ function startRecording() {
         });
         recorder.onComplete = function (recorder, blob) {
             $("#record-processing")[0].style = "visibility: hidden; font-size: 0";
+            window.onbeforeunload = null;
             callAddPresentationRecord(blob);
         }
         recorder.setOptions({
@@ -73,6 +74,9 @@ function stopRecording() {
     gumStream.getAudioTracks()[0].stop();
     $("#record")[0].disabled = false;
     $("#record-processing")[0].style = "visibility: visible; font-size: 14px";
+    window.onbeforeunload = function() {
+        return "";
+    }
     recorder.finishRecording();
 }
 
@@ -101,5 +105,6 @@ $(document).ready(function () {
     $("#record").click(startRecording);
     $("#done").click(stopRecording);
     $("#record-processing")[0].style = "visibility: hidden; font-size: 0";
+    window.onbeforeunload = null;
     $("#denoising-note")[0].style = "visibility: hidden; font-size: 0";
 });
