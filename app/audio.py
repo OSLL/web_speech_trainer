@@ -41,7 +41,7 @@ class Audio:
         return slides
 
     def calculate_audio_stats(self, recognized_audio: RecognizedAudio, slide_switch_timestamps: list) -> dict:
-        if len(recognized_audio.recognized_words) == 0 or len(slide_switch_timestamps) == 0:
+        if len(slide_switch_timestamps) == 0:
             duration = 0
         else:
             duration = slide_switch_timestamps[-1] - slide_switch_timestamps[0]
