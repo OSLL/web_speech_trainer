@@ -32,7 +32,11 @@ class TaskAttemptToPassBackProcessor:
                         .format(total_score, task_attempt_db.pk, training_id))
         else:
             TaskAttemptsDBManager().set_pass_back_status(task_attempt_db, training_id, PassBackStatus.FAILED)
-            logger.warning('Score pass back failed: task_attempt_db = {}'.format(task_attempt_db.pk, training_id))
+            logger.warning('Score pass back failed: task_attempt_db = {}.\n{} {} {} {} {}'.format(
+                task_attempt_db.pk, training_id,
+                response.description, response.response_code, response.code_major,
+                consumer_secret, params_for_passback,
+            ))
             TaskAttemptsToPassBackDBManager().add_task_attempt_to_pass_back(task_attempt_db.pk, training_id)
             logger.warning('Resubmitted task attempt with task_attempt_id = {} and training_id = {}'
                            .format(task_attempt_db.pk, training_id))
