@@ -1,7 +1,8 @@
 import json
+import logging
 import math
 import time
-from typing import Union, Optional, Callable
+from typing import Optional, Callable
 
 import numpy as np
 import librosa
@@ -14,6 +15,7 @@ from app.mongo_odm import DBManager, TrainingsDBManager
 from app.presentation import Presentation
 from app.utils import convert_from_mp3_to_wav
 
+logger = logging.getLogger('root_logger')
 
 class CriterionResult:
     def __init__(self, result: float, verdict: Optional[str] = None):
@@ -177,6 +179,10 @@ class StrictSpeechDurationCriterion(Criterion):
         strict_minimal_allowed_duration = self.parameters.get('strict_minimal_allowed_duration')
         strict_maximal_allowed_duration = self.parameters.get('strict_maximal_allowed_duration')
         duration = audio.audio_stats['duration']
+        logger.info('StrictSpeechDurationCriterion: training_id = {}, strict_minimal_allowed_duration = {}, '
+                    'duration = {}, strict_maximal_allowed_duration = {}.'.format(
+                        training_id, strict_minimal_allowed_duration, duration, strict_maximal_allowed_duration,
+        ))
         if strict_minimal_allowed_duration and duration < strict_minimal_allowed_duration or \
                 strict_maximal_allowed_duration and duration > strict_maximal_allowed_duration:
             return CriterionResult(0)

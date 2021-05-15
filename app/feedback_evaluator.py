@@ -130,7 +130,8 @@ class PredefenceEightToTenMinutesFeedbackEvaluator(FeedbackEvaluator):
         super().__init__(name=PredefenceEightToTenMinutesFeedbackEvaluator.CLASS_NAME, weights=weights)
 
     def evaluate_feedback(self, criteria_results):
-        if not criteria_results.get(StrictSpeechDurationCriterion.CLASS_NAME):
+        if not criteria_results.get(StrictSpeechDurationCriterion.CLASS_NAME) or \
+                criteria_results[StrictSpeechDurationCriterion.CLASS_NAME].result == 0:
             return Feedback(0)
         return super().evaluate_feedback(criteria_results)
 
