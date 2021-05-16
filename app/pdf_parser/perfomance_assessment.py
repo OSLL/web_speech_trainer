@@ -1,11 +1,10 @@
 import argparse
-import os
 
-from text_comparator import base_cmp, weight_cmp, value_slide_checking
+from .text_comparator import base_cmp, weight_cmp, value_slide_checking
 
-from slide_splitter import parse_txt, parse_pdf
+from .slide_splitter import parse_txt, parse_pdf
 
-from text_comparator import get_bigram_weight_scale
+from .text_comparator import get_bigram_weight_scale
 
 
 def check_headder(slide, opt):

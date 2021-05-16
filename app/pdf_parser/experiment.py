@@ -3,7 +3,7 @@ import json
 from collections import OrderedDict
 from operator import itemgetter
 
-from slide_splitter import parse_pdf, text_processor
+from .slide_splitter import parse_pdf, text_processor
 
 
 class BiGrams:

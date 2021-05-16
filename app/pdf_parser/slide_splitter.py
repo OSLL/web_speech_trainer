@@ -100,7 +100,7 @@ if __name__ == '__main__':
         print('Все готово... Результаты ждут вас в папке', args.txt.split(".")[0])
 
     if args.mrg_txt:
-        from file_merger import file_merger
+        from .file_merger import file_merger
         file_merger(args.mrg_txt)
 
 
