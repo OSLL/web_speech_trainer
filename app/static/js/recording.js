@@ -75,7 +75,7 @@ function stopRecording() {
     $("#record")[0].disabled = false;
     $("#record-processing")[0].style = "visibility: visible; font-size: 14px";
     window.onbeforeunload = function() {
-        return "";
+        return false;
     }
     recorder.finishRecording();
 }
