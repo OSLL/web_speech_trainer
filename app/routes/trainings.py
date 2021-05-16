@@ -34,8 +34,9 @@ def view_training_statistics(training_id: str):
     if training_statistics.get('message') != 'OK':
         return training_statistics, training_statistics_status_code
     feedback = training_statistics['feedback']
-    feedback_evaluator = FeedbackEvaluatorFactory().get_feedback_evaluator(session.get('feedback_evaluator_id'))
-    criteria_results = feedback.get('criteria_results')
+    feedback_evaluator_id = training_statistics['feedback_evaluator_id']
+    feedback_evaluator = FeedbackEvaluatorFactory().get_feedback_evaluator(feedback_evaluator_id)
+    criteria_results = feedback.get('criteria_results', {})
     if 'score' in feedback:
         feedback_str = 'Оценка за тренировку = {}'.format('{:.2f}'.format(feedback.get('score')))
         results_as_sum_str = feedback_evaluator.get_result_as_sum_str(criteria_results)
@@ -44,7 +45,7 @@ def view_training_statistics(training_id: str):
     else:
         feedback_str = 'Тренировка обрабатывается. Обновите страницу.'
     if criteria_results is not None:
-        criteria_results_str = '\n'.join('{} = {} {}'.format(
+        criteria_results_str = '\n'.join('{} = {}{}'.format(
             name,
             '{:.2f}'.format(result.get('result')),
             '' if result.get('verdict') is None else ', ' + result.get('verdict'),
@@ -87,7 +88,7 @@ def view_training_statistics(training_id: str):
         audio_status=audio_status_str,
         presentation_status=presentation_status_str,
         remaining_processing_time_estimation=remaining_processing_time_estimation_str,
-        criteria_results=criteria_results_str.replace('\n', '\\n').replace('\'', ''),
+        criteria_results=criteria_results_str.replace('\n', '\\n').replace('\'', '').replace('"', ''),
     ), 200
 
 

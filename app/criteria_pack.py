@@ -1,9 +1,10 @@
 import logging
 
 from app.criteria import SpeechDurationCriterion, SpeechPaceCriterion, FillersRatioCriterion, \
-    SpeechIsNotInDatabaseCriterion, FillersNumberCriterion
+    SpeechIsNotInDatabaseCriterion, FillersNumberCriterion, StrictSpeechDurationCriterion
 from app.feedback_evaluator import FeedbackEvaluator
 from app.mongo_odm import TrainingsDBManager
+from app.utils import SECONDS_PER_MINUTE
 
 logger = logging.getLogger('root_logger')
 
@@ -60,7 +61,7 @@ class SimpleCriteriaPack(CriteriaPack):
 
     def __init__(self):
         speech_duration_criterion = SpeechDurationCriterion(
-            parameters={'maximal_allowed_duration': 7 * 60},
+            parameters={'maximal_allowed_duration': 7 * SECONDS_PER_MINUTE},
             dependent_criteria=[],
         )
 
@@ -76,7 +77,7 @@ class PaceAndDurationCriteriaPack(CriteriaPack):
 
     def __init__(self):
         speech_duration_criterion = SpeechDurationCriterion(
-            parameters={'maximal_allowed_duration': 7 * 60},
+            parameters={'maximal_allowed_duration': 7 * SECONDS_PER_MINUTE},
             dependent_criteria=[],
         )
 
@@ -194,7 +195,7 @@ class TenMinutesTrainingCriteriaPack(CriteriaPack):
 
     def __init__(self):
         speech_duration_criterion = SpeechDurationCriterion(
-            parameters={'maximal_allowed_duration': 10 * 60},
+            parameters={'maximal_allowed_duration': 10 * SECONDS_PER_MINUTE},
             dependent_criteria=[],
         )
 
@@ -214,7 +215,7 @@ class FifteenMinutesTrainingCriteriaPack(CriteriaPack):
 
     def __init__(self):
         speech_duration_criterion = SpeechDurationCriterion(
-            parameters={'maximal_allowed_duration': 15 * 60},
+            parameters={'maximal_allowed_duration': 15 * SECONDS_PER_MINUTE},
             dependent_criteria=[],
         )
 
@@ -234,7 +235,7 @@ class TwentyMinutesTrainingCriteriaPack(CriteriaPack):
 
     def __init__(self):
         speech_duration_criterion = SpeechDurationCriterion(
-            parameters={'maximal_allowed_duration': 20 * 60},
+            parameters={'maximal_allowed_duration': 20 * SECONDS_PER_MINUTE},
             dependent_criteria=[],
         )
 
@@ -253,15 +254,19 @@ class PredefenceEightToTenMinutesCriteriaPack(CriteriaPack):
     CRITERIA_PACK_ID = 8
 
     def __init__(self):
-        speech_duration_criterion = SpeechDurationCriterion(
-            parameters={'minimal_allowed_duration': 8 * 60, 'maximal_allowed_duration': 10 * 60},
+        strict_speech_duration_criterion = StrictSpeechDurationCriterion(
+            parameters={
+                'strict_minimal_allowed_duration': 5 * SECONDS_PER_MINUTE,
+                'minimal_allowed_duration': 8 * SECONDS_PER_MINUTE, 
+                'maximal_allowed_duration': 10 * SECONDS_PER_MINUTE,
+            },
             dependent_criteria=[],
         )
 
         super().__init__(
             name=PredefenceEightToTenMinutesCriteriaPack.CLASS_NAME,
             criteria=[
-                speech_duration_criterion,
+                strict_speech_duration_criterion,
                 DEFAULT_SPEECH_PACE_CRITERION,
                 DEFAULT_FILLERS_NUMBER_CRITERION,
             ],

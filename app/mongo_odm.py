@@ -2,6 +2,7 @@ import logging
 import os
 import time
 import uuid
+from typing import Union
 
 import pymongo
 from bson import ObjectId
@@ -20,6 +21,7 @@ from app.mongo_models import Trainings, AudioToRecognize, TrainingsToProcess, \
     PresentationsToRecognize, RecognizedAudioToProcess, RecognizedPresentationsToProcess, PresentationFiles, \
     Sessions, Consumers, Tasks, TaskAttempts, TaskAttemptsToPassBack, Logs
 from app.status import AudioStatus, PresentationStatus, TrainingStatus, PassBackStatus
+from app.utils import remove_blank_and_none
 
 logger = logging.getLogger('root_logger')
 
@@ -281,7 +283,7 @@ class TrainingsDBManager:
             return None
         training.slide_switch_timestamps.append(timestamp)
         saved = training.save()
-        logger.debug('Timestamp = {} appended to the training with training_id={}.'.format(timestamp, training_id))
+        logger.debug('Timestamp = {} appended to the training with training_id = {}.'.format(timestamp, training_id))
         return saved
 
     def add_presentation_record(self, training_id, presentation_record_file_id, presentation_record_duration):
@@ -569,13 +571,6 @@ class TaskAttemptsToPassBackDBManager:
             task_attempt_id=task_attempt_id,
             training_id=training_id,
         ).save()
-
-    def resubmit_failed_pass_back_task_attempts(self):
-        task_attempts = TaskAttempts.objects.all()
-        for task_attempt in task_attempts:
-            for (training_id, pass_back_status) in task_attempt.is_passed_back.items():
-                if pass_back_status == PassBackStatus.FAILED:
-                    self.add_task_attempt_to_pass_back(task_attempt.pk, training_id)
 
     def extract_task_attempt_to_pass_back(self):
         document = TaskAttemptsToPassBack.objects.model._mongometa.collection.find_one_and_delete(

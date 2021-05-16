@@ -21,11 +21,9 @@ class AudioProcessor:
 
     def __init__(self,
                  audio_recognizer: AudioRecognizer,
-                 extract_audio_to_recognize_timeout_seconds=10,
-                 resend_stuck_audio_timeout_seconds=30):
+                 extract_audio_to_recognize_timeout_seconds=10):
         self._audio_recognizer = audio_recognizer
         self._extract_audio_to_recognize_timeout_seconds = extract_audio_to_recognize_timeout_seconds
-        self._resend_stuck_audio_timeout_seconds = resend_stuck_audio_timeout_seconds
 
     def _hangle_error(self,
                       training_id: ObjectId,
@@ -94,7 +92,6 @@ class StuckAudioResender:
     def _resend_stuck_audio(self):
         try:
             trainings_db = TrainingsDBManager().get_trainings_filtered({'audio_status': AudioStatus.RECOGNIZING})
-            logger.debug('trainings_db.count() = {}'.format(trainings_db.count()))
             for training_db in trainings_db:
                 if not self._is_stuck_predicate(training_db):
                     logger.info('Training with training_id = {} has audio_status = RECOGNIZING and it\'s fresh enough.'
@@ -126,3 +123,4 @@ if __name__ == "__main__":
     audio_processor.run()
     stuck_audio_resender = StuckAudioResender()
     stuck_audio_resender.run()
+

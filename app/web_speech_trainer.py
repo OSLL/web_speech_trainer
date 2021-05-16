@@ -18,7 +18,7 @@ from app.routes.admin import routes_admin
 from app.routes.lti import routes_lti
 from app.routes.presentations import routes_presentations
 from app.routes.trainings import routes_trainings
-from app.status import TrainingStatus, PresentationStatus, AudioStatus
+from app.status import TrainingStatus
 from app.training_manager import TrainingManager
 
 
