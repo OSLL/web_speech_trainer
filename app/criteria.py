@@ -1,7 +1,7 @@
 import json
 import math
 import time
-from typing import Union, Optional, Callable
+from typing import Optional, Callable
 
 import numpy as np
 import librosa
