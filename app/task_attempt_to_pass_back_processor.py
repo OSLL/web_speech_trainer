@@ -16,26 +16,40 @@ class TaskAttemptToPassBackProcessor:
     def __init__(self, timeout_seconds=10):
         self._timeout_seconds = timeout_seconds
 
-    def grade_passback(self, task_attempt_db, training_id):
+    def grade_passback(self, task_attempt_db, training_id, is_retry):
         params_for_passback = task_attempt_db.params_for_passback
         consumer_secret = ConsumersDBManager().get_secret(params_for_passback['oauth_consumer_key'])
-        total_score = sum([score if score is not None else 0 for score in task_attempt_db.training_scores.values()])
+        training_count = task_attempt_db.training_count
+        if training_count == 0:
+            normalized_score = 0
+        else:
+            scores = list(task_attempt_db.training_scores.values())
+            total_score = sum([score if score is not None else 0 for score in scores])
+            normalized_score = total_score / training_count
         response = ToolProvider.from_unpacked_request(
             secret=consumer_secret,
             params=params_for_passback,
             headers=None,
             url=None
-        ).post_replace_result(score=total_score)
+        ).post_replace_result(score=normalized_score)
+        logger.info('task_attempt_id = {}, scores = {}'.format(task_attempt_db.pk, task_attempt_db.training_scores))
         if is_testing_active() or response.code_major == 'success' and response.severity == 'status':
             TaskAttemptsDBManager().set_pass_back_status(task_attempt_db, training_id, PassBackStatus.SUCCESS)
-            logger.info('Score was successfully passed back: score = {}, task_attempt_db = {}, training_id = {}'
-                        .format(total_score, task_attempt_db.pk, training_id))
+            logger.info('Score was successfully passed back: score = {}, task_attempt_id = {}, training_id = {},'
+                        'training_count = {}'.format(normalized_score, task_attempt_db.pk, training_id, training_count))
         else:
             TaskAttemptsDBManager().set_pass_back_status(task_attempt_db, training_id, PassBackStatus.FAILED)
-            logger.warning('Score pass back failed: task_attempt_db = {}'.format(task_attempt_db.pk, training_id))
-            TaskAttemptsToPassBackDBManager().add_task_attempt_to_pass_back(task_attempt_db.pk, training_id)
-            logger.warning('Resubmitted task attempt with task_attempt_id = {} and training_id = {}'
-                           .format(task_attempt_db.pk, training_id))
+            logger.warning('Score pass back failed: score = {}, training_count = {}, task_attempt_id = {}.\n''{} {} {}'
+                           .format(normalized_score, training_count, task_attempt_db.pk, training_id,
+                                   response.description,
+                                   response.response_code, response.code_major,
+                                   ))
+            if not is_retry:
+                TaskAttemptsToPassBackDBManager().add_task_attempt_to_pass_back(
+                    task_attempt_db.pk, training_id, is_retry=True,
+                )
+                logger.warning('Resubmitted task attempt with task_attempt_id = {} and training_id = {}'
+                               .format(task_attempt_db.pk, training_id))
 
     def _run(self):
         try:
@@ -45,13 +59,17 @@ class TaskAttemptToPassBackProcessor:
                     break
                 task_attempt_id = task_attempt_to_pass_back_db.task_attempt_id
                 training_id = task_attempt_to_pass_back_db.training_id
+                try:
+                    is_retry = task_attempt_to_pass_back_db.is_retry
+                except:
+                    is_retry = False
                 logger.info('Extracted task attempt with task_attempt_id = {} for training with training_id = {}'
                             .format(task_attempt_id, training_id))
                 task_attempt_db = TaskAttemptsDBManager().get_task_attempt(task_attempt_id)
                 if not task_attempt_db:
                     logger.warning('Task attempt with task_attempt_id = {} was not found.'.format(task_attempt_id))
                     break
-                self.grade_passback(task_attempt_db, training_id)
+                self.grade_passback(task_attempt_db, training_id, is_retry)
         except Exception as e:
             logger.error('Unknown exception.\n{}: {}'.format(e.__class__, e))
 

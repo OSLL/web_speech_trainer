@@ -45,6 +45,7 @@ class TaskAttempts(MongoModel):
 class TaskAttemptsToPassBack(MongoModel):
     task_attempt_id = fields.ObjectIdField()
     training_id = fields.ObjectIdField()
+    is_retry = fields.BooleanField(blank=True)
 
 
 class Sessions(MongoModel):

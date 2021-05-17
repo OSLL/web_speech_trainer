@@ -406,6 +406,9 @@ class TaskAttemptsDBManager:
             cls.init_done = True
         return cls.instance
 
+    def get_task_attempts(self):
+        return TaskAttempts.objects.all()
+
     def get_task_attempts_documents(self):
         return TaskAttempts.objects.model._mongometa.collection.find({})
 
@@ -570,10 +573,11 @@ class TaskAttemptsToPassBackDBManager:
             cls.init_done = True
         return cls.instance
 
-    def add_task_attempt_to_pass_back(self, task_attempt_id, training_id):
+    def add_task_attempt_to_pass_back(self, task_attempt_id, training_id, is_retry=False):
         return TaskAttemptsToPassBack(
             task_attempt_id=task_attempt_id,
             training_id=training_id,
+            is_retry=is_retry,
         ).save()
 
     def extract_task_attempt_to_pass_back(self):

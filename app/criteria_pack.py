@@ -2,7 +2,6 @@ import logging
 
 from app.criteria import SpeechDurationCriterion, SpeechPaceCriterion, FillersRatioCriterion, \
     SpeechIsNotInDatabaseCriterion, FillersNumberCriterion, StrictSpeechDurationCriterion
-from app.feedback_evaluator import FeedbackEvaluator
 from app.mongo_odm import TrainingsDBManager
 from app.utils import SECONDS_PER_MINUTE
 
