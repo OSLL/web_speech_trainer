@@ -12,7 +12,7 @@ from app.api.sessions import api_sessions
 from app.api.task_attempts import api_task_attempts
 from app.api.trainings import api_trainings
 from app.config import Config
-from app.mongo_odm import ConsumersDBManager, TrainingsDBManager
+from app.mongo_odm import ConsumersDBManager, TrainingsDBManager, TaskAttemptsDBManager
 from app.root_logger import get_logging_stdout_handler, get_root_logger
 from app.routes.admin import routes_admin
 from app.routes.lti import routes_lti

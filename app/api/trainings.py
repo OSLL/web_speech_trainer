@@ -294,8 +294,13 @@ def get_training_information(current_training: Trainings) -> dict:
             pass_back_status = None
         else:
             pass_back_status = task_attempt.is_passed_back.get(str(_id), None)
+        task_attempt_id = current_training.task_attempt_id
+        task_attempt = TaskAttemptsDBManager().get_task_attempt(task_attempt_id)
         return {
             'message': 'OK',
+            'task_attempt_id': str(task_attempt_id),
+            'task_id': str(task_attempt.task_id),
+            'params_for_passback': task_attempt.params_for_passback,
             'processing_start_timestamp': processing_start_timestamp,
             'processing_finish_timestamp': processing_finish_timestamp,
             'score': current_training.feedback.get('score', None),
