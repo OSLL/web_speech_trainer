@@ -16,7 +16,6 @@ $(document).ready(function () {
                     }
                     $("#training-number").html(`Тренировок в текущей попытке: ${responseJson["training_number"]} / ${responseJson["attempt_count"]}`);
                     $("#current-points-sum").html(`Баллы: ${responseJson["current_points_sum"].toFixed(2)}`);
-                    $("#trainings").attr("href", `/show_all_trainings/?username=${responseJson["username"]}&full_name=${responseJson["full_name"]}`);
                 });
             $("#header").show();
         });

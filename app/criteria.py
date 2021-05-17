@@ -96,11 +96,11 @@ class SpeechDurationCriterion(Criterion):
             if boundaries:
                 boundaries += ' '
             if evaluation:
-                evaluation += ' '
+                evaluation += ', '
             boundaries += 'до {}'.format(
                 time.strftime('%M:%S', time.gmtime(round(self.parameters['maximal_allowed_duration'])))
             )
-            evaluation += ', ({} / p), если продолжительность речи в секундах t слишком длинная.'.format(
+            evaluation += '({} / p), если продолжительность речи в секундах t слишком длинная.'.format(
                 self.parameters['maximal_allowed_duration']
             )
         return 'Критерий: {},\nописание: проверяет, что продолжительность речи {},\n' \
