@@ -4,7 +4,7 @@ from bson import ObjectId
 from flask import session, request, Blueprint
 
 from app.check_access import check_access
-from app.lti_session_passback.auth_checkers import check_auth
+from app.lti_session_passback.auth_checkers import check_auth, is_admin
 from app.mongo_odm import TaskAttemptsDBManager, TasksDBManager
 from app.utils import check_arguments_are_convertible_to_object_id, check_argument_is_convertible_to_object_id
 
@@ -54,3 +54,19 @@ def get_current_task_attempt() -> (dict, int):
         'training_number': len(current_task_attempt.training_scores),
         'attempt_count': task_db.attempt_count,
     }, 200
+
+
+@check_arguments_are_convertible_to_object_id
+@api_task_attempts.route('/api/task_attempts/<task_attempt_id>/', methods=['DELETE'])
+def delete_task_attempt_by_task_attempt_id(task_attempt_id: str) -> (dict, int):
+    """
+    Endpoint to delete a task attempt by its identifier.
+
+    :param task_attempt_id: Task attempt identifier.
+    :return: {'message': 'OK'}, or
+        an empty dictionary with 404 HTTP return code if access was denied.
+    """
+    if not is_admin():
+        return {}, 404
+    TaskAttemptsDBManager().delete_task_attempt(task_attempt_id)
+    return {'message': 'OK'}, 200

@@ -272,6 +272,22 @@ def start_training_processing(training_id: str) -> (dict, int):
     return {'message': 'OK'}, 200
 
 
+@check_arguments_are_convertible_to_object_id
+@api_trainings.route('/api/trainings/<training_id>/', methods=['DELETE'])
+def delete_training_by_training_id(training_id: str) -> (dict, int):
+    """
+    Endpoint to delete a training by its identifier.
+
+    :param training_id: Training identifier.
+    :return: {'message': 'OK'}, or
+        an empty dictionary with 404 HTTP return code if access was denied.
+    """
+    if not is_admin():
+        return {}, 404
+    TrainingsDBManager().delete_training(training_id)
+    return {'message': 'OK'}, 200
+
+
 def get_training_information(current_training: Trainings) -> dict:
     _id = current_training.pk
     try:
