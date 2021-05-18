@@ -409,6 +409,10 @@ class TaskAttemptsDBManager:
     def get_task_attempts_documents(self):
         return TaskAttempts.objects.model._mongometa.collection.find({})
 
+    def delete_task_attempt(self, task_attempt_id):
+        task_attempt_id = ObjectId(task_attempt_id)
+        return TaskAttempts.objects.model._mongometa.collection.delete_one({'_id': task_attempt_id})
+
     def add_task_attempt(
             self,
             username,
