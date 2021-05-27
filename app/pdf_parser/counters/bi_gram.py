@@ -3,24 +3,24 @@ import json
 from collections import OrderedDict
 from operator import itemgetter
 
-from .slide_splitter import parse_pdf, text_processor
+from app.pdf_parser.slide_splitter import parse_pdf, text_processor
+from app.pdf_parser.counters.base import BaseCounter
 
 
-class BiGrams:
-    def compute_freq(self, text):
-        freq_dict = {}
-        text_list = text.split()
+class BiGramCounter(BaseCounter):
+    def __init__(self, text):
+        super(BiGramCounter, self).__init__(text=text)
+        self._compute_freq()
 
+    def _compute_freq(self):
+        text_list = self._text.split()
         text_len = len(text_list)
+
         for i in range(text_len):
             if i + 1 > text_len - 1:
                 break
-            key = ' '.join([text_list[i], text_list[i + 1]])
-            if key not in freq_dict:
-                freq_dict[key] = 1
-            else:
-                freq_dict[key] += 1
-        self.freq_dict = {bi_gram: freq for bi_gram, freq in freq_dict.items() if freq > 1}
+            item = ' '.join([text_list[i], text_list[i + 1]])
+            self.add(item=item)
 
     @staticmethod
     def cmp_bi_grams(b1, b2, with_order=False):
@@ -36,9 +36,9 @@ class BiGrams:
             filename = '%s.json' % filename
 
         if less_order:
-            data = OrderedDict(sorted(self.freq_dict.items(), key=itemgetter(1), reverse=True))
+            data = OrderedDict(sorted(self._items.items(), key=itemgetter(1), reverse=True))
         else:
-            data = self.freq_dict
+            data = self._items
 
         with open(filename, 'w') as file:
             json.dump(data, file)
@@ -50,8 +50,7 @@ def parse_args():
 
 
 def main(args):
-     bi_grams = BiGrams()
-     bi_grams.compute_freq(text=text_processor(
+     bi_grams = BiGramCounter(text=text_processor(
          ' '.join(parse_pdf(args.pdf)),
          mode='pdf'))
      bi_grams.save_as_json(filename=args.pdf.rstrip('.pdf'), less_order=True)

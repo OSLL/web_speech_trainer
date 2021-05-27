@@ -2,7 +2,7 @@ from fuzzywuzzy import fuzz
 from nltk import word_tokenize, Text, download
 from nltk.probability import FreqDist
 
-from .experiment import BiGrams
+from app.pdf_parser.counters.bi_gram import BiGrams
 
 download('punkt')
 
