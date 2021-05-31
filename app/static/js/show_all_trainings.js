@@ -10,7 +10,7 @@ function buildCurrentTrainingRow(trainingId, trainingJson) {
 
     const trainingUsernameElement = document.createElement("td");
     const trainingUsernameLink = document.createElement("a");
-    trainingUsernameLink.href = `/show_all_trainings/?username=${trainingJson["username"]}&full_name=${trainingJson["full_name"]}`
+    trainingUsernameLink.href = `/show_all_trainings/?username=${trainingJson["username"]}&full_name=${trainingJson["full_name"]}`;
     trainingUsernameLink.textContent = trainingJson["username"];
     trainingUsernameElement.appendChild(trainingUsernameLink);
     currentTrainingRowElement.appendChild(trainingUsernameElement);
