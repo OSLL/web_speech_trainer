@@ -4,7 +4,7 @@ from app.pdf_parser.data_loaders.pdf_loader import PdfLoader
 from app.pdf_parser.data_loaders.speech_transcript_loader import SpeechTranscriptLoader
 
 
-class SpeechAssessment:
+class TrainAssessment:
     def __init__(self,
                  pdf_path: str,
                  transcript_path: str):
@@ -35,9 +35,7 @@ def main(args):
     pdf_path = args.pdf_path
     transcript_path = args.transcript_path
 
-    speech_assessment = SpeechAssessment(pdf_path=pdf_path, transcript_path=transcript_path)
+    speech_assessment = TrainAssessment(pdf_path=pdf_path, transcript_path=transcript_path)
     speech_assessment.make_on_words_with_cosine_assessment()
 
-    print('Speech Assessment:', speech_assessment.average_assessment)
-
-
+    print('Train Assessment:', speech_assessment.average_assessment)

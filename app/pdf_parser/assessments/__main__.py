@@ -1,7 +1,7 @@
 import argparse
 
 from app.pdf_parser.assessments.slide_assessment import main as slide_assessment_main
-from app.pdf_parser.assessments.speech_assessment import main as speech_assessment_main
+from app.pdf_parser.assessments.train_assessment import main as speech_assessment_main
 
 
 def parse_args():
