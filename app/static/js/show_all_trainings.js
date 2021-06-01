@@ -50,6 +50,19 @@ function buildCurrentTrainingRow(trainingId, trainingJson) {
     }
     currentTrainingRowElement.appendChild(trainingScoreElement);
 
+    const presentationFileIdElement = document.createElement("td");
+    const presentationFileIdLink = document.createElement("a");
+    presentationFileIdLink.href = `link`;
+    presentationFileIdLink.textContent = "PresentationFileId";
+    presentationFileIdElement.appendChild(presentationFileIdLink);
+    currentTrainingRowElement.appendChild(presentationFileIdElement);
+
+    const recordingElement = document.createElement("td");
+    const recordingAudio = document.createElement("audio");
+    recordingAudio.src = `link`;
+    recordingElement.appendChild(recordingAudio);
+    currentTrainingRowElement.appendChild(recordingElement);
+
     return currentTrainingRowElement;
 }
 
@@ -71,6 +84,7 @@ function buildAllTrainingsTable(trainingsJson) {
             "Статус презентации",
             "Статус отправки в LMS",
             "Балл",
+            "id презентации"
         ]
     );
     allTrainingsTable.appendChild(titleRow);
