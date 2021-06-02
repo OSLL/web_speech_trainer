@@ -47,7 +47,7 @@ def test_basic_training():
     driver.get('http://127.0.0.1:5000/trainings/{}/'.format(training_id))
     driver.find_element_by_id('record').click()
     step = 3
-    sleep(step)
+    sleep(2 * step)
     driver.find_element_by_id('next').click()
     sleep(step)
     driver.find_element_by_id('done').click()
