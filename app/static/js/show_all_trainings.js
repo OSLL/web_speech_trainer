@@ -1,4 +1,15 @@
+function get_time_string(timestamp){
+    options = { weekday: 'short', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit', timeZoneName: 'short' }
+    if (!isNaN(timestamp)) {
+        processing_time = new Date(timestamp);
+        return processing_time.toLocaleString("ru-RU", options);
+    } else {
+        return "";
+    }
+}
+
 function buildCurrentTrainingRow(trainingId, trainingJson) {
+
     const currentTrainingRowElement = document.createElement("tr");
 
     const trainingIdElement = document.createElement("td");
@@ -21,11 +32,13 @@ function buildCurrentTrainingRow(trainingId, trainingJson) {
     currentTrainingRowElement.appendChild(presentationRecordDurationElement);
 
     const trainingProcessingStartTimestampElement = document.createElement("td");
-    trainingProcessingStartTimestampElement.textContent = trainingJson["processing_start_timestamp"];
+    timestamp_start = Date.parse(trainingJson["processing_start_timestamp"]);
+    trainingProcessingStartTimestampElement.textContent = get_time_string(timestamp_start);
     currentTrainingRowElement.appendChild(trainingProcessingStartTimestampElement);
 
     const trainingProcessingFinishTimestampElement = document.createElement("td");
-    trainingProcessingFinishTimestampElement.textContent = trainingJson["processing_finish_timestamp"];
+    timestamp_finish = Date.parse(trainingJson["processing_finish_timestamp"]);
+    trainingProcessingFinishTimestampElement.textContent = get_time_string(timestamp_finish);
     currentTrainingRowElement.appendChild(trainingProcessingFinishTimestampElement);
 
     const trainingStatusElement = document.createElement("td");

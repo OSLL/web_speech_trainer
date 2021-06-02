@@ -38,9 +38,9 @@ function startRecording() {
                 if (seconds < 10) {
                     seconds = `0${seconds}`;
                 }
-                minuts = time / 60 % 60;
+                minuts = Math.trunc(time / 60 % 60);
                 if (minuts < 10) {
-                    minuts = `0${Math.trunc(minuts)}`;
+                    minuts = `0${minuts}`;
                 }
                 hour = time / 60 / 60 % 60;
                 let strTimer = `Время тренировки: ${Math.trunc(hour)}:${minuts}:${seconds}`;
@@ -60,6 +60,7 @@ function startRecording() {
         });
         recorder.onComplete = function (recorder, blob) {
             $("#record-processing")[0].style = "visibility: hidden; font-size: 0";
+            window.onbeforeunload = null;
             callAddPresentationRecord(blob);
         }
         recorder.setOptions({
@@ -83,6 +84,9 @@ function stopRecording() {
     gumStream.getAudioTracks()[0].stop();
     $("#record")[0].disabled = false;
     $("#record-processing")[0].style = "visibility: visible; font-size: 14px";
+    window.onbeforeunload = function() {
+        return false;
+    }
     recorder.finishRecording();
 }
 
@@ -111,4 +115,6 @@ $(document).ready(function () {
     $("#record").click(startRecording);
     $("#done").click(stopRecording);
     $("#record-processing")[0].style = "visibility: hidden; font-size: 0";
+    window.onbeforeunload = null;
+    $("#denoising-note")[0].style = "visibility: hidden; font-size: 0";
 });

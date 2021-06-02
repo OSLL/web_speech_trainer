@@ -272,6 +272,22 @@ def start_training_processing(training_id: str) -> (dict, int):
     return {'message': 'OK'}, 200
 
 
+@check_arguments_are_convertible_to_object_id
+@api_trainings.route('/api/trainings/<training_id>/', methods=['DELETE'])
+def delete_training_by_training_id(training_id: str) -> (dict, int):
+    """
+    Endpoint to delete a training by its identifier.
+
+    :param training_id: Training identifier.
+    :return: {'message': 'OK'}, or
+        an empty dictionary with 404 HTTP return code if access was denied.
+    """
+    if not is_admin():
+        return {}, 404
+    TrainingsDBManager().delete_training(training_id)
+    return {'message': 'OK'}, 200
+
+
 def get_training_information(current_training: Trainings) -> dict:
     _id = current_training.pk
     try:
@@ -294,8 +310,13 @@ def get_training_information(current_training: Trainings) -> dict:
             pass_back_status = None
         else:
             pass_back_status = task_attempt.is_passed_back.get(str(_id), None)
+        task_attempt_id = current_training.task_attempt_id
+        task_attempt = TaskAttemptsDBManager().get_task_attempt(task_attempt_id)
         return {
             'message': 'OK',
+            'task_attempt_id': str(task_attempt_id),
+            'task_id': str(task_attempt.task_id),
+            'params_for_passback': task_attempt.params_for_passback,
             'processing_start_timestamp': processing_start_timestamp,
             'processing_finish_timestamp': processing_finish_timestamp,
             'score': current_training.feedback.get('score', None),
