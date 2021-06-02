@@ -2,3 +2,25 @@
     margin-top: 10px;
     margin-bottom: 10px;
 }
+
+.model {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5);
+}
+.model-content{
+    background-color: #f2dede;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #ebccd;
+    width: 50%;
+    text-align: center;
+    color: #a94442;
+    font-size: 20px;
+}

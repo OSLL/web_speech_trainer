@@ -9,7 +9,18 @@ function startRecording() {
     navigator.mediaDevices.getUserMedia({audio: true, video: false}).then(function (stream) {
         currentTimestamp = Date.now();
         $("#tutorial")[0].style = "visibility: hidden; font-size: 0";
-        $("#denoising-note")[0].style = "visibility: visible; font-size: 14";
+        var model_time = 3;
+        $("#model-time").html(`До начала записи: ${model_time} сек.`);
+        $("#model-timer").show();
+        model_timer = setInterval(() => {
+            if (model_time == 0) {
+                clearInterval(model_timer);
+                $("#model-timer").hide();
+            }
+            model_time--;
+            $("#model-time").html(`До начала записи: ${model_time} сек.`);
+
+        }, 1000)
         setTimeout(function () {
             callShowPage();
             maxTime = undefined;
@@ -38,8 +49,7 @@ function startRecording() {
                     $("#timer").css("color", "red");
                 }
                 time++;
-            }, 1000)
-            $("#denoising-note")[0].style = "visibility: hidden; font-size: 0";
+            }, 1000);
         }, 3000);
         let audioContext = new window.AudioContext();
         gumStream = stream;
