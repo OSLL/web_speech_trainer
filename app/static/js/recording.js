@@ -27,9 +27,9 @@ function startRecording() {
                 if (seconds < 10) {
                     seconds = `0${seconds}`;
                 }
-                minuts = time / 60 % 60;
+                minuts = Math.trunc(time / 60 % 60);
                 if (minuts < 10) {
-                    minuts = `0${Math.trunc(minuts)}`;
+                    minuts = `0${minuts}`;
                 }
                 hour = time / 60 / 60 % 60;
                 let strTimer = `Время тренировки: ${Math.trunc(hour)}:${minuts}:${seconds}`;
