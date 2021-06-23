@@ -312,6 +312,8 @@ def get_training_information(current_training: Trainings) -> dict:
             pass_back_status = task_attempt.is_passed_back.get(str(_id), None)
         task_attempt_id = current_training.task_attempt_id
         task_attempt = TaskAttemptsDBManager().get_task_attempt(task_attempt_id)
+        presentation_file_id = current_training.presentation_file_id
+        presentation_record_file_id = current_training.presentation_record_file_id
         return {
             'message': 'OK',
             'task_attempt_id': str(task_attempt_id),
@@ -327,6 +329,8 @@ def get_training_information(current_training: Trainings) -> dict:
             'audio_status': AudioStatus.russian.get(current_training.audio_status),
             'presentation_status': PresentationStatus.russian.get(current_training.presentation_status),
             'presentation_record_duration': presentation_record_duration,
+            'presentation_file_id': str(presentation_file_id),
+            'presentation_record_file_id': str(presentation_record_file_id),
         }
     except Exception as e:
         return {'message': '{}: {}'.format(e.__class__, e)}
