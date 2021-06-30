@@ -53,7 +53,6 @@ function buildCurrentTrainingRow(trainingId, trainingJson) {
     const presentationFileIdElement = document.createElement("td");
     const presentationFileIdLink = document.createElement("a");
     presentationFileIdLink.href = `/api/files/presentations/by-training/${trainingId}/`;
-    presentationFileIdLink.setAttribute('download','presentation');
     presentationFileIdLink.textContent = trainingJson["presentation_file_id"];
     presentationFileIdElement.appendChild(presentationFileIdLink);
     currentTrainingRowElement.appendChild(presentationFileIdElement);
@@ -62,7 +61,6 @@ function buildCurrentTrainingRow(trainingId, trainingJson) {
     if(trainingJson["presentation_record_file_id"] === "None") {
         recordingElement.textContent = "Аудиозапись отсутствует";
     } else {
-        console.log("Аудиозапись есть");
         const recordingAudio = document.createElement("audio");
         recordingAudio.controls = true;
         recordingAudio.src = `/api/files/presentation-records/${trainingJson["presentation_record_file_id"]}/`;
