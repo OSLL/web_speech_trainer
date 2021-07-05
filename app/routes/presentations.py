@@ -5,6 +5,8 @@ from flask import Blueprint, redirect, url_for, render_template
 from app.api.files import upload_presentation
 from app.api.trainings import add_training
 from app.lti_session_passback.auth_checkers import check_auth, check_admin
+from app.mongo_odm import TrainingsDBManager
+from app.status import TrainingStatus
 
 routes_presentations = Blueprint('routes_presentations', __name__)
 logger = logging.getLogger('root_logger')
@@ -30,6 +32,8 @@ def handle_presentation_upload():
     add_training_response, add_training_response_code = add_training(presentation_file_id)
     if add_training_response.get('message') != 'OK':
         return add_training_response, add_training_response_code
+    TrainingsDBManager().change_training_status_by_training_id(add_training_response['training_id'],
+                                                                TrainingStatus.IN_PROGRESS)
     return redirect(url_for(
         'routes_trainings.view_training',
         training_id=add_training_response['training_id'],
