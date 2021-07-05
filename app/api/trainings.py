@@ -245,6 +245,8 @@ def add_presentation_record(training_id: str) -> (dict, int):
         training_db = TrainingsDBManager().get_training(training_id)
         if training_db.presentation_record_file_id is not None:
             return {}, 404
+    TrainingsDBManager().change_training_status_by_training_id(training_id,
+                                                                TrainingStatus.SENT_FOR_PREPARATION)
     presentation_record_file_id = DBManager().add_file(presentation_record_file)
     TrainingsDBManager().add_presentation_record(
         training_id, presentation_record_file_id, presentation_record_duration,
@@ -266,7 +268,7 @@ def start_training_processing(training_id: str) -> (dict, int):
         return {}, 404
     if not is_admin():
         training_db = TrainingsDBManager().get_training(training_id)
-        if training_db.status != TrainingStatus.NEW:
+        if training_db.status != TrainingStatus.IN_PROGRESS:
             return {}, 404
     TrainingManager().add_training(training_id)
     return {'message': 'OK'}, 200
