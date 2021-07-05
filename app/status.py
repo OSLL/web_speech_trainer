@@ -1,5 +1,6 @@
 class TrainingStatus:
     NEW = "NEW"
+    IN_PROGRESS = "IN_PROGRESS"
     SENT_FOR_PREPARATION = "SENT_FOR_PREPARATION"
     PREPARING = "PREPARING"
     PREPARED = "PREPARED"
@@ -11,6 +12,7 @@ class TrainingStatus:
 
     russian = {
         NEW: "Новая тренировка",
+        IN_PROGRESS: "В процессе",
         SENT_FOR_PREPARATION: "Отправлена на распознавание",
         PREPARING: "Идёт распознавание",
         PREPARED: "Распознавание завершено",
