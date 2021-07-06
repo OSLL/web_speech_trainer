@@ -4,7 +4,7 @@ function buildCurrentTrainingRow(trainingId, trainingJson) {
     const trainingIdElement = document.createElement("td");
     const trainingIdLink = document.createElement("a");
     trainingIdLink.href=`/trainings/statistics/${trainingId}/`;
-    trainingIdLink.textContent = trainingId;
+    trainingIdLink.textContent = "..." + String(trainingId).slice(-5);
     trainingIdElement.appendChild(trainingIdLink);
     currentTrainingRowElement.appendChild(trainingIdElement);
 
@@ -51,14 +51,17 @@ function buildCurrentTrainingRow(trainingId, trainingJson) {
     currentTrainingRowElement.appendChild(trainingScoreElement);
 
     const presentationFileIdElement = document.createElement("td");
-    const presentationFileIdLink = document.createElement("a");
-    presentationFileIdLink.href = `/api/files/presentations/by-training/${trainingId}/`;
-    presentationFileIdLink.textContent = trainingJson["presentation_file_id"];
-    presentationFileIdElement.appendChild(presentationFileIdLink);
+    if(trainingJson["presentation_file_id"] !== "undefined" && trainingJson["message"] === "OK"){
+        const presentationFileIdLink = document.createElement("a");
+        presentationFileIdLink.textContent = "..." + String(trainingJson["presentation_file_id"]).slice(-5);
+        presentationFileIdLink.href = `/api/files/presentations/by-training/${trainingId}/`;
+        presentationFileIdLink.target = "_blank";
+        presentationFileIdElement.appendChild(presentationFileIdLink);
+    }
     currentTrainingRowElement.appendChild(presentationFileIdElement);
 
     const recordingElement = document.createElement("td");
-    if(trainingJson["presentation_record_file_id"] === "None") {
+    if(trainingJson["presentation_record_file_id"] === "None" || trainingJson["message"] !== "OK") {
         recordingElement.textContent = "Аудиозапись отсутствует";
     } else {
         const recordingAudio = document.createElement("audio");
