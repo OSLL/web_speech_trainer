@@ -1,7 +1,7 @@
 import logging
 
-from app.criteria import SpeechDurationCriterion, SpeechPaceCriterion, FillersRatioCriterion, \
-    SpeechIsNotInDatabaseCriterion, FillersNumberCriterion, StrictSpeechDurationCriterion
+from app.criteria import NumberSlidesCriterion, NumberWordOnSlideCriterion, SpeechDurationCriterion, SpeechPaceCriterion, \
+    FillersRatioCriterion, SpeechIsNotInDatabaseCriterion, FillersNumberCriterion, StrictSpeechDurationCriterion
 from app.mongo_odm import TrainingsDBManager
 from app.utils import SECONDS_PER_MINUTE
 
@@ -64,9 +64,26 @@ class SimpleCriteriaPack(CriteriaPack):
             dependent_criteria=[],
         )
 
+        number_word_on_slide_criterion = NumberWordOnSlideCriterion(
+            parameters={'minimal_number_words': 5},
+            dependent_criteria=[],
+        )
+        
+        number_slides_criterion = NumberSlidesCriterion(
+            parameters={
+                'minimal_allowed_slide_number': 3,
+                'maximal_allowed_slide_number': 15
+            },
+            dependent_criteria=[],
+        )
+        
         super().__init__(
             name=SimpleCriteriaPack.CLASS_NAME,
-            criteria=[speech_duration_criterion],
+            criteria=[
+                speech_duration_criterion,
+                number_word_on_slide_criterion,
+                number_slides_criterion
+            ],
         )
 
 
