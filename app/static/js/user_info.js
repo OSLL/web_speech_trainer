@@ -1,5 +1,6 @@
 $(document).ready(function () {
     $("#header").hide();
+    $("#version-review").hide();
     fetch("/api/sessions/info/")
         .then(response => response.json())
         .then(responseJson => {
@@ -18,5 +19,13 @@ $(document).ready(function () {
                     $("#current-points-sum").html(`Баллы: ${responseJson["current_points_sum"].toFixed(2)}`);
                 });
             $("#header").show();
+        });
+    fetch("/api/sessions/admin/")
+        .then(response => response.json())
+        .then(responseJson => {
+            if (responseJson["message"] !== "OK") {
+                return;
+            }
+            $("#version-review").show();
         });
 });

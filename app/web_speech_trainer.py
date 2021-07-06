@@ -11,6 +11,7 @@ from app.api.presentations import api_presentations
 from app.api.sessions import api_sessions
 from app.api.task_attempts import api_task_attempts
 from app.api.trainings import api_trainings
+from app.api.version import api_version
 from app.config import Config
 from app.mongo_odm import ConsumersDBManager, TrainingsDBManager, TaskAttemptsDBManager, TaskAttemptsToPassBackDBManager
 from app.root_logger import get_logging_stdout_handler, get_root_logger
@@ -18,6 +19,7 @@ from app.routes.admin import routes_admin
 from app.routes.lti import routes_lti
 from app.routes.presentations import routes_presentations
 from app.routes.trainings import routes_trainings
+from app.routes.version import routes_version
 from app.status import TrainingStatus, PassBackStatus
 from app.training_manager import TrainingManager
 
@@ -31,10 +33,12 @@ app.register_blueprint(api_presentations)
 app.register_blueprint(api_sessions)
 app.register_blueprint(api_task_attempts)
 app.register_blueprint(api_trainings)
+app.register_blueprint(api_version)
 app.register_blueprint(routes_admin)
 app.register_blueprint(routes_lti)
 app.register_blueprint(routes_presentations)
 app.register_blueprint(routes_trainings)
+app.register_blueprint(routes_version)
 
 logger = get_root_logger(service_name='web')
 

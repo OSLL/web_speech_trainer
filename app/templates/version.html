@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+{% block header %}
+{% include "header.html" %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/version.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/danger-alert.css') }}">
+{% endblock %}
+
+
+<body>
+    <div id="version-error" class="alert alert-danger" role="alert">
+        <p id="version-error-text"></p>
+    </div>
+    <table id="version-table"></table>
+    {% include "bug_reports.html" %}
+    {% block footer %} {% include "footer.html" %} {% endblock %}
+</body>
+<script src="{{ url_for('static', filename='js/libraries/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/version.js') }}"></script>
+</html>
