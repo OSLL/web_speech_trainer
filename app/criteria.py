@@ -1,5 +1,6 @@
 import json
 import math
+import re
 import time
 from typing import Optional, Callable
 
@@ -100,6 +101,56 @@ class NumberWordOnSlideCriterion(Criterion):
         return CriterionResult(
             get_proportional_result(good_slides_number, slides_number, None), verdict
         )
+
+
+class NumberSlidesCriterion(Criterion):
+    CLASS_NAME = 'NumberSlidesCriterion'
+
+    def __init__(self, parameters, dependent_criteria):
+        if 'minimal_allowed_slide_number' not in parameters and 'maximal_allowed_slide_number' not in parameters:
+            raise ValueError('parameters should contain \'minimal_allowed_slide_number\' or \'maximal_allowed_slide_number\'.')
+        super().__init__(
+            name=NumberSlidesCriterion.CLASS_NAME,
+            parameters=parameters,
+            dependent_criteria=dependent_criteria,
+        )
+
+    @property
+    def description(self):
+        boundaries = ''
+        evaluation = ''
+        if 'minimal_allowed_slide_number' in self.parameters:
+            boundaries = 'от {}'.format(self.parameters['minimal_allowed_slide_number'])
+            evaluation = '(n / {}), если количество рассказанных слайдов меньше минимума'.format(
+                self.parameters['minimal_allowed_slide_number']
+            )
+        if 'maximal_allowed_slide_number' in self.parameters:
+            if boundaries:
+                boundaries += ' '
+            if evaluation:
+                evaluation += ', '
+            boundaries += 'до {}'.format(self.parameters['maximal_allowed_slide_number'])
+            evaluation += '({} / n), если количество рассказанных слайдов больше максимума.'.format(
+                self.parameters['maximal_allowed_slide_number']
+            )
+        return 'Критерий: {},\nописание: проверяет, что количество рассказанных слайдов {},\n' \
+               'оценка: 1, если выполнен, {}\n'.format(self.name, boundaries, evaluation)
+
+    def apply(self, audio, presentation, training_id, criteria_results):
+        slides_number = len(presentation.slides)
+        criteria_min = self.parameters.get('minimal_allowed_slide_number')
+        criteria_max = self.parameters.get('maximal_allowed_slide_number')
+        verdict = '' 
+
+        if criteria_min and slides_number < criteria_min:
+            verdict = "Number of slides ({}) in the presentation is less than the minimum number = {}\n".format(slides_number, criteria_min)
+        if criteria_max and slides_number > criteria_max:
+            verdict = "Number of slides ({}) in the presentation exceeds the maximum = {}\n".format(slides_number, criteria_max)
+
+        return CriterionResult(
+            get_proportional_result(slides_number, criteria_min, criteria_max), verdict
+        )
+
 
 class SpeechDurationCriterion(Criterion):
     CLASS_NAME = 'SpeechDurationCriterion'
