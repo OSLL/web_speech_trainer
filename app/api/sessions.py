@@ -3,7 +3,7 @@ import logging
 from flask import Blueprint, request, session
 
 from app.config import Config
-from app.lti_session_passback.auth_checkers import check_auth, check_admin
+from app.lti_session_passback.auth_checkers import check_auth
 from packaging import version as version_util
 
 api_sessions = Blueprint('api_sessions', __name__)
@@ -23,13 +23,6 @@ def get_session_info():
     if not check_auth() or username is None:
         return {}, 404
     return {'username': username, 'full_name': full_name, 'message': 'OK'}, 200
-
-
-@api_sessions.route('/api/sessions/admin/', methods=['GET'])
-def get_admin():
-    if not check_admin():
-        return {}, 404
-    return {'message': 'OK'}, 200
 
 
 @api_sessions.route('/api/sessions/user-agent/', methods=['GET'])
