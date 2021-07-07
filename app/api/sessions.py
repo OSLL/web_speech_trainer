@@ -56,4 +56,3 @@ def get_user_agent():
     if not browser_found:
         response['outdated'] = True
     return response, 200
-

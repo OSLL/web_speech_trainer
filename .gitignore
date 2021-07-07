@@ -2,3 +2,4 @@ venv
 .idea
 ssl
 __pycache__
+/VERSION.json
