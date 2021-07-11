@@ -31,7 +31,7 @@ def append_slide_switch_timestamp(training_id: str) -> (dict, int):
         return {}, 404
     if not is_admin():
         training_db = TrainingsDBManager().get_training(training_id)
-        if training_db.status != TrainingStatus.NEW:
+        if training_db.status != TrainingStatus.IN_PROGRESS:
             return {}, 404
     timestamp = request.args.get('timestamp', time.time(), float)
     TrainingsDBManager().append_timestamp(training_id, timestamp)
@@ -155,7 +155,7 @@ def get_remaining_processing_time_by_training_id(training_id: str) -> (dict, int
         ]}}]},
     )
     if current_training_status not in \
-            [TrainingStatus.NEW, TrainingStatus.SENT_FOR_PREPARATION, TrainingStatus.PREPARING]:
+            [TrainingStatus.NEW, TrainingStatus.IN_PROGRESS, TrainingStatus.SENT_FOR_PREPARATION, TrainingStatus.PREPARING]:
         current_recognized_audio_generation_time = current_training_db.recognized_audio_id.generation_time
     else:
         current_recognized_audio_generation_time = None
@@ -245,6 +245,8 @@ def add_presentation_record(training_id: str) -> (dict, int):
         training_db = TrainingsDBManager().get_training(training_id)
         if training_db.presentation_record_file_id is not None:
             return {}, 404
+    TrainingsDBManager().change_training_status_by_training_id(training_id,
+                                                                TrainingStatus.SENT_FOR_PREPARATION)
     presentation_record_file_id = DBManager().add_file(presentation_record_file)
     TrainingsDBManager().add_presentation_record(
         training_id, presentation_record_file_id, presentation_record_duration,
@@ -266,7 +268,7 @@ def start_training_processing(training_id: str) -> (dict, int):
         return {}, 404
     if not is_admin():
         training_db = TrainingsDBManager().get_training(training_id)
-        if training_db.status != TrainingStatus.NEW:
+        if training_db.status != TrainingStatus.IN_PROGRESS:
             return {}, 404
     TrainingManager().add_training(training_id)
     return {'message': 'OK'}, 200
