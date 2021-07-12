@@ -17,4 +17,7 @@ class DBGetter:
     def get_trainings(cls): return cls.trainings_collection.find({})
 
     @classmethod
-    def get_file(cls, file_id): return load_json(cls.grid_fs.get({'_id': file_id}))
+    def get_file(cls, file_id):
+        file = cls.grid_fs.find({'_id': file_id})
+        if file.count():
+            return list(file)[0]

@@ -1,4 +1,5 @@
 import argparse
+from collections import defaultdict
 from datetime import datetime
 from json import load as json_load, loads as json_loads
 import matplotlib.pyplot as plt
@@ -18,23 +19,17 @@ def create_dir():
     return path
 
 def timestamp_to_datetime(df,
-        fields=('audio_status_last_update', 'presentation_status_last_update', 'processing_start_timestamp')):
+        fields=('status_last_update', 'audio_status_last_update', 'presentation_status_last_update', 'processing_start_timestamp')):
     for field in fields:
         df[field] = [timestamp.time if type(timestamp) != datetime else timestamp.timestamp() for timestamp in df[field]]
     return df
 
-def plot_hist(data, title, xlabel, ylabel, figsize=(10,8), tick_step=0, dir='.'):
+def plot_hist(data, title, xlabel='', ylabel='', figsize=(10,8),dir='.'):
     data = pd.Series(data)
-    if not tick_step:
-        data_len = len(data)
-        tick_step = data_len//10 if data_len > 50 else 5
     mean = data.mean()
-    ax = data.plot.hist(title=f'{title}. Mean: {mean:.2f}', bins=tick_step, figsize=figsize)
+    ax = data.plot.hist(title=f'{title}. Mean: {mean:.2f}', figsize=figsize)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
-    _, xmax = ax.get_xlim()
-    ax.set_xticks(np.arange(data.min(), xmax, tick_step))
-    plt.setp(ax.get_xticklabels(), rotation=90)
     plt.savefig(f"{dir}/{title}.png")
     plt.close()
 
@@ -81,6 +76,19 @@ def plot_lines(lines_info, title='', dir='.'):
     plt.savefig(f'{dir}/{title}.png')
     plt.close()
 
+def plot_criteria(criteria, dir='.'):
+    criteria_info = defaultdict(list)
+    general_scores = []
+    for info in criteria:
+        results = info['criteria_results']
+        for criter_name, criter_info in results.items():
+            criteria_info[criter_name].append(criter_info['result'])
+        general_scores.append(info['score'])
+
+    plot_hist(general_scores, 'Final trainings result', '', dir=dir)
+    for criteria, info in criteria_info.items():
+        plot_hist(info, f'{criteria} score', dir=dir)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Checks DB version, makes the necessary changes for the transition')
     parser.add_argument('--mongo', default='db:27017', help='Mongo host')
@@ -93,11 +101,16 @@ if __name__ == "__main__":
     trainings = tuple(DBGetter.get_trainings())
 
     df = pd.DataFrame(trainings, columns=['_id', 'recognized_presentation_id', 'recognized_audio_id', 'presentation_record_duration',
-        'slide_switch_timestamps', 'feedback',
+        'slide_switch_timestamps', 'feedback', 'status', 'status_last_update',
         'audio_status', 'audio_status_last_update',
         'presentation_status', 'presentation_status_last_update', 'processing_start_timestamp'])
     df = timestamp_to_datetime(df)
 
+    df_for_results = df[df.status == "PROCESSED"]
+    train_processing_times = np.array(df_for_results['status_last_update']) - np.array(df_for_results['processing_start_timestamp'])
+
+    plot_criteria(df_for_results['feedback'], dir=path_to_save)
+    
     
     df_for_audio = df[df.audio_status == "PROCESSED"]
     audio_processing_times = np.array(df_for_audio['audio_status_last_update']) - np.array(df_for_audio['processing_start_timestamp'])
@@ -121,8 +134,7 @@ if __name__ == "__main__":
     plot_recognized_audio(df_for_audio['recognized_audio_id'], dir=path_to_save)
     plot_slide_switch_timestamps(df.slide_switch_timestamps.copy(), dir=path_to_save)
 
+    plot_hist(train_processing_times, 'train_processing_times_hist', 'Seconds', '', dir=path_to_save)
     plot_hist(pres_processing_times, 'pres_processing_times_hist', 'Seconds', '', dir=path_to_save)
     plot_hist(audio_processing_times, 'audio_processing_times_hist', 'Seconds', '', dir=path_to_save)
     plot_hist(duration_times, 'duration_times_hist', 'Seconds', '', dir=path_to_save)
-    
-    
