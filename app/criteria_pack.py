@@ -64,26 +64,9 @@ class SimpleCriteriaPack(CriteriaPack):
             dependent_criteria=[],
         )
 
-        number_word_on_slide_criterion = NumberWordOnSlideCriterion(
-            parameters={'minimal_number_words': 5},
-            dependent_criteria=[],
-        )
-        
-        number_slides_criterion = NumberSlidesCriterion(
-            parameters={
-                'minimal_allowed_slide_number': 3,
-                'maximal_allowed_slide_number': 15
-            },
-            dependent_criteria=[],
-        )
-        
         super().__init__(
             name=SimpleCriteriaPack.CLASS_NAME,
-            criteria=[
-                speech_duration_criterion,
-                number_word_on_slide_criterion,
-                number_slides_criterion
-            ],
+            criteria=[speech_duration_criterion],
         )
 
 
@@ -288,6 +271,38 @@ class PredefenceEightToTenMinutesCriteriaPack(CriteriaPack):
             ],
         )
 
+
+class PrimitiveCriteriaPack(CriteriaPack):
+    CLASS_NAME = 'PrimitiveCriteriaPack'
+    CRITERIA_PACK_ID = 9
+
+    def __init__(self):
+        speech_duration_criterion = SpeechDurationCriterion(
+            parameters={'maximal_allowed_duration': 7 * SECONDS_PER_MINUTE},
+            dependent_criteria=[],
+        )
+
+        number_word_on_slide_criterion = NumberWordOnSlideCriterion(
+            parameters={'minimal_number_words': 5},
+            dependent_criteria=[],
+        )
+        
+        number_slides_criterion = NumberSlidesCriterion(
+            parameters={
+                'minimal_allowed_slide_number': 3,
+                'maximal_allowed_slide_number': 15
+            },
+            dependent_criteria=[],
+        )
+        
+        super().__init__(
+            name=SimpleCriteriaPack.CLASS_NAME,
+            criteria=[
+                speech_duration_criterion,
+                number_word_on_slide_criterion,
+                number_slides_criterion
+            ],
+        )
 
 CRITERIA_PACK_CLASS_BY_ID = {
     SimpleCriteriaPack.CRITERIA_PACK_ID: SimpleCriteriaPack,
