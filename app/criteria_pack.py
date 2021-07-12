@@ -296,7 +296,7 @@ class PrimitiveCriteriaPack(CriteriaPack):
         )
         
         super().__init__(
-            name=SimpleCriteriaPack.CLASS_NAME,
+            name=PrimitiveCriteriaPack.CLASS_NAME,
             criteria=[
                 speech_duration_criterion,
                 number_word_on_slide_criterion,
@@ -313,6 +313,7 @@ CRITERIA_PACK_CLASS_BY_ID = {
     FifteenMinutesTrainingCriteriaPack.CRITERIA_PACK_ID: FifteenMinutesTrainingCriteriaPack,
     TwentyMinutesTrainingCriteriaPack.CRITERIA_PACK_ID: TwentyMinutesTrainingCriteriaPack,
     PredefenceEightToTenMinutesCriteriaPack.CRITERIA_PACK_ID: PredefenceEightToTenMinutesCriteriaPack,
+    PrimitiveCriteriaPack.CRITERIA_PACK_ID: PrimitiveCriteriaPack
 }
 
 
