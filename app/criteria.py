@@ -9,6 +9,8 @@ import librosa
 import scipy
 from bson import ObjectId
 from scipy.spatial.distance import cosine
+import tempfile
+from app.pdf_parser.perfomance_assessment import perfomance_score
 
 from app.audio import Audio
 from app.mongo_odm import DBManager, TrainingsDBManager
@@ -519,3 +521,52 @@ class FillersNumberCriterion(Criterion):
         else:
             verdict = None
         return CriterionResult(1 if fillers_number <= self.parameters['maximum_fillers_number'] else 0, verdict)
+
+
+class DefaultAssessment(Criterion):
+    def apply(self, audio, presentation, training_id, criteria_results):
+        self._validate_input(training_id=training_id, audio=audio)
+
+        return CriterionResult(result=perfomance_score(pdf_path=self._tmp_pdf.name,
+                                                       txt_path=self._tmp_transcription.name,
+                                                       pass_slide_headers=[]))
+
+    def _validate_input(self, training_id, audio):
+        training_record = TrainingsDBManager().get_training(training_id)
+
+        if training_record is None:
+            return CriterionResult(result=0)
+
+        self._load_pdf(training_record=training_record)
+        self._load_transcription(audio=audio)
+
+    def _load_pdf(self, training_record):
+        presentation_id = training_record.presentation_file_id
+        pdf_file = DBManager().get_file(file_id=presentation_id)
+        self._tmp_pdf = tempfile.NamedTemporaryFile()
+        self._tmp_pdf.write(pdf_file.file.read())
+
+    def _load_transcription(self, audio):
+        trascription = audio.get_transcription()
+        self._tmp_transcription = tempfile.NamedTemporaryFile()
+        self._tmp_transcription.write(trascription)
+
+
+class WordWeightAssessment(DefaultAssessment):
+    def apply(self, audio, presentation, training_id, criteria_results):
+        self._validate_input(training_id=training_id, audio=audio)
+
+        return CriterionResult(result=perfomance_score(pdf_path=self._tmp_pdf.name,
+                                                       txt_path=self._tmp_transcription.name,
+                                                       pass_slide_headers=[],
+                                                       word_weight_scale=True))
+
+
+class BiGramWeightAssessment(DefaultAssessment):
+    def apply(self, audio, presentation, training_id, criteria_results):
+        self._validate_input(training_id=training_id, audio=audio)
+
+        return CriterionResult(result=perfomance_score(pdf_path=self._tmp_pdf.name,
+                                                       txt_path=self._tmp_transcription.name,
+                                                       pass_slide_headers=[],
+                                                       bi_grams_weight_scale=True))

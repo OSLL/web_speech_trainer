@@ -39,40 +39,49 @@ def text_processor(text, mode):
     return l_text
 
 
-def parse_txt(txt_path, extract_dir):
-    if not os.path.exists(extract_dir):
-        os.mkdir(extract_dir)
-
+def parse_txt(txt_path, extract_dir=None):
     with open(txt_path) as txt:
         text = txt.readlines()
         l_text = text_processor(''.join(text), mode="txt")
 
-        with open('{}/clear.txt'.format(extract_dir), 'w') as f:
-            f.write(l_text)
+        if extract_dir is not None:
+            if not os.path.exists(extract_dir):
+                os.mkdir(extract_dir)
+            with open('{}/clear.txt'.format(extract_dir), 'w') as f:
+                f.write(l_text)
+    print(l_text.split('\n\n'))
+
+    return l_text.split('\n\n')
 
 
-def parse_pdf(pdf_path, extract_dir):
+def parse_pdf(pdf_path, extract_dir=None, ret_lematize_slides=False):
     '''Функция производит лемматизацию и очищение текста слайдов, сохраняет их в указанную папку
 
     :param pdf_path:
     :param extract_dir:
     :return: ['slide1 - full text', ..., 'slideN - full text]
     '''
-    if not os.path.exists(extract_dir):
-        os.mkdir(extract_dir)
-
     pdf_doc = fitz.open(pdf_path)
+    slide_list = []
+    lematize_slide_list = []
     slide_dict = []
 
     for page in pdf_doc:
         text = page.getText("text")
-        slide_dict.append(text)
+        slide_list.append(text)
         l_text = text_processor(text, mode="pdf")
+        lematize_slide_list.append(l_text)
 
-        with open("{}/{}_slide.txt".format(extract_dir, page.number), "w") as f:
-            f.write(l_text)
-    shutil.rmtree(extract_dir, ignore_errors=True)
-    return slide_dict
+        if extract_dir is not None:
+            if not os.path.exists(extract_dir):
+                os.mkdir(extract_dir)
+            with open("{}/{}_slide.txt".format(extract_dir, page.number), "w") as f:
+                f.write(l_text)
+
+    if ret_lematize_slides:
+        return lematize_slide_list
+    else:
+        return slide_list
 
 
 if __name__ == '__main__':
@@ -91,7 +100,7 @@ if __name__ == '__main__':
         print('Все готово... Результаты ждут вас в папке', args.txt.split(".")[0])
 
     if args.mrg_txt:
-        from file_merger import file_merger
+        from .file_merger import file_merger
         file_merger(args.mrg_txt)
 
 
