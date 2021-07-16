@@ -24,7 +24,7 @@ def timestamp_to_datetime(df,
         df[field] = [timestamp.time if type(timestamp) != datetime else timestamp.timestamp() for timestamp in df[field]]
     return df
 
-def plot_hist(data, title, xlabel='', ylabel='', figsize=(10,8),dir='.'):
+def plot_hist(data, title, xlabel='', ylabel='count', figsize=(10,8),dir='.'):
     data = pd.Series(data)
     mean = data.mean()
     ax = data.plot.hist(title=f'{title}. Mean: {mean:.2f}', figsize=figsize)
@@ -57,8 +57,8 @@ def plot_recognized_presentation(recognized_presentation_ids, dir='.'):
             slide_words = json_loads(slide_info)['words']
             words_per_slides.append(len([x for x in re.findall(r'\w+', slide_words)]))
     
-    plot_hist(slides_num, 'slides_num_hist', 'Number of slides in presentation', '', dir=dir)
-    plot_hist(words_per_slides, 'words_per_slides_hist', 'Number of words on slides', '', dir=dir)
+    plot_hist(slides_num, 'slides_num_hist', 'Number of slides in presentation', 'count', dir=dir)
+    plot_hist(words_per_slides, 'words_per_slides_hist', 'Number of words on slides', 'count', dir=dir)
     return slides_num
 
 def plot_recognized_audio(recognized_audio_ids, dir='.'):
@@ -67,12 +67,13 @@ def plot_recognized_audio(recognized_audio_ids, dir='.'):
         info = json_load(DBGetter.get_file(audio_id))
         recognized_words.append(len(info['recognized_words']))
 
-    plot_hist(recognized_words, 'recognized_words_hist', 'Number of recognized words', '', dir=dir)
+    plot_hist(recognized_words, 'recognized_words_hist', 'Number of recognized words', 'count', dir=dir)
     
 def plot_lines(lines_info, title='', dir='.'):
     df = pd.DataFrame(lines_info)
     ax = df.plot(title=title)
     ax.set_xticks([])
+    ax.set_ylabel('seconds')
     plt.savefig(f'{dir}/{title}.png')
     plt.close()
 
@@ -85,9 +86,9 @@ def plot_criteria(criteria, dir='.'):
             criteria_info[criter_name].append(criter_info['result'])
         general_scores.append(info['score'])
 
-    plot_hist(general_scores, 'Final trainings result', '', dir=dir)
+    plot_hist(general_scores, 'Final trainings result', "Training's score", 'count', dir=dir)
     for criteria, info in criteria_info.items():
-        plot_hist(info, f'{criteria} score', dir=dir)
+        plot_hist(info, f'{criteria} score', 'Criteria result', 'count', dir=dir)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Checks DB version, makes the necessary changes for the transition')
@@ -134,7 +135,7 @@ if __name__ == "__main__":
     plot_recognized_audio(df_for_audio['recognized_audio_id'], dir=path_to_save)
     plot_slide_switch_timestamps(df.slide_switch_timestamps.copy(), dir=path_to_save)
 
-    plot_hist(train_processing_times, 'train_processing_times_hist', 'Seconds', '', dir=path_to_save)
-    plot_hist(pres_processing_times, 'pres_processing_times_hist', 'Seconds', '', dir=path_to_save)
-    plot_hist(audio_processing_times, 'audio_processing_times_hist', 'Seconds', '', dir=path_to_save)
-    plot_hist(duration_times, 'duration_times_hist', 'Seconds', '', dir=path_to_save)
+    plot_hist(train_processing_times, 'train_processing_times_hist', 'Seconds', 'count', dir=path_to_save)
+    plot_hist(pres_processing_times, 'pres_processing_times_hist', 'Seconds', 'count', dir=path_to_save)
+    plot_hist(audio_processing_times, 'audio_processing_times_hist', 'Seconds', 'count', dir=path_to_save)
+    plot_hist(duration_times, 'duration_times_hist', 'Seconds', 'count', dir=path_to_save)
