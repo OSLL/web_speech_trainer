@@ -77,7 +77,7 @@ def view_training_statistics(training_id: str):
         remaining_processing_time_estimation_str = ''
     return render_template(
         'training/statistics.html',
-        page_title='Статистика тренировки с ID: {}'.format(training_id),
+        title='Статистика тренировки с ID: {}'.format(training_id),
         training_id=training_id,
         presentation_file_id=training_statistics['presentation_file_id'],
         presentation_file_name=training_statistics['presentation_file_name'],

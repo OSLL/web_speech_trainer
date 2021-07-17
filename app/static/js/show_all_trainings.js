@@ -19,6 +19,12 @@ function buildCurrentTrainingRow(trainingId, trainingJson) {
     trainingIdElement.appendChild(trainingIdLink);
     currentTrainingRowElement.appendChild(trainingIdElement);
 
+    const trainingAttemptIdElement = document.createElement("td");
+    if(trainingJson["task_attempt_id"] !== "undefined" && trainingJson["message"] === "OK"){
+        trainingAttemptIdElement.textContent = "..." + String(trainingJson["task_attempt_id"]).slice(-5);
+    }
+    currentTrainingRowElement.appendChild(trainingAttemptIdElement);
+
     const trainingUsernameElement = document.createElement("td");
     const trainingUsernameLink = document.createElement("a");
     trainingUsernameLink.href = `/show_all_trainings/?username=${trainingJson["username"]}&full_name=${trainingJson["full_name"]}`;
@@ -98,6 +104,7 @@ function buildAllTrainingsTable(trainingsJson) {
     const titleRow = buildTitleRow(
         [
             "id тренировки",
+            "id попытки",
             "Логин",
             "Имя",
             "Длительность аудиозаписи",
