@@ -1,6 +1,6 @@
 import logging
 
-from flask import render_template, Blueprint
+from flask import Blueprint, render_template
 
 from app.lti_session_passback.auth_checkers import check_admin
 
@@ -19,3 +19,5 @@ def view_admin():
     if not check_admin():
         return {}, 404
     return render_template('admin.html')
+
+

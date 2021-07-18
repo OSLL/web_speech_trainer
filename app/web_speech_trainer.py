@@ -22,6 +22,7 @@ from app.routes.trainings import routes_trainings
 from app.routes.version import routes_version
 from app.status import TrainingStatus, PassBackStatus
 from app.training_manager import TrainingManager
+from localisation import *
 
 
 app = Flask(__name__)
@@ -105,6 +106,12 @@ def init():
     return {}, 200
 
 
+def setupLocales():
+    loadLocales("./locale")
+    changeLocale("en", "ru")
+    setupTemplatesAlias(app)
+
+
 if __name__ == '__main__':
     Config.init_config(sys.argv[1])
     werkzeug_logger = logging.getLogger('werkzeug')
@@ -118,4 +125,7 @@ if __name__ == '__main__':
     if not ConsumersDBManager().is_key_valid(Config.c.constants.lti_consumer_key):
         ConsumersDBManager().add_consumer(Config.c.constants.lti_consumer_key, Config.c.constants.lti_consumer_secret)
     resubmit_failed_trainings()
+
+    setupLocales()
+
     app.run(host='0.0.0.0')
