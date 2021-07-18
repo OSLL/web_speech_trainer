@@ -108,7 +108,7 @@ def init():
 
 def setupLocales():
     loadLocales("./locale")
-    changeLocale("en", "ru")
+    changeLocale("ru", "ru")
     setupTemplatesAlias(app)
 
 
