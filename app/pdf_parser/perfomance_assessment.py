@@ -1,5 +1,6 @@
 from text_comorator import base_cmp
 from slide_splitter import parse_txt, parse_pdf
+from localisation import *
 
 import argparse
 import os
@@ -8,7 +9,7 @@ import os
 def check_headder(slide, opt):
     for headder in opt:
         if base_cmp(headder, slide[:len(headder)]) > 92:
-            print("Пропускаем слайд с заголовком:", headder)
+            print(_("Пропускаем слайд с заголовком:"), headder)
             return True
 
     return False
@@ -63,7 +64,7 @@ if __name__ == '__main__':
     if args.pdf and args.txt:
         parse_pdf(args.pdf, args.pdf.split(".")[0])
         parse_txt(args.txt, args.txt.split(".")[0])
-        print('Оценка выступлению:', perfomance_score(slide_dict=pdf_split(args.pdf.split(".")[0]),
+        print(_("Оценка выступлению:"), perfomance_score(slide_dict=pdf_split(args.pdf.split(".")[0]),
                                txt_dict=txt_split('{}/clear.txt'.format(args.txt.split(".")[0])),
                                opt=args.opt),
               '%')

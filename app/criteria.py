@@ -14,6 +14,7 @@ from app.audio import Audio
 from app.mongo_odm import DBManager, TrainingsDBManager
 from app.presentation import Presentation
 from app.utils import convert_from_mp3_to_wav
+from localisation import *
 
 
 class CriterionResult:
@@ -84,8 +85,8 @@ class LenTextOnSlideCriterion(Criterion):
 
     @property
     def description(self):
-        return 'Критерий: {0},\nописание: проверяет, что количество слов на каждом слайде не меньше {1},\n' \
-               'оценка: 1, если выполнен, иначе пропорционально количеству слайдов, удовлетворяющих критерию (с количеством слов, большим {1}))\n'.format(self.name, self.parameters['minimal_number_words'])
+        return _('Критерий: {0},\nописание: проверяет, что количество слов на каждом слайде не меньше {1},\n' \
+               'оценка: 1, если выполнен, иначе пропорционально количеству слайдов, удовлетворяющих критерию (с количеством слов, большим {1}))\n').format(self.name, self.parameters['minimal_number_words'])
 
     def apply(self, audio, presentation, training_id, criteria_results):
         slides_number = len(presentation.slides)
@@ -117,7 +118,7 @@ class NumberWordOnSlideCriterion(Criterion):
     @property
     def description(self):
         return 'Критерий: {0},\nописание: проверяет, что количество слов, рассказанных на каждом слайде не меньше {1},\n' \
-               'оценка: 1, если выполнен, иначе пропорционально количеству слайдов, удовлетворяющих критерию (с рассказанных количеством слов, большим {1}))\n'.format(self.name, self.parameters['minimal_number_words'])
+               'оценка: 1, если выполнен, иначе пропорционально количеству слайдов, удовлетворяющих критерию (с рассказанным количеством слов, большим {1}))\n'.format(self.name, self.parameters['minimal_number_words'])
 
     def apply(self, audio, presentation, training_id, criteria_results):
         slides_number = len(audio.audio_slides)

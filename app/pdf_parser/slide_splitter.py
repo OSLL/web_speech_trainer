@@ -8,6 +8,7 @@ import os
 import argparse
 import re
 import shutil
+from localisation import *
 
 
 def text_processor(text, mode):
@@ -27,7 +28,7 @@ def text_processor(text, mode):
                 l_text += normal_form
                 l_text += ' '
             else:
-                print('Удаляем шумовое слово:', normal_form)
+                print(_("Удаляем шумовое слово:"), normal_form)
         l_text = l_text.strip(' ')
         l_text += '\n'
 
@@ -84,11 +85,11 @@ if __name__ == '__main__':
 
     if args.pdf:
         print(parse_pdf(args.pdf, args.pdf.split(".")[0]))
-        print('Все готово... Результаты ждут вас в папке', args.pdf.split(".")[0])
+        print(_("Все готово... Результаты ждут вас в папке"), args.pdf.split(".")[0])
 
     if args.txt:
         parse_txt(args.txt, args.txt.split(".")[0])
-        print('Все готово... Результаты ждут вас в папке', args.txt.split(".")[0])
+        print(_("Все готово... Результаты ждут вас в папке"), args.txt.split(".")[0])
 
     if args.mrg_txt:
         from file_merger import file_merger

@@ -1,4 +1,5 @@
 import logging
+from localisation import *
 
 from app.criteria import NumberSlidesCriterion, NumberWordOnSlideCriterion, SpeechDurationCriterion, SpeechPaceCriterion, \
     FillersRatioCriterion, SpeechIsNotInDatabaseCriterion, FillersNumberCriterion, StrictSpeechDurationCriterion
@@ -42,13 +43,15 @@ class CriteriaPack:
         description = ''
         for criterion in self.criteria:
             if weights and criterion.name in weights:
-                description += '{},\nвес критерия = {:.3f}.\n'.format(
+                description += '{},\n{} = {:.3f}.\n'.format(
                     criterion.description[:-2],
+                    _("вес критерия"),
                     weights[criterion.name],
                 )
             else:
-                description += '{},\nвес критерия = 1 / {}.\n'.format(
+                description += '{},\n{} = 1 / {}.\n'.format(
                     criterion.description[:-2],
+                    _("вес критерия"),
                     len(self.criteria),
                 )
         return description

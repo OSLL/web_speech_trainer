@@ -1,3 +1,5 @@
+from localisation import *
+
 class TrainingStatus:
     NEW = "NEW"
     IN_PROGRESS = "IN_PROGRESS"
@@ -11,16 +13,16 @@ class TrainingStatus:
     PROCESSING_FAILED = "PROCESSING_FAILED"
 
     russian = {
-        NEW: "Новая тренировка",
-        IN_PROGRESS: "В процессе",
-        SENT_FOR_PREPARATION: "Отправлена на распознавание",
-        PREPARING: "Идёт распознавание",
-        PREPARED: "Распознавание завершено",
-        PREPARATION_FAILED: "Ошибка распознавания",
-        SENT_FOR_PROCESSING: "Отправлена на обработку",
-        PROCESSING: "Обрабатывается",
-        PROCESSED: "Обработана",
-        PROCESSING_FAILED: "Ошибка обработки",
+        NEW: _("Новая тренировка"),
+        IN_PROGRESS: _("В процессе"),
+        SENT_FOR_PREPARATION: _("Отправлена на распознавание"),
+        PREPARING: _("Идёт распознавание"),
+        PREPARED: _("Распознавание завершено"),
+        PREPARATION_FAILED: _("Ошибка распознавания"),
+        SENT_FOR_PROCESSING: _("Отправлена на обработку"),
+        PROCESSING: _("Обрабатывается"),
+        PROCESSED: _("Обработана"),
+        PROCESSING_FAILED: _("Ошибка обработки"),
     }
 
     @staticmethod
@@ -40,15 +42,15 @@ class AudioStatus:
     PROCESSING_FAILED = "PROCESSING_FAILED"
 
     russian = {
-        NEW: "Новая аудиозапись",
-        SENT_FOR_RECOGNITION: "Отправлена на распознавание",
-        RECOGNIZING: "Идёт распознавание",
-        RECOGNIZED: "Распознавание завершено",
-        RECOGNITION_FAILED: "Ошибка распознавания",
-        SENT_FOR_PROCESSING: "Отправлена на обработку",
-        PROCESSING: "Обрабатывается",
-        PROCESSED: "Обработана",
-        PROCESSING_FAILED: "Ошибка обработки",
+        NEW: _("Новая аудиозапись"),
+        SENT_FOR_RECOGNITION: _("Отправлена на распознавание"),
+        RECOGNIZING: _("Идёт распознавание"),
+        RECOGNIZED: _("Распознавание завершено"),
+        RECOGNITION_FAILED: _("Ошибка распознавания"),
+        SENT_FOR_PROCESSING: _("Отправлена на обработку"),
+        PROCESSING: _("Обрабатывается"),
+        PROCESSED: _("Обработана"),
+        PROCESSING_FAILED: _("Ошибка обработки"),
     }
 
 
@@ -64,15 +66,15 @@ class PresentationStatus:
     PROCESSING_FAILED = "PROCESSING_FAILED"
 
     russian = {
-        NEW: "Новая презентация",
-        SENT_FOR_RECOGNITION: "Отправлена на распознавание",
-        RECOGNIZING: "Идёт распознавание",
-        RECOGNIZED: "Распознавание завершено",
-        RECOGNITION_FAILED: "Ошибка распознавания",
-        SENT_FOR_PROCESSING: "Отправлена на обработку",
-        PROCESSING: "Обрабатывается",
-        PROCESSED: "Обработана",
-        PROCESSING_FAILED: "Ошибка обработки",
+        NEW: _("Новая презентация"),
+        SENT_FOR_RECOGNITION: _("Отправлена на распознавание"),
+        RECOGNIZING: _("Идёт распознавание"),
+        RECOGNIZED: _("Распознавание завершено"),
+        RECOGNITION_FAILED: _("Ошибка распознавания"),
+        SENT_FOR_PROCESSING: _("Отправлена на обработку"),
+        PROCESSING: _("Обрабатывается"),
+        PROCESSED: _("Обработана"),
+        PROCESSING_FAILED: _("Ошибка обработки"),
     }
 
 
@@ -82,7 +84,7 @@ class PassBackStatus:
     FAILED = "FAILED"
 
     russian = {
-        NOT_SENT: "Не отправлена",
-        SUCCESS: "Отправлена",
-        FAILED: "Ошибка отправки",
+        NOT_SENT: _("Не отправлена"),
+        SUCCESS: _("Отправлена"),
+        FAILED: _("Ошибка отправки"),
     }
