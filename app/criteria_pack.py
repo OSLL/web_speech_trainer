@@ -45,13 +45,13 @@ class CriteriaPack:
             if weights and criterion.name in weights:
                 description += '{},\n{} = {:.3f}.\n'.format(
                     criterion.description[:-2],
-                    _("вес критерия"),
+                    t("вес критерия"),
                     weights[criterion.name],
                 )
             else:
                 description += '{},\n{} = 1 / {}.\n'.format(
                     criterion.description[:-2],
-                    _("вес критерия"),
+                    t("вес критерия"),
                     len(self.criteria),
                 )
         return description

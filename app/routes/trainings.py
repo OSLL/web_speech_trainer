@@ -39,12 +39,12 @@ def view_training_statistics(training_id: str):
     feedback_evaluator = FeedbackEvaluatorFactory().get_feedback_evaluator(feedback_evaluator_id)
     criteria_results = feedback.get('criteria_results', {})
     if 'score' in feedback:
-        feedback_str = '{} = {}'.format(_("Оценка за тренировку"),'{:.2f}'.format(feedback.get('score')))
+        feedback_str = '{} = {}'.format(t("Оценка за тренировку"),'{:.2f}'.format(feedback.get('score')))
         results_as_sum_str = feedback_evaluator.get_result_as_sum_str(criteria_results)
         if results_as_sum_str:
             feedback_str += ' = {}'.format(results_as_sum_str)
     else:
-        feedback_str = _("Тренировка обрабатывается. Обновите страницу.")
+        feedback_str = t("Тренировка обрабатывается. Обновите страницу.")
     if criteria_results is not None:
         criteria_results_str = '\n'.join('{} = {}{}'.format(
             name,
@@ -60,25 +60,25 @@ def view_training_statistics(training_id: str):
     training_status = training_statistics['training_status']
     training_status_str = TrainingStatus.russian.get(training_status, '')
     if training_status_str:
-        training_status_str = '{}: {}'.format(_("Статус"), training_status_str)
+        training_status_str = '{}: {}'.format(t("Статус"), training_status_str)
     audio_status = training_statistics['audio_status']
     audio_status_str = AudioStatus.russian.get(audio_status, '')
     if audio_status_str:
-        audio_status_str = '{}: {}'.format(_("Статус"), audio_status_str)
+        audio_status_str = '{}: {}'.format(t("Статус"), audio_status_str)
     presentation_status = training_statistics['presentation_status']
     presentation_status_str = PresentationStatus.russian.get(presentation_status, '')
     if presentation_status_str:
-        presentation_status_str = '{}: {}'.format(_("Статус"), presentation_status_str)
+        presentation_status_str = '{}: {}'.format(t("Статус"), presentation_status_str)
     remaining_processing_time_estimation = training_statistics['remaining_processing_time_estimation']
     if remaining_processing_time_estimation and remaining_processing_time_estimation > 0:
-        remaining_processing_time_estimation_str = '{}: {} с.'.format(_("Ожидаемое время обработки"),
+        remaining_processing_time_estimation_str = '{}: {} с.'.format(t("Ожидаемое время обработки"),
             time.strftime("%M:%S", time.gmtime(remaining_processing_time_estimation)),
         )
     else:
         remaining_processing_time_estimation_str = ''
     return render_template(
         'training/statistics.html',
-        title='{}: {}'.format(_("Статистика тренировки с ID"), training_id),
+        title='{}: {}'.format(t("Статистика тренировки с ID"), training_id),
         training_id=training_id,
         presentation_file_id=training_statistics['presentation_file_id'],
         presentation_file_name=training_statistics['presentation_file_name'],

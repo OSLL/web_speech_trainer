@@ -22,7 +22,7 @@ class CriterionResult:
         self.result = result
         self.verdict = verdict
 
-    def __str__(self):
+    def __str_t(self):
         if self.verdict is not None:
             return 'Verdict: {}, result = {:.3f} points'.format(self.verdict, self.result)
         else:
@@ -85,8 +85,8 @@ class LenTextOnSlideCriterion(Criterion):
 
     @property
     def description(self):
-        return _('Критерий: {0},\nописание: проверяет, что количество слов на каждом слайде не меньше {1},\n' \
-               'оценка: 1, если выполнен, иначе пропорционально количеству слайдов, удовлетворяющих критерию (с количеством слов, большим {1}))\n').format(self.name, self.parameters['minimal_number_words'])
+        return t('Критерий: {0},\nописание: проверяет, что количество слов на каждом слайде не меньше {1},\n' \
+            'оценка: 1, если выполнен, иначе пропорционально количеству слайдов, удовлетворяющих критерию (с количеством слов, большим {1}))\n').format(self.name, self.parameters['minimal_number_words'])
 
     def apply(self, audio, presentation, training_id, criteria_results):
         slides_number = len(presentation.slides)
@@ -117,8 +117,8 @@ class NumberWordOnSlideCriterion(Criterion):
 
     @property
     def description(self):
-        return 'Критерий: {0},\nописание: проверяет, что количество слов, рассказанных на каждом слайде не меньше {1},\n' \
-               'оценка: 1, если выполнен, иначе пропорционально количеству слайдов, удовлетворяющих критерию (с рассказанным количеством слов, большим {1}))\n'.format(self.name, self.parameters['minimal_number_words'])
+        return t('Критерий: {0},\nописание: проверяет, что количество слов, рассказанных на каждом слайде не меньше {1},\n' \
+               'оценка: 1, если выполнен, иначе пропорционально количеству слайдов, удовлетворяющих критерию (с рассказанным количеством слов, большим {1}))\n').format(self.name, self.parameters['minimal_number_words'])
 
     def apply(self, audio, presentation, training_id, criteria_results):
         slides_number = len(audio.audio_slides)
@@ -152,8 +152,8 @@ class NumberSlidesCriterion(Criterion):
         boundaries = ''
         evaluation = ''
         if 'minimal_allowed_slide_number' in self.parameters:
-            boundaries = 'от {}'.format(self.parameters['minimal_allowed_slide_number'])
-            evaluation = '(n / {}), если количество рассказанных слайдов меньше минимума'.format(
+            boundaries = t('от {}').format(self.parameters['minimal_allowed_slide_number'])
+            evaluation = t('(n / {}), если количество рассказанных слайдов меньше минимума').format(
                 self.parameters['minimal_allowed_slide_number']
             )
         if 'maximal_allowed_slide_number' in self.parameters:
@@ -161,12 +161,12 @@ class NumberSlidesCriterion(Criterion):
                 boundaries += ' '
             if evaluation:
                 evaluation += ', '
-            boundaries += 'до {}'.format(self.parameters['maximal_allowed_slide_number'])
-            evaluation += '({} / n), если количество рассказанных слайдов больше максимума.'.format(
+            boundaries += t('до {}').format(self.parameters['maximal_allowed_slide_number'])
+            evaluation += t('({} / n), если количество рассказанных слайдов больше максимума.').format(
                 self.parameters['maximal_allowed_slide_number']
             )
-        return 'Критерий: {},\nописание: проверяет, что количество рассказанных слайдов {},\n' \
-               'оценка: 1, если выполнен, {}\n'.format(self.name, boundaries, evaluation)
+        return t('Критерий: {},\nописание: проверяет, что количество рассказанных слайдов {},\n' \
+               'оценка: 1, если выполнен, {}\n').format(self.name, boundaries, evaluation)
 
     def apply(self, audio, presentation, training_id, criteria_results):
         slides_number = len(presentation.slides)
@@ -204,7 +204,7 @@ class SpeechDurationCriterion(Criterion):
             boundaries = 'от {}'.format(
                 time.strftime('%M:%S', time.gmtime(round(self.parameters['minimal_allowed_duration'])))
             )
-            evaluation = '(t / {}), если продолжительность речи в секундах t слишком короткая'.format(
+            evaluation = t('(t / {}), если продолжительность речи в секундах t слишком короткая').format(
                 self.parameters['minimal_allowed_duration']
             )
         if 'maximal_allowed_duration' in self.parameters:
@@ -215,11 +215,11 @@ class SpeechDurationCriterion(Criterion):
             boundaries += 'до {}'.format(
                 time.strftime('%M:%S', time.gmtime(round(self.parameters['maximal_allowed_duration'])))
             )
-            evaluation += '({} / p), если продолжительность речи в секундах t слишком длинная.'.format(
+            evaluation += t('({} / p), если продолжительность речи в секундах t слишком длинная.').format(
                 self.parameters['maximal_allowed_duration']
             )
-        return 'Критерий: {},\nописание: проверяет, что продолжительность речи {},\n' \
-               'оценка: 1, если выполнен, {}\n'.format(self.name, boundaries, evaluation)
+        return t('Критерий: {},\nописание: проверяет, что продолжительность речи {},\n' \
+               'оценка: 1, если выполнен, {}\n').format(self.name, boundaries, evaluation)
 
     def apply(self, audio, presentation, training_id, criteria_results):
         maximal_allowed_duration = self.parameters.get('maximal_allowed_duration')
@@ -251,10 +251,10 @@ class StrictSpeechDurationCriterion(Criterion):
         boundaries = ''
         evaluation = ''
         if 'minimal_allowed_duration' in self.parameters:
-            boundaries = 'от {}'.format(
+            boundaries = t('от {}').format(
                 time.strftime('%M:%S', time.gmtime(round(self.parameters['minimal_allowed_duration'])))
             )
-            evaluation = '(t / {})^2, если продолжительность речи в секундах t слишком короткая'.format(
+            evaluation = t('(t / {})^2, если продолжительность речи в секундах t слишком короткая').format(
                 self.parameters['minimal_allowed_duration']
             )
         if 'maximal_allowed_duration' in self.parameters:
@@ -262,29 +262,29 @@ class StrictSpeechDurationCriterion(Criterion):
                 boundaries += ' '
             if evaluation:
                 evaluation += ' '
-            boundaries += 'до {}'.format(
+            boundaries += t('до {}').format(
                 time.strftime('%M:%S', time.gmtime(round(self.parameters['maximal_allowed_duration'])))
             )
-            evaluation += ', ({} / p)^2, если продолжительность речи в секундах t слишком длинная.'.format(
+            evaluation += t(', ({} / p)^2, если продолжительность речи в секундах t слишком длинная.').format(
                 self.parameters['maximal_allowed_duration']
             )
         strict_boundaries = ''
         if 'strict_minimal_allowed_duration' in self.parameters:
-            strict_boundaries = 'Если продолжительность речи меньше, чем {}'.format(
+            strict_boundaries = t('Если продолжительность речи меньше, чем {}').format(
                 time.strftime('%M:%S', time.gmtime(round(self.parameters['strict_minimal_allowed_duration'])))
             )
         if 'strict_maximal_allowed_duration' in self.parameters:
             if strict_boundaries:
-                strict_boundaries += ', или больше, чем '
+                strict_boundaries += t(', или больше, чем ')
             else:
-                strict_boundaries = 'Если продолжительность речи больше, чем '
+                strict_boundaries = t('Если продолжительность речи больше, чем ')
             strict_boundaries += '{}'.format(
                 time.strftime('%M:%S', time.gmtime(round(self.parameters['strict_maximal_allowed_duration'])))
             )
         if strict_boundaries:
-            strict_boundaries += ', то оценка за этот критерий и за всю тренировку равна 0.'
-        return 'Критерий: {},\nописание: проверяет, что продолжительность речи {},\n' \
-               'оценка: 1, если выполнен, {}\n{}\n'.format(self.name, boundaries, evaluation, strict_boundaries)
+            strict_boundaries += t(', то оценка за этот критерий и за всю тренировку равна 0.')
+        return t('Критерий: {},\nописание: проверяет, что продолжительность речи {},\n' \
+               'оценка: 1, если выполнен, {}\n{}\n').format(self.name, boundaries, evaluation, strict_boundaries)
 
     def apply(self, audio, presentation, training_id, criteria_results):
         minimal_allowed_duration = self.parameters.get('minimal_allowed_duration')
@@ -370,18 +370,18 @@ class SpeechIsNotInDatabaseCriterion(Criterion):
             for d1, d2 in zip(mfcc1[:length, :], mfcc2[:length, :]):
                 dist.append(cosine(d1, d2))
 
-            if np.median(dist) > self.parameters['dist_threshold']:
+            if np.median(dist) > self.parameters['dist__hreshold']:
                 break
 
         return length / min_len
 
     @property
     def description(self):
-        return 'Критерий: {},\nописание: проверяет, не является ли аудиофайл нечеткой копией одного из имеющихся в ' \
-               'базе от этого пользователя,\nоценка: 0, если не выполнен, 1, если выполнен.\n'.format(self.name)
+        return t('Критерий: {},\nописание: проверяет, не является ли аудиофайл нечеткой копией одного из имеющихся в ' \
+               'базе от этого пользователя,\nоценка: 0, если не выполнен, 1, если выполнен.\n').format(self.name)
 
     def apply(self, audio, presentation, training_id, criteria_results):
-        current_audio_id = TrainingsDBManager().get_training(training_id).presentation_record_file_id
+        current_audio_id = TrainingsDBManager().get__raining(training_id).presentation_record_file_id
         current_audio_file = DBManager().get_file(current_audio_id)
         try:
             current_audio_file = convert_from_mp3_to_wav(current_audio_file, frame_rate=self.parameters['sample_rate'])
@@ -390,7 +390,7 @@ class SpeechIsNotInDatabaseCriterion(Criterion):
         current_audio_file, _ = librosa.load(current_audio_file.name)
         db_audio_ids = [
             training.presentation_record_file_id
-            for training in TrainingsDBManager().get_trainings()
+            for training in TrainingsDBManager().get__rainings()
         ]
         for db_audio_id in db_audio_ids:
             if db_audio_id == current_audio_id:
@@ -435,9 +435,9 @@ class SpeechPaceCriterion(Criterion):
 
     @property
     def description(self) -> str:
-        return 'Критерий: {},\nописание: проверяет, что скорость речи находится в пределах от {} до {} слов в минуту,' \
+        return t('Критерий: {},\nописание: проверяет, что скорость речи находится в пределах от {} до {} слов в минуту,' \
                '\nоценка: 1, если выполнен, (p / {}), если темп p слишком медленный, ({} / p), ' \
-               'если темп p слишком быстрый.\n' \
+               'если темп p слишком быстрый.\n') \
             .format(self.name, self.parameters['minimal_allowed_pace'], self.parameters['maximal_allowed_pace'],
                     self.parameters['minimal_allowed_pace'], self.parameters['maximal_allowed_pace'])
 
@@ -453,7 +453,7 @@ class SpeechPaceCriterion(Criterion):
             audio_slide_grade = get_proportional_result(
                 audio_slide_pace, minimal_allowed_pace, maximal_allowed_pace,
             )
-            verdict += 'Слайд {}: оценка = {}, слов в минуту = {}, слов сказано {} за {}.\n'.format(
+            verdict += t('Слайд {}: оценка = {}, слов в минуту = {}, слов сказано {} за {}.\n').format(
                     i + 1,
                     '{:.2f}'.format(audio_slide_grade),
                     '{:.2f}'.format(audio_slide.audio_slide_stats['words_per_minute']),
@@ -463,7 +463,7 @@ class SpeechPaceCriterion(Criterion):
         if verdict == '':
             verdict = None
         else:
-            verdict = 'Оценки по слайдам:\n{}'.format(verdict[:-1])
+            verdict = t('Оценки по слайдам:\n{}').format(verdict[:-1])
         return CriterionResult(
             result=get_proportional_result(pace, minimal_allowed_pace, maximal_allowed_pace),
             verdict=verdict,
@@ -503,8 +503,8 @@ class FillersRatioCriterion(Criterion):
 
     @property
     def description(self):
-        return 'Критерий: {},\nописание: проверяет, что в речи нет слов-паразитов, используются слова из списка {},\n' \
-               'оценка: (1 - доля слов-паразитов).\n'.format(self.name, self.parameters['fillers'])
+        return t('Критерий: {},\nописание: проверяет, что в речи нет слов-паразитов, используются слова из списка {},\n' \
+               'оценка: (1 - доля слов-паразитов).\n').format(self.name, self.parameters['fillers'])
 
     def apply(self, audio, presentation, training_id, criteria_results):
         total_words = audio.audio_stats['total_words']
@@ -527,8 +527,8 @@ class FillersNumberCriterion(Criterion):
 
     @property
     def description(self):
-        return 'Критерий: {},\nописание: проверяет, что в речи нет слов-паразитов, используются слова из списка {},\n' \
-               'оценка: 1, если слов-паразитов не больше {}, иначе 0.\n'.format(
+        return t('Критерий: {},\nописание: проверяет, что в речи нет слов-паразитов, используются слова из списка {},\n' \
+               'оценка: 1, если слов-паразитов не больше {}, иначе 0.\n').format(
                     self.name,
                     self.parameters['fillers'],
                     self.parameters['maximum_fillers_number'],
@@ -545,9 +545,9 @@ class FillersNumberCriterion(Criterion):
         for i in range(len(found_fillers)):
             if len(found_fillers[i]) == 0:
                 continue
-            verdict += 'Слайд {}: {}.\n'.format(i + 1, found_fillers[i])
+            verdict += t('Слайд {}: {}.\n').format(i + 1, found_fillers[i])
         if verdict != '':
-            verdict = 'Использование слов-паразитов по слайдам:\n{}'.format(verdict[:-1])
+            verdict = t('Использование слов-паразитов по слайдам:\n{}').format(verdict[:-1])
         else:
             verdict = None
         return CriterionResult(1 if fillers_number <= self.parameters['maximum_fillers_number'] else 0, verdict)
