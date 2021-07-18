@@ -60,15 +60,15 @@ def view_training_statistics(training_id: str):
     training_status = training_statistics['training_status']
     training_status_str = TrainingStatus.russian.get(training_status, '')
     if training_status_str:
-        training_status_str = '{}: {}'.format(t("Статус"), training_status_str)
+        training_status_str = '{}: {}'.format(t("Статус"), t(training_status_str))
     audio_status = training_statistics['audio_status']
     audio_status_str = AudioStatus.russian.get(audio_status, '')
     if audio_status_str:
-        audio_status_str = '{}: {}'.format(t("Статус"), audio_status_str)
+        audio_status_str = '{}: {}'.format(t("Статус"), t(audio_status_str))
     presentation_status = training_statistics['presentation_status']
     presentation_status_str = PresentationStatus.russian.get(presentation_status, '')
     if presentation_status_str:
-        presentation_status_str = '{}: {}'.format(t("Статус"), presentation_status_str)
+        presentation_status_str = '{}: {}'.format(t("Статус"), t(presentation_status_str))
     remaining_processing_time_estimation = training_statistics['remaining_processing_time_estimation']
     if remaining_processing_time_estimation and remaining_processing_time_estimation > 0:
         remaining_processing_time_estimation_str = '{}: {} с.'.format(t("Ожидаемое время обработки"),

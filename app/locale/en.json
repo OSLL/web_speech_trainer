@@ -59,7 +59,7 @@
 	"({} / n), если количество рассказанных слайдов больше максимума.": "({} / n) if the number of slides told is greater than the maximum.",
 	"Критерий: {},\nописание: проверяет, что количество рассказанных слайдов {},\nоценка: 1, если выполнен, {}\n": "Criterion: {},\ndescription: checks that the number of slides told {},\nevaluation: 1, if complete, {}\n",
 	"(t / {}), если продолжительность речи в секундах t слишком короткая": "(t / {}) if the speech duration in seconds t is too short",
-	"({} / p), если продолжительность речи в секундах t слишком длинная.'": "({} / p) if the speech duration in seconds t is too long.",
+	"({} / p), если продолжительность речи в секундах t слишком длинная.": "({} / p) if the speech duration in seconds t is too long.",
 	"Критерий: {},\nописание: проверяет, что продолжительность речи {},\nоценка: 1, если выполнен, {}\n": "Criterion: {},\ndescription: checks that speech duration is {},\nevaluation: 1, if met, {}\n",
 	"(t / {})^2, если продолжительность речи в секундах t слишком короткая": "(t / {})^2 if speech duration in seconds t is too short",
 	", ({} / p)^2, если продолжительность речи в секундах t слишком длинная.": ", ({} / p)^2 if the speech duration in seconds t is too long.",
