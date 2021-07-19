@@ -1,5 +1,5 @@
 import logging
-from localisation import *
+from app.localisation import *
 
 from app.criteria import NumberSlidesCriterion, NumberWordOnSlideCriterion, SpeechDurationCriterion, SpeechPaceCriterion, \
     FillersRatioCriterion, SpeechIsNotInDatabaseCriterion, FillersNumberCriterion, StrictSpeechDurationCriterion
