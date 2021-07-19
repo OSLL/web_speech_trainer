@@ -10,7 +10,7 @@
 <p id="error-text"></p>
 </div>
 
-<h3>{{ _("Загрузите pdf-файл с презентацией и нажмите \"Начать тренировку\"") }}</h3>
+<h3>{{ t("Загрузите pdf-файл с презентацией и нажмите \"Начать тренировку\"") }}</h3>
 <form method=POST id="upload-presentation-form" enctype=multipart/form-data action="{{ url_for('routes_presentations.handle_presentation_upload') }}">
     <input id="file-loading" type=file name=presentation onchange="fileLoadingOnChange()">
     <input id="button-submit" type="submit" value="Начать тренировку" disabled="True">

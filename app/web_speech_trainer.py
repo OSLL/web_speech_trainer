@@ -22,7 +22,7 @@ from app.routes.trainings import routes_trainings
 from app.routes.version import routes_version
 from app.status import TrainingStatus, PassBackStatus
 from app.training_manager import TrainingManager
-from localisation import *
+from app.localisation import *
 
 
 app = Flask(__name__)
@@ -106,9 +106,9 @@ def init():
     return {}, 200
 
 
-def setupLocales():
+def setupLocales(locale: str, default: str = "ru"):
     loadLocales("./locale")
-    changeLocale("ru", "ru")
+    changeLocale(locale, default)
     setupTemplatesAlias(app)
 
 
@@ -126,6 +126,6 @@ if __name__ == '__main__':
         ConsumersDBManager().add_consumer(Config.c.constants.lti_consumer_key, Config.c.constants.lti_consumer_secret)
     resubmit_failed_trainings()
 
-    setupLocales()
+    setupLocales(Config.c.locale.language)
 
     app.run(host='0.0.0.0')

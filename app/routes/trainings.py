@@ -3,7 +3,7 @@ import time
 
 from bson import ObjectId
 from flask import Blueprint, render_template, request, session
-from localisation import *
+from app.localisation import *
 
 from app.api.trainings import get_training_statistics
 from app.check_access import check_access

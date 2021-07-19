@@ -1,6 +1,6 @@
 import logging
 
-from flask import Blueprint, render_template
+from flask import render_template, Blueprint
 
 from app.lti_session_passback.auth_checkers import check_admin
 

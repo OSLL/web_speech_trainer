@@ -12,14 +12,14 @@
     <div id="criteria-results"></div>
     <div id="verdict"></div>
     <h3>{{ remaining_processing_time_estimation }}</h3>
-    <h3>{{ _("id тренировки") }}: {{ training_id }}. {{ training_status }}</h3>
-    <h3>{{ _("id презентации") }}: {{ presentation_file_id }}. {{ presentation_status }}</h3>
-    <h3>{{ _("Название презентации") }}: {{ presentation_file_name }}</h3>
-    <h3>{{ _("id аудиозаписи") }}: {{ presentation_record_file_id }}. {{ audio_status }}</h3>
+    <h3>{{ t("id тренировки") }}: {{ training_id }}. {{ training_status }}</h3>
+    <h3>{{ t("id презентации") }}: {{ presentation_file_id }}. {{ presentation_status }}</h3>
+    <h3>{{ t("Название презентации") }}: {{ presentation_file_name }}</h3>
+    <h3>{{ t("id аудиозаписи") }}: {{ presentation_record_file_id }}. {{ audio_status }}</h3>
     <div id="next-training" style="visibility: hidden; font-size: 0">
         <h3 id="training-number"></h3>
         <h3 id="current-points"></h3>
-        <button id="next-training-button">{{ _("Следующая тренировка") }}</button>
+        <button id="next-training-button">{{ t("Следующая тренировка") }}</button>
         <br>
     </div>
     <audio controls src="/api/files/presentation-records/{{ presentation_record_file_id }}/"></audio>

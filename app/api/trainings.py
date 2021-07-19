@@ -12,6 +12,7 @@ from app.mongo_odm import TrainingsDBManager, TaskAttemptsDBManager, TasksDBMana
 from app.status import TrainingStatus, AudioStatus, PassBackStatus, PresentationStatus
 from app.training_manager import TrainingManager
 from app.utils import remove_blank_and_none, check_arguments_are_convertible_to_object_id
+from app.localisation import *
 
 api_trainings = Blueprint('api_trainings', __name__)
 logger = logging.getLogger('root_logger')
@@ -326,10 +327,10 @@ def get_training_information(current_training: Trainings) -> dict:
             'score': current_training.feedback.get('score', None),
             'username': current_training.username,
             'full_name': current_training.full_name,
-            'pass_back_status': PassBackStatus.russian.get(pass_back_status),
-            'training_status': TrainingStatus.russian.get(current_training.status),
-            'audio_status': AudioStatus.russian.get(current_training.audio_status),
-            'presentation_status': PresentationStatus.russian.get(current_training.presentation_status),
+            'pass_back_status': t(PassBackStatus.russian.get(pass_back_status)),
+            'training_status': t(TrainingStatus.russian.get(current_training.status)),
+            'audio_status': t(AudioStatus.russian.get(current_training.audio_status)),
+            'presentation_status': t(PresentationStatus.russian.get(current_training.presentation_status)),
             'presentation_record_duration': presentation_record_duration,
             'presentation_file_id': str(presentation_file_id),
             'presentation_record_file_id': str(presentation_record_file_id),

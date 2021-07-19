@@ -8,7 +8,7 @@ import os
 import argparse
 import re
 import shutil
-from localisation import *
+from app.localisation import *
 
 
 def text_processor(text, mode):

@@ -13,7 +13,7 @@ def changeLocale(locale: str, default: str = None):
         i18n.set('fallback', default)
 
 def setupTemplatesAlias(app: Flask):
-    app.jinja_env.globals.update(_= i18n.t)
+    app.jinja_env.globals.update(t= i18n.t)
 
 def t(key, **kwargs):
     return i18n.t(key, kwargs=kwargs)

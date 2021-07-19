@@ -1,5 +1,3 @@
-from localisation import *
-
 class TrainingStatus:
     NEW = "NEW"
     IN_PROGRESS = "IN_PROGRESS"
