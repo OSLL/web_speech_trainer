@@ -5,6 +5,6 @@ pyfunctional
 returns
 python_speech_features
 pysndfx
-noisereduce
+noisereduce		   ==  1.1.0
 psycopg2
 contextlib

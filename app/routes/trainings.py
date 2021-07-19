@@ -3,6 +3,7 @@ import time
 
 from bson import ObjectId
 from flask import Blueprint, render_template, request, session
+from app.localisation import *
 
 from app.api.trainings import get_training_statistics
 from app.check_access import check_access
@@ -38,12 +39,12 @@ def view_training_statistics(training_id: str):
     feedback_evaluator = FeedbackEvaluatorFactory().get_feedback_evaluator(feedback_evaluator_id)
     criteria_results = feedback.get('criteria_results', {})
     if 'score' in feedback:
-        feedback_str = 'Оценка за тренировку = {}'.format('{:.2f}'.format(feedback.get('score')))
+        feedback_str = '{} = {}'.format(t("Оценка за тренировку"),'{:.2f}'.format(feedback.get('score')))
         results_as_sum_str = feedback_evaluator.get_result_as_sum_str(criteria_results)
         if results_as_sum_str:
             feedback_str += ' = {}'.format(results_as_sum_str)
     else:
-        feedback_str = 'Тренировка обрабатывается. Обновите страницу.'
+        feedback_str = t("Тренировка обрабатывается. Обновите страницу.")
     if criteria_results is not None:
         criteria_results_str = '\n'.join('{} = {}{}'.format(
             name,
@@ -59,25 +60,25 @@ def view_training_statistics(training_id: str):
     training_status = training_statistics['training_status']
     training_status_str = TrainingStatus.russian.get(training_status, '')
     if training_status_str:
-        training_status_str = 'Статус: {}'.format(training_status_str)
+        training_status_str = '{}: {}'.format(t("Статус"), t(training_status_str))
     audio_status = training_statistics['audio_status']
     audio_status_str = AudioStatus.russian.get(audio_status, '')
     if audio_status_str:
-        audio_status_str = 'Статус: {}'.format(audio_status_str)
+        audio_status_str = '{}: {}'.format(t("Статус"), t(audio_status_str))
     presentation_status = training_statistics['presentation_status']
     presentation_status_str = PresentationStatus.russian.get(presentation_status, '')
     if presentation_status_str:
-        presentation_status_str = 'Статус: {}'.format(presentation_status_str)
+        presentation_status_str = '{}: {}'.format(t("Статус"), t(presentation_status_str))
     remaining_processing_time_estimation = training_statistics['remaining_processing_time_estimation']
     if remaining_processing_time_estimation and remaining_processing_time_estimation > 0:
-        remaining_processing_time_estimation_str = 'Ожидаемое время обработки: {} с.'.format(
+        remaining_processing_time_estimation_str = '{}: {} с.'.format(t("Ожидаемое время обработки"),
             time.strftime("%M:%S", time.gmtime(remaining_processing_time_estimation)),
         )
     else:
         remaining_processing_time_estimation_str = ''
     return render_template(
         'training/statistics.html',
-        title='Статистика тренировки с ID: {}'.format(training_id),
+        title='{}: {}'.format(t("Статистика тренировки с ID"), training_id),
         training_id=training_id,
         presentation_file_id=training_statistics['presentation_file_id'],
         presentation_file_name=training_statistics['presentation_file_name'],

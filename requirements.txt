@@ -23,6 +23,7 @@ vext.gi
 websockets
 wheel
 librosa
-noisereduce
+noisereduce		   ==  1.1.0
 python_speech_features
 pysndfx
+python-i18n

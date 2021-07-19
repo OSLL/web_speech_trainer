@@ -19,3 +19,5 @@ def view_admin():
     if not check_admin():
         return {}, 404
     return render_template('admin.html')
+
+

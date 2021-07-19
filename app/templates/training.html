@@ -19,18 +19,18 @@
   <span>Page: <span id="page_num"></span> / <span id="page_count"></span></span>
 </div>
 <div id="tutorial">
-  Для начала тренировки нажмите кнопку "Record".
-  Для перехода на следующий слайд нажмите кнопку "Next".
-  Для окончания тренировки нажмите кнопку "Done".
+  {{ t("Для начала тренировки нажмите кнопку \"Record\".") }}
+  {{ t("Для перехода на следующий слайд нажмите кнопку \"Next\".") }}
+  {{ t("Для окончания тренировки нажмите кнопку \"Done\".") }}
 </div>
 <div id="model-timer" class="model">
         <div class="model-content">
-            <p>Соблюдайте тишину! Калибровка уровня шума!</p>
+            <p>{{ t("Соблюдайте тишину! Калибровка уровня шума!") }}</p>
             <p id="model-time"></p>
         </div>
 </div>
 <div id="timer"></div>
-<p id="record-processing">Аудиозапись обрабатывается. Не уходите со страницы.</p>
+<p id="record-processing">{{ t("Аудиозапись обрабатывается. Не уходите со страницы.") }}</p>
 
 <div>
   <canvas id="the-canvas" style="border: 1px solid #000000; direction: ltr;"></canvas>

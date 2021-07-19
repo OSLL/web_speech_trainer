@@ -8,7 +8,7 @@
 <form method=POST enctype=multipart/form-data action="{{ url_for('routes_presentations.view_presentation_upload') }}?
     to={{ url_for('routes_presentations.view_all_presentations')}}">
     <input type=file name=presentation>
-    <input type="submit" value="Добавить презентацию">
+    <input type="submit" value="{{ t('Добавить презентацию') }}">
 </form>
 
 <table id="all-presentations-table" class="table center-align-table"></table>

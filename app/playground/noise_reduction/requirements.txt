@@ -2,7 +2,7 @@ wheel
 pydub
 soundfile
 librosa
-noisereduce
+noisereduce		   ==  1.1.0
 numpy
 python_speech_features
 pysndfx
