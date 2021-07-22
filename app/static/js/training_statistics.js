@@ -20,25 +20,33 @@ function buildCurrentAttemptStatistics() {
 
 document.addEventListener("DOMContentLoaded", function() {
     buildCurrentAttemptStatistics();
-    configureAudio();
     document.getElementById("next-training-button").onclick = function () {
         window.location.href = `/training_greeting`;
     }
 });
 
-function configureAudio() {
+function configureAudio(info) {
     var audio = $('#presentation-record')[0]
     audio.addEventListener('timeupdate', function ()
         {
-            // here we can set slides by time
-            console.log(this.currentTime)
+            let page_num = parseInt($("#page_num")[0].textContent)
+            for (let i = page_num-1; i < info.length-1; i++) {
+                if (info[i] < this.currentTime && this.currentTime < info[i+1])
+                {
+                    setPage(i+1, info);
+                    break;
+                }
+            }
+            if (this.currentTime > info[info.length-1])
+                setPage(info.length, info);
+            console.log(this.currentTime);
         }
     )
 }
 
 function setAudioTime(time){
-    var audio = $('#presentation-record')[0]
-    audio.currentTime = time
+    var audio = $('#presentation-record')[0];
+    audio.currentTime = time;
 }
 
 function buildAudioSlideTranscriptionRow(slideNumber, words) {
@@ -94,7 +102,6 @@ function renderPageButtons(info){
     var count = info.length;
     var button_div = $('#page_buttons')[0]
     for (let i = 1; i <= count; i++) {
-        console.log(i)
         var button = $(`<button id="page${i}">${i}</button>`)[0];
         $(button).click(function() {
             setAudioTime(info[i-1]) 

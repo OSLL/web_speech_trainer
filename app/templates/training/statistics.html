@@ -46,6 +46,7 @@
     setCriteriaResults("{{ criteria_results }}");
     setupPresentationViewer("{{ training_id }}");
     var info = {{ slides_time }};
+    configureAudio(info);
     renderPageButtons(info);
 </script>
 {% endblock %}
