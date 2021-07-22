@@ -20,25 +20,24 @@ function buildCurrentAttemptStatistics() {
 
 document.addEventListener("DOMContentLoaded", function() {
     buildCurrentAttemptStatistics();
-    var audio = configureAudio();
-    setAudioTime(audio, audio.duration/2)   // test. fun can be used for setting audio time
+    configureAudio();
     document.getElementById("next-training-button").onclick = function () {
         window.location.href = `/training_greeting`;
     }
 });
 
 function configureAudio() {
-    var audio = $('#presentation-record')
+    var audio = $('#presentation-record')[0]
     audio.addEventListener('timeupdate', function ()
         {
             // here we can set slides by time
             console.log(this.currentTime)
         }
     )
-    return audio
 }
 
-function setAudioTime(audio, time){
+function setAudioTime(time){
+    var audio = $('#presentation-record')[0]
     audio.currentTime = time
 }
 
