@@ -1,7 +1,7 @@
 import logging
 
 from bson import ObjectId
-from flask import Blueprint, request, send_file
+from flask import Blueprint, make_response, request, send_file
 
 from app.check_access import check_access
 from app.config import Config
@@ -37,11 +37,20 @@ def get_presentation_record_file(presentation_record_file_id: str):
         'Got presentation record file with presentation_record_file_id = {}.'.format(presentation_record_file_id)
     )
     as_attachment = safe_strtobool(request.args.get('as_attachment', default=True), on_error=True)
-    return send_file(
+    audiofile_len = presentation_record_file.length
+
+    response = make_response(send_file(
         presentation_record_file,
         attachment_filename='{}.mp3'.format(presentation_record_file_id),
         as_attachment=as_attachment,
-    ), 200
+    ))
+    
+    response.headers['accept-ranges'] = "bytes"
+    response.headers['Content-Length'] = audiofile_len
+    response.headers['Content-Range'] = "bytes 0-{}/{}".format(audiofile_len, audiofile_len-1)
+    response.headers['content-type'] = presentation_record_file.content_type
+    
+    return response, 200
 
 
 @check_arguments_are_convertible_to_object_id
