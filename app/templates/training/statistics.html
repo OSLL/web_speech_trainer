@@ -22,15 +22,31 @@
         <button id="next-training-button">{{ t("Следующая тренировка") }}</button>
         <br>
     </div>
+
+    <div id="controls">
+        <span>Page: <span id="page_num"></span> / <span id="page_count"></span></span>
+        <div id='page_buttons'></div>
+    </div>
+    
+    <div>
+        <canvas id="the-canvas" style="border: 1px solid #000000; direction: ltr;"></canvas>
+    </div>
+    
     <audio id="presentation-record" controls src="/api/files/presentation-records/{{ presentation_record_file_id }}/"></audio>
     <table class="table transcription-table" id="per-slide-audio-transcription-table"></table>
 </div>
 <script src="{{ url_for('static', filename='js/libraries/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/libraries/pdf.js/build/pdf.js') }}"></script>
+<script src="{{ url_for('static', filename='js/training.js') }}"></script>
 <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
 <script src="{{ url_for('static', filename='js/training_statistics.js') }}"></script>
 <script type="text/javascript">
     setVerdict("{{ verdict }}");
     setPerSlideAudioTranscriptionTable("{{ training_id }}");
     setCriteriaResults("{{ criteria_results }}");
+    setupPresentationViewer("{{ training_id }}");
+    var info = JSON.parse({{ recognized_info['recognized_audio'] | tojson }})
+    renderPageButtons(info['audio_slides'].length);
+    setRecognizedInfo(info)
 </script>
 {% endblock %}
