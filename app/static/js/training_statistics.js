@@ -85,3 +85,22 @@ function setVerdict(s) {
 function setCriteriaResults(s) {
     document.getElementById("criteria-results").innerText = `${s}`;
 }
+
+function setRecognizedInfo(slides){
+    console.log(slides)
+}
+
+function renderPageButtons(count){
+    $("#page_count")[0].textContent = count;
+    var button_div = $('#page_buttons')[0]
+    for (let i = 1; i <= count; i++) {
+        console.log(i)
+        var button = $(`<button id="page${i}" value="${i}">${i}</button>`)[0];
+        $(button).click(function() {
+            console.log(i)
+            setPage(i)
+        })
+        console.log(button)
+        button_div.append(button);
+    }
+}

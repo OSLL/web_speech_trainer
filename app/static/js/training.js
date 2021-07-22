@@ -55,6 +55,13 @@ function onNextPage() {
   queueRenderPage(pageNum);
 }
 
+function setPage(pageNum){
+  if (pageNum >= pdfDoc.numPages) {
+    return;
+  }
+  queueRenderPage(pageNum);
+}
+
 function setupPresentationViewer(trainingId_) {
     trainingId = trainingId_;
     let loadingTask = pdfjsLib.getDocument(`/api/files/presentations/by-training/${trainingId_}/`);
