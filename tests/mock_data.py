@@ -85,6 +85,8 @@ def open_file_and_copy_content(path, mode):
     data = open(path, mode)
     content = data.read()
     data.seek(0)
+    data.length = len(content)
+    data.content_type = "audio/mpeg"
     return data, content
 
 
