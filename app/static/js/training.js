@@ -5,7 +5,8 @@ let pdfDoc,
     scale,
     canvas,
     ctx,
-    trainingId;
+    trainingId,
+    currentPage;
 
 function renderPage(num) {
   pageRendering = true;
@@ -59,6 +60,10 @@ function setPage(pageNum){
   if (pageNum > pdfDoc.numPages) {
     return;
   }
+  if (currentPage == pageNum){
+    return;
+  }
+  currentPage = pageNum;
   queueRenderPage(pageNum);
 }
 
