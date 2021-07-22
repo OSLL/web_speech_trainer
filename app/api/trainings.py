@@ -5,6 +5,7 @@ from datetime import datetime
 from bson import ObjectId
 from flask import Blueprint, session, request
 
+from app.audio import Audio
 from app.check_access import check_access
 from app.lti_session_passback.auth_checkers import is_admin, check_auth, check_admin
 from app.mongo_models import Trainings
@@ -174,6 +175,17 @@ def get_remaining_processing_time_by_training_id(training_id: str) -> (dict, int
     return {'processing_time_remaining': round(time_estimation), 'message': 'OK'}, 200
 
 
+def proccess_training_slides_info(audio):
+    current_time = 3.0 
+    slides_time = []
+    
+    for slide in audio.audio_slides:
+        slides_time.append(current_time)
+        current_time += slide.audio_slide_stats['slide_duration']
+    logger.error(repr(audio))
+    logger.error(str(slides_time))
+    return slides_time
+
 @check_arguments_are_convertible_to_object_id
 @api_trainings.route('/api/trainings/statistics/<training_id>/', methods=['GET'])
 def get_training_statistics(training_id: str) -> (dict, int):
@@ -196,10 +208,11 @@ def get_training_statistics(training_id: str) -> (dict, int):
     training_status = training_db.status
     audio_status = training_db.audio_status
     presentation_status = training_db.presentation_status
-    recognized_info = { 'recognized_audio': None } 
+    slides_time = []
     if audio_status == AudioStatus.PROCESSED:
         # here we need to process audio_slides
-        recognized_info['recognized_audio'] = DBManager().get_file(training_db.audio_id).read().decode("utf-8")
+        audio = Audio.from_json_file(DBManager().get_file(training_db.audio_id))
+        slides_time = proccess_training_slides_info(audio)
     feedback = training_db.feedback
     criteria_pack_id = training_db.criteria_pack_id
     feedback_evaluator_id = training_db.feedback_evaluator_id
@@ -216,7 +229,7 @@ def get_training_statistics(training_id: str) -> (dict, int):
         'training_status': training_status,
         'audio_status': audio_status,
         'presentation_status': presentation_status,
-        'recognized_info': recognized_info,
+        'slides_time': slides_time,
         'remaining_processing_time_estimation': remaining_processing_time_estimation['processing_time_remaining'],
         'criteria_pack_id': criteria_pack_id,
         'feedback_evaluator_id': feedback_evaluator_id,

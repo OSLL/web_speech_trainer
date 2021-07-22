@@ -90,7 +90,7 @@ def view_training_statistics(training_id: str):
         presentation_status=presentation_status_str,
         remaining_processing_time_estimation=remaining_processing_time_estimation_str,
         criteria_results=criteria_results_str.replace('\n', '\\n').replace('\'', '').replace('"', ''),
-        recognized_info=training_statistics['recognized_info'],
+        slides_time=training_statistics['slides_time'],
     ), 200
 
 

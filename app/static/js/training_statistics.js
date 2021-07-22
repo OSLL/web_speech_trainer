@@ -90,14 +90,14 @@ function setRecognizedInfo(slides){
     console.log(slides)
 }
 
-function renderPageButtons(count){
-    $("#page_count")[0].textContent = count;
+function renderPageButtons(info){
+    var count = info.length;
     var button_div = $('#page_buttons')[0]
     for (let i = 1; i <= count; i++) {
         console.log(i)
-        var button = $(`<button id="page${i}" value="${i}">${i}</button>`)[0];
+        var button = $(`<button id="page${i}">${i}</button>`)[0];
         $(button).click(function() {
-            console.log(i)
+            setAudioTime(info[i-1]) 
             setPage(i)
         })
         console.log(button)

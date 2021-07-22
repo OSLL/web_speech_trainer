@@ -56,7 +56,7 @@ function onNextPage() {
 }
 
 function setPage(pageNum){
-  if (pageNum >= pdfDoc.numPages) {
+  if (pageNum > pdfDoc.numPages) {
     return;
   }
   queueRenderPage(pageNum);

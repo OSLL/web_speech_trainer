@@ -45,8 +45,7 @@
     setPerSlideAudioTranscriptionTable("{{ training_id }}");
     setCriteriaResults("{{ criteria_results }}");
     setupPresentationViewer("{{ training_id }}");
-    var info = JSON.parse({{ recognized_info['recognized_audio'] | tojson }})
-    renderPageButtons(info['audio_slides'].length);
-    setRecognizedInfo(info)
+    var info = {{ slides_time }};
+    renderPageButtons(info);
 </script>
 {% endblock %}
