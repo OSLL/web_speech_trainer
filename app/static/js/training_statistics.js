@@ -20,10 +20,26 @@ function buildCurrentAttemptStatistics() {
 
 document.addEventListener("DOMContentLoaded", function() {
     buildCurrentAttemptStatistics();
+    configureAudio();
     document.getElementById("next-training-button").onclick = function () {
         window.location.href = `/training_greeting`;
     }
 });
+
+function configureAudio() {
+    var audio = $('#presentation-record')[0]
+    audio.addEventListener('timeupdate', function ()
+        {
+            // here we can set slides by time
+            console.log(this.currentTime)
+        }
+    )
+}
+
+function setAudioTime(time){
+    var audio = $('#presentation-record')[0]
+    audio.currentTime = time
+}
 
 function buildAudioSlideTranscriptionRow(slideNumber, words) {
     const currentSlideRowElement = document.createElement("tr");

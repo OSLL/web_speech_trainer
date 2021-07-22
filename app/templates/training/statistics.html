@@ -22,7 +22,7 @@
         <button id="next-training-button">{{ t("Следующая тренировка") }}</button>
         <br>
     </div>
-    <audio controls src="/api/files/presentation-records/{{ presentation_record_file_id }}/"></audio>
+    <audio id="presentation-record" controls src="/api/files/presentation-records/{{ presentation_record_file_id }}/"></audio>
     <table class="table transcription-table" id="per-slide-audio-transcription-table"></table>
 </div>
 <script src="{{ url_for('static', filename='js/libraries/jquery.min.js') }}"></script>
