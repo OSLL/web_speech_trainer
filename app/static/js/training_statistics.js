@@ -39,7 +39,7 @@ function configureAudio(info) {
             }
             if (this.currentTime > info[info.length-1])
                 setPage(info.length, info);
-            changeURLByParam('time', this.currentTime);
+            changeURLByParam('time', this.currentTime.toFixed(1));
             console.log(this.currentTime);
         }
     )
