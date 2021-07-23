@@ -128,7 +128,9 @@ function changeTrainingStatsURL() {
         setAudioTime(parseFloat(params['time'])) 
     }
     
+    let pageNum = 1;
     if ('page' in params && parseInt(params['page'])){
-        setPage(parseInt(params['page'], 10))
+        pageNum = parseInt(params['page'], 10)
     }
+    setPage(pageNum)
 }
