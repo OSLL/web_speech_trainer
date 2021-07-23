@@ -39,6 +39,7 @@ function configureAudio(info) {
             }
             if (this.currentTime > info[info.length-1])
                 setPage(info.length, info);
+            changeURLByParam('time', this.currentTime);
             console.log(this.currentTime);
         }
     )
@@ -47,7 +48,6 @@ function configureAudio(info) {
 function setAudioTime(time){
     var audio = $('#presentation-record')[0];
     audio.currentTime = time;
-    changeURLByParam('time', time);
 }
 
 function buildAudioSlideTranscriptionRow(slideNumber, words) {
