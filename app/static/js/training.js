@@ -64,6 +64,7 @@ function setPage(pageNum){
     return;
   }
   currentPage = pageNum;
+  changeURLByParam('page', currentPage);
   queueRenderPage(pageNum);
 }
 
@@ -74,6 +75,7 @@ function setupPresentationViewer(trainingId_) {
       pdfDoc = pdfDoc_;
       $("#page_count")[0].textContent = pdfDoc.numPages;
       renderPage(pageNum);
+      changeTrainingStatsURL();
     });
 }
 
