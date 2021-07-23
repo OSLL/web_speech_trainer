@@ -64,6 +64,7 @@ function setPage(pageNum){
     return;
   }
   currentPage = pageNum;
+  changeURLByParam('page', currentPage);
   queueRenderPage(pageNum);
 }
 

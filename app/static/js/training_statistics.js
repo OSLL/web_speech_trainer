@@ -29,7 +29,7 @@ function configureAudio(info) {
     var audio = $('#presentation-record')[0]
     audio.addEventListener('timeupdate', function ()
         {
-            let page_num = parseInt($("#page_num")[0].textContent)
+            let page_num = parseInt($("#page_num")[0].textContent, 10)
             for (let i = page_num-1; i < info.length-1; i++) {
                 if (info[i] < this.currentTime && this.currentTime < info[i+1])
                 {
@@ -47,6 +47,7 @@ function configureAudio(info) {
 function setAudioTime(time){
     var audio = $('#presentation-record')[0];
     audio.currentTime = time;
+    changeURLByParam('time', time);
 }
 
 function buildAudioSlideTranscriptionRow(slideNumber, words) {
@@ -102,11 +103,32 @@ function renderPageButtons(info){
     var count = info.length;
     var button_div = $('#page_buttons')[0]
     for (let i = 1; i <= count; i++) {
-        var button = $(`<button id="page${i}">${i}</button>`)[0];
+        var button = $(`<button id="page${i}" name="audio_control_button" >${i}</button>`)[0];
         $(button).click(function() {
             setAudioTime(info[i-1]) 
             setPage(i)
         })
         button_div.append(button);
+    }
+}
+
+function changeTrainingStatsURL() {
+    //parse url
+    let params = location.search.replace('?','').split('&')
+                    .reduce(
+                        function(p,e) {
+                            let a = e.split('=');
+                            p[decodeURIComponent(a[0])] = decodeURIComponent(a[1]);
+                            return p;
+                        },
+                        {}  
+                    );
+    
+    if('time' in params && parseFloat(params['time'])){
+        setAudioTime(parseFloat(params['time'])) 
+    }
+    
+    if ('page' in params && parseInt(params['page'])){
+        setPage(parseInt(params['page'], 10))
     }
 }
