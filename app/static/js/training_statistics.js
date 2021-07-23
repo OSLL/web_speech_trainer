@@ -107,7 +107,6 @@ function renderPageButtons(info){
             setAudioTime(info[i-1]) 
             setPage(i)
         })
-        console.log(button)
         button_div.append(button);
     }
 }

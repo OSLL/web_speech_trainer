@@ -182,8 +182,6 @@ def proccess_training_slides_info(audio):
     for slide in audio.audio_slides:
         slides_time.append(current_time)
         current_time += slide.audio_slide_stats['slide_duration']
-    logger.error(repr(audio))
-    logger.error(str(slides_time))
     return slides_time
 
 @check_arguments_are_convertible_to_object_id
