@@ -74,6 +74,7 @@ function setupPresentationViewer(trainingId_) {
     loadingTask.promise.then(function(pdfDoc_) {
       pdfDoc = pdfDoc_;
       $("#page_count")[0].textContent = pdfDoc.numPages;
+      renderPage(pageNum);
       changeTrainingStatsURL();
     });
 }
