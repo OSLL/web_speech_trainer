@@ -125,12 +125,13 @@ function changeTrainingStatsURL() {
                     );
     
     if('time' in params && parseFloat(params['time'])){
-        setAudioTime(parseFloat(params['time'])) 
+        setAudioTime(parseFloat(params['time']))    // page will setted by 'timeupdate' listener
     }
-    
-    let pageNum = 1;
-    if ('page' in params && parseInt(params['page'])){
-        pageNum = parseInt(params['page'], 10)
+    else
+    {
+        // else we can set page + time
+        if ('page' in params && parseInt(params['page'])){
+            $(`#page${parseInt(params['page'], 10)}`).click()   // set page and time by clicking
+        }
     }
-    setPage(pageNum)
 }
