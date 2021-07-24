@@ -5,6 +5,7 @@ from flask import Flask, session
 
 from app.api.audio import api_audio
 from app.api.criteria import api_criteria
+from app.api.dump import api_dump
 from app.api.files import api_files
 from app.api.logs import api_logs
 from app.api.presentations import api_presentations
@@ -27,6 +28,7 @@ from app.localisation import *
 
 app = Flask(__name__)
 app.register_blueprint(api_audio)
+app.register_blueprint(api_dump)
 app.register_blueprint(api_criteria)
 app.register_blueprint(api_files)
 app.register_blueprint(api_logs)
