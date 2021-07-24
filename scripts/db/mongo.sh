@@ -6,7 +6,7 @@ LOADING=false
 check_mongo_client()
 {
     echo "Checking mongodb-clients is installed"
-    if ! dpkg -l mongodb-clients 
+    if ! dpkg -l mongodb-clients
     then
         sudo apt update
         sudo apt install -y mongodb-clients
@@ -29,11 +29,16 @@ usage()
         -p      Mongo password
         -H      Mongo host string (ex. localhost:27017)
         -d      Dump path
+        -f      Don't include fs.chunks to backup
+        -a      Create two zips (with/without chunks)
 EOF
 }
 
+exlude_fschunks=''
+nochunks=''
+zip_all=false
 dumpPath='../dump';
-while getopts "hlu:p:d:H:" opt; do
+while getopts "hlfau:p:d:H:" opt; do
     MAXOPTIND=$OPTIND
     case $opt in
         h)
@@ -42,6 +47,15 @@ while getopts "hlu:p:d:H:" opt; do
             ;;
         l)
             LOADING=true
+            ;;
+        a)
+            zip_all=true
+            exlude_fschunks='-x fs.chunks.json'
+            nochunks='_nochunks'
+            ;;
+        f)
+            exlude_fschunks='-x fs.chunks.json'
+            nochunks='_nochunks'
             ;;
         u)
             USERNAME="$OPTARG"
@@ -138,7 +152,13 @@ else
         echo "mongoexport --host $HOST -d $DB -c $collection --out=$collection.json --forceTableScan"
         mongoexport --host $HOST -d $DB -c $collection --out=$collection.json --forceTableScan >/dev/null
     done
-    zip -r backup.zip *.json
+
+    zip -r backup${nochunks}.zip *.json $exlude_fschunks
+    if $zip_all ; then
+        echo "Zip all json-files"
+        zip -r backup.zip *.json
+    fi
     rm *.json
+    echo "Dump saved to $(pwd)"
     cd -
 fi
