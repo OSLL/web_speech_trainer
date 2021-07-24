@@ -2,6 +2,7 @@
 
 LOADING=false
 
+set -e
 
 check_mongo_client()
 {

@@ -1,0 +1,50 @@
+{% extends "base.html" %} {% block content %}
+<div class="base-container">
+    <table border=1 style="margin: 0px auto; text-align: center;">
+        <tr>
+            <th>{{ t("Название") }}</th>
+            <th>{{ t("Время создания") }}</th>
+            <th>{{ t("Размер") }}</th>
+            <th>{{ t("Скачать") }}</th>
+        </tr>
+        {% for key in dumps %}
+            <tr>
+                <td>{{key}}</td>
+                <td>{{dumps[key].get('created', '-')}}</td>
+                <td>{{dumps[key].get('size', '-')}}</td>
+                <td>
+                    {% if dumps[key] %}
+                        <a href={{url_for("api_dump.download_dump", backup_name=key)}} target="_blank">{{ t("Скачать") }}</a></td>
+                    {% else %}
+                        -
+                    {% endif %}
+            </tr>
+        {% endfor %}
+    </table>
+    <button id="createDump">{{ t("Создать архивы БД") }}</button>
+    <label for="createDump">{{ t("Используйте с осторожностью! Может заблокировать сервис из-за активной работы с БД") }}</i>
+</div>
+
+<script src="{{ url_for('static', filename='js/libraries/jquery.min.js') }}"></script>
+<script type="text/javascript">
+    $("#createDump").click(function(){
+        $(this).text('{{ t("Создание...")}}')
+        fetch(`/api/dumps/create`)
+                .then(response => response.json())
+                .then(function (data) {
+                    if (data["message"] === "OK"){
+                        window.location.reload();
+                    }
+                    else{
+                        console.log(error);
+                        alert('{{ t("Ошибка создания архива.")}}' + '\n' + data["message"])
+                    }
+                })
+                .catch(error => {
+                    console.log(error);
+                    alert('{{ t("Ошибка создания архива.") + t("Попробуйте позже или обратитесь к администратору") }}')
+                });
+    })
+</script>
+
+{% endblock %}
