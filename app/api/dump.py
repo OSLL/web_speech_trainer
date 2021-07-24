@@ -30,10 +30,13 @@ def get_dumps_info() -> (dict, int):
 
     for filename in backup_filenames:
         info[filename] = {}
-        filepath = "".format(Config.c.constants.backup_path, filename)
+        filepath = "{}{}".format(Config.c.constants.backup_path, filename)
         if os.path.isfile(filepath):
             info[filename]['created'] = datetime.fromtimestamp(os.path.getmtime(filepath))
             info[filename]['size'] = os.path.getsize(filepath)
+            logger.debug("Backup file {}: {}".format(filename, info[filename]))
+        else:
+            logger.warning("No backup file in path: {}".format(filepath))
 
     return info, 200
 
@@ -49,8 +52,12 @@ def create_dumps() -> (dict, int):
     if not check_admin():
         return {}, 404
     
-    backup_script_command = "./scripts/db/mongo.sh -H db:27017 -a database" 
-    subprocess.call(backup_script_command.split(' '))
+    backup_script_command = "../scripts/db/mongo.sh -H db:27017 -a database" 
+    code = subprocess.call(backup_script_command.split(' '))
+
+    if code != 0:
+        logger.error("Non-zero code for dump command '{}''. Code {}".format(backup_script_command, code))
+        return {'message': "Non-zero code for dump command: {}".format(code)}, 404
 
     return get_dumps_info()
 
