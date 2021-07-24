@@ -73,7 +73,7 @@ def download_dump(backup_name: str) -> (dict, int):
     if not check_admin():
         return {}, 404
  
-    filepath = "".format(Config.c.constants.backup_path, backup_name)
+    filepath = "{}{}".format(Config.c.constants.backup_path, backup_name)
     if backup_name not in backup_filenames or not os.path.isfile(filepath):
         return {'message': "No such backup file: {}".format(backup_name)}, 404
 
