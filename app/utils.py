@@ -5,6 +5,7 @@ from threading import Timer
 
 import fitz
 from bson import ObjectId
+import magic
 from pydub import AudioSegment
 
 from app.config import Config
@@ -12,6 +13,12 @@ from app.config import Config
 PDF_HEX_START = ['25', '50', '44', '46']
 SECONDS_PER_MINUTE = 60
 BYTES_PER_MEGABYTE = 1024 * 1024
+ALLOWED_MIMETYPES = {
+        'pdf': 'application/pdf',
+        'ppt': 'application/vnd.ms-powerpoint',
+        'odp': 'application/vnd.oasis.opendocument.presentation',
+        'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+    }
 
 
 def file_has_pdf_beginning(file):
@@ -21,6 +28,28 @@ def file_has_pdf_beginning(file):
             return False
     file.seek(0)
     return True
+
+
+def check_file_mime(file, expected_ext):
+    """
+    : file: file-object
+    : expected_ext: str, expected file extension (pdf, pptx, odp)
+    return: Tuple(check_result, file_mime)
+        - check_result
+            - False, if expected_ext isn't allowed or file_mime != expected_ext
+        - file_mime
+            - None, if expected_ext isn't allowed
+    """
+    # TODO: add params for user-allowed extensions (#250)
+    if expected_ext not in ALLOWED_MIMETYPES:
+        return False, None
+
+    file_mime = magic.from_buffer(file.read(2048), mime=True)
+    file.seek(0)
+
+    # also we can check, that file_mime is allowed, but not for expected_ext
+    # (for example, pptx renamed to ppt) 
+    return file_mime == ALLOWED_MIMETYPES[expected_ext], file_mime
 
 
 def convert_from_mp3_to_wav(audio, frame_rate=8000, channels=1):
