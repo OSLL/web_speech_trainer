@@ -125,7 +125,9 @@ def upload_presentation() -> (dict, int):
     extension = presentation_file.filename.rsplit('.', 1)[-1].lower()
     passed, filemime = check_file_mime(presentation_file, extension) 
     if not passed:
-        return {'message': 'Presentation file has not allowed extension: {} (mimetype: {}).'.format(extension,filemime)}, 404
+        msg = 'Presentation file has not allowed extension: {} (mimetype: {}).'.format(extension,filemime)
+        logger.debug(msg)
+        return {'message': msg}, 404
 
     presentation_file_id = DBManager().add_file(presentation_file, presentation_file.filename)
     presentation_file_preview = get_presentation_file_preview(DBManager().get_file(presentation_file_id))
