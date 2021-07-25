@@ -7,7 +7,7 @@ from app.check_access import check_access
 from app.config import Config
 from app.lti_session_passback.auth_checkers import check_auth
 from app.mongo_odm import DBManager, TrainingsDBManager, PresentationFilesDBManager
-from app.utils import safe_strtobool, file_has_pdf_beginning, get_presentation_file_preview, BYTES_PER_MEGABYTE, \
+from app.utils import safe_strtobool, check_file_mime, get_presentation_file_preview, BYTES_PER_MEGABYTE, \
     check_arguments_are_convertible_to_object_id
 
 api_files = Blueprint('api_files', __name__)
@@ -121,9 +121,12 @@ def upload_presentation() -> (dict, int):
         }, 404
     presentation_file = request.files['presentation']
 
-    # TODO Perform proper but slower check that provided file is really a PDF?
-    if not file_has_pdf_beginning(presentation_file):
-        return {'message': 'Presentation file should be a pdf file.'}, 404
+    # check extension and mimtype of file 
+    extension = presentation_file.filename.rsplit('.', 1)[-1].lower()
+    passed, filemime = check_file_mime(presentation_file, extension) 
+    if not passed:
+        msg = 'Presentation file has not allowed extension: {} (mimetype: {}).'.format(extension,filemime)
+        return {'message': msg}, 404
 
     presentation_file_id = DBManager().add_file(presentation_file, presentation_file.filename)
     presentation_file_preview = get_presentation_file_preview(DBManager().get_file(presentation_file_id))
