@@ -128,6 +128,9 @@ def upload_presentation() -> (dict, int):
         msg = 'Presentation file has not allowed extension: {} (mimetype: {}).'.format(extension,filemime)
         return {'message': msg}, 404
 
+    if is_convertible(extension):
+        # change extension for new file
+        # convert to pdf
     presentation_file_id = DBManager().add_file(presentation_file, presentation_file.filename)
     presentation_file_preview = get_presentation_file_preview(DBManager().get_file(presentation_file_id))
     presentation_file_preview_id = DBManager().read_and_add_file(

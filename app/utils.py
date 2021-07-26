@@ -19,6 +19,7 @@ ALLOWED_MIMETYPES = {
         'odp': 'application/vnd.oasis.opendocument.presentation',
         'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
     }
+CONVERTIBLE_EXTENSIONS = ('ppt', 'pptx', 'odp')
 
 
 def file_has_pdf_beginning(file):
@@ -50,6 +51,9 @@ def check_file_mime(file, expected_ext):
     # also we can check, that file_mime is allowed, but not for expected_ext
     # (for example, pptx renamed to ppt) 
     return file_mime == ALLOWED_MIMETYPES[expected_ext], file_mime
+
+
+def is_convertible(extension): return extension in CONVERTIBLE_EXTENSIONS
 
 
 def convert_from_mp3_to_wav(audio, frame_rate=8000, channels=1):
