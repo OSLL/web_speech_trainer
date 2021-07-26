@@ -46,12 +46,21 @@ def check_file_mime(file, expected_ext):
     if expected_ext not in ALLOWED_MIMETYPES:
         return False, None
 
-    file_mime = magic.from_buffer(file.read(2048), mime=True)
-    file.seek(0)
+    file_mime = get_file_mime(file)
 
     # also we can check, that file_mime is allowed, but not for expected_ext
     # (for example, pptx renamed to ppt) 
     return file_mime == ALLOWED_MIMETYPES[expected_ext], file_mime
+
+
+def get_file_mime(file):
+    """
+    : file: file-object
+    return: file_mime (from magic)
+    """
+    file_mime = magic.from_buffer(file.read(2048), mime=True)
+    file.seek(0)
+    return file_mime
 
 
 def is_convertible(extension): return extension in CONVERTIBLE_EXTENSIONS
