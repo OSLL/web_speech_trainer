@@ -9,6 +9,9 @@
 <div id="alert" class="alert alert-danger" role="alert">
 <p id="error-text"></p>
 </div>
+<div id="alert-warning" class="alert alert-warning" role="alert">
+    <p id="warning-text"></p>
+</div>
 
 <h3>{{ t("Загрузите pdf-файл с презентацией и нажмите \"Начать тренировку\"") }}</h3>
 <form method=POST id="upload-presentation-form" enctype=multipart/form-data action="{{ url_for('routes_presentations.handle_presentation_upload') }}">

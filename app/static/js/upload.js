@@ -1,6 +1,16 @@
 const MAX_PRESENTATION_SIZE = 16;
 
-$("#alert").hide();
+$(function(){
+    $("#alert").hide();
+    $("#alert-warning").hide();
+
+    $('#upload-presentation-form').submit(function()
+    {
+        $('#button-submit').value = 'Обработка...';
+        $('#button-submit').attr("disabled", true);
+    })
+});
+
 
 function fileLoadingOnChange() {
     $("#alert").hide();
