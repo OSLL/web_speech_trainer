@@ -8,11 +8,10 @@ from app.config import Config
 from app.lti_session_passback.auth_checkers import check_auth
 from app.mongo_odm import DBManager, TrainingsDBManager, PresentationFilesDBManager
 from app.utils import safe_strtobool, check_file_mime, get_presentation_file_preview, BYTES_PER_MEGABYTE, \
-    check_arguments_are_convertible_to_object_id
+    check_arguments_are_convertible_to_object_id, convert_to_pdf, is_convertible
 
 api_files = Blueprint('api_files', __name__)
 logger = logging.getLogger('root_logger')
-
 
 @check_arguments_are_convertible_to_object_id
 @api_files.route('/api/files/presentation-records/<presentation_record_file_id>/', methods=['GET'])
@@ -128,9 +127,19 @@ def upload_presentation() -> (dict, int):
         msg = 'Presentation file has not allowed extension: {} (mimetype: {}).'.format(extension,filemime)
         return {'message': msg}, 404
 
+    nonconverted_file_id = None
     if is_convertible(extension):
         # change extension for new file
+        original_name = presentation_file.filename
+        converted_name = 'pdf'.join(presentation_file.filename.rsplit(extension, 1))
         # convert to pdf
+        converted_pdf_file = convert_to_pdf(presentation_file)
+        # swap converted and nonconverted files for further work 
+        presentation_file, non_converted_file = converted_pdf_file, presentation_file
+        presentation_file.filename = converted_name
+        # save nonconverted file with original_name
+        nonconverted_file_id = DBManager().add_file(non_converted_file, original_name)
+
     presentation_file_id = DBManager().add_file(presentation_file, presentation_file.filename)
     presentation_file_preview = get_presentation_file_preview(DBManager().get_file(presentation_file_id))
     presentation_file_preview_id = DBManager().read_and_add_file(
@@ -141,7 +150,9 @@ def upload_presentation() -> (dict, int):
     PresentationFilesDBManager().add_presentation_file(
         presentation_file_id,
         presentation_file.filename,
-        presentation_file_preview_id
+        presentation_file_preview_id,
+        extension,
+        nonconverted_file_id
     )
     return {
         'presentation_file_id': str(presentation_file_id),
