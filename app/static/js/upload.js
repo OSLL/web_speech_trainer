@@ -4,11 +4,36 @@ let user_formats = []
 $(function(){
     $("#alert").hide();
     $("#alert-warning").hide();
-
-    $('#upload-presentation-form').submit(function()
+    let button_value = $('#button-submit')[0].value
+    $('#upload-presentation-form').submit(function(event)
     {
-        $('#button-submit').value = 'Обработка...';
+        event.preventDefault();
+        $('#button-submit')[0].value = 'Обработка...';
         $('#button-submit').attr("disabled", true);
+
+        fetch($(this)[0].action, 
+        {
+            method: "POST",
+            follow: true,
+            body: new FormData($(this)[0])
+        })
+        .then(response => {
+            if (response.redirected) {
+                window.location.href = response.url;
+                return;
+            }
+            response.json().then(responseJson => {
+                if (responseJson["message"] !== "OK"){
+                    $("#alert").show();
+                    $("#error-text").html(responseJson["message"]);
+                    
+                    $(this).trigger("reset");
+                    $('#button-submit')[0].value = button_value
+                    
+                    return;
+                }
+            })
+        });
     })
 
     fetch("/api/sessions/pres-formats/")
