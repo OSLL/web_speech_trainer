@@ -120,12 +120,12 @@ def upload_presentation() -> (dict, int):
         }, 404
     presentation_file = request.files['presentation']
 
-    # check extension and mimtype of file 
+    # check extension and mimetype of file 
     extension = presentation_file.filename.rsplit('.', 1)[-1].lower()
     passed, filemime = check_file_mime(presentation_file, extension) 
     if not passed:
         msg = 'Presentation file has not allowed extension: {} (mimetype: {}).'.format(extension,filemime)
-        return {'message': msg}, 404
+        return {'message': msg}, 200
 
     nonconverted_file_id = None
     if is_convertible(extension):
