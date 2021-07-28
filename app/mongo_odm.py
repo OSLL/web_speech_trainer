@@ -720,11 +720,13 @@ class PresentationFilesDBManager:
             cls.init_done = True
         return cls.instance
 
-    def add_presentation_file(self,  file_id, filename, preview_id):
+    def add_presentation_file(self,  file_id, filename, preview_id, filetype='pdf', nonconverted_file_id=None):
         return PresentationFiles(
             file_id=file_id,
             filename=filename,
-            preview_id=preview_id
+            preview_id=preview_id,
+            filetype=filetype,
+            nonconverted_file_id=nonconverted_file_id
         ).save()
 
     def get_presentation_files(self):

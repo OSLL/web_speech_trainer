@@ -1,9 +1,55 @@
 const MAX_PRESENTATION_SIZE = 16;
+let user_formats = []
 
-$("#alert").hide();
+$(function(){
+    $("#alert").hide();
+    $("#alert-warning").hide();
+    let button_value = $('#button-submit')[0].value
+    $('#upload-presentation-form').submit(function(event)
+    {
+        event.preventDefault();
+        $('#button-submit')[0].value = 'Обработка...';
+        $('#button-submit').attr("disabled", true);
+
+        fetch($(this)[0].action, 
+        {
+            method: "POST",
+            follow: true,
+            body: new FormData($(this)[0])
+        })
+        .then(response => {
+            if (response.redirected) {
+                window.location.href = response.url;
+                return;
+            }
+            response.json().then(responseJson => {
+                if (responseJson["message"] !== "OK"){
+                    $("#alert").show();
+                    $("#error-text").html(responseJson["message"]);
+                    
+                    $(this).trigger("reset");
+                    $('#button-submit')[0].value = button_value
+                    
+                    return;
+                }
+            })
+        });
+    })
+
+    fetch("/api/sessions/pres-formats/")
+        .then(response => response.json())
+        .then(responseJson => {
+            if (responseJson["message"] == "OK") {
+                user_formats = responseJson['formats']
+                $('#user_allowed_formats')[0].textContent = user_formats.join(', ')
+            }
+        });
+});
+
 
 function fileLoadingOnChange() {
     $("#alert").hide();
+    $("#alert-warning").hide();
     $("#button-submit").attr("disabled", true);
     if ($("#file-loading").prop("files").length < 1) {
         $("#alert").show();
@@ -11,15 +57,22 @@ function fileLoadingOnChange() {
     } else {
         const file = $("#file-loading").prop("files")[0];
         let parts = file.name.split(".");
-        if (parts.length <= 1 || parts.pop() !== "pdf") {
+        let extension = parts.pop().toLowerCase();
+        console.log(`File extension ${extension}`)
+        /* TODO: use list with user-allowed extensions */
+        if (parts.length < 1 || !['pdf', 'pptx', 'ppt', 'odp'].includes(extension)) {
             $("#alert").show();
-            $("#error-text").html("Презентация должна быть в формате PDF!");
+            $("#error-text").html(`Презентация должна быть в формате ${user_formats.join(', ')}!`);
             return;
         }
         if (file.size > MAX_PRESENTATION_SIZE * 1024 * 1024) {
             $("#alert").show();
             $("#error-text").html(`Размер файла с презентацией не должен превышать ${MAX_PRESENTATION_SIZE} мегабайт!`);
             return;
+        }
+        if (['pptx', 'ppt', 'odp'].includes(extension)) {
+            $("#alert-warning").show();
+            $("#warning-text").html("Презентация будет преобразована в PDF-формат. Это может занять некоторое время!");
         }
         $("#button-submit").removeAttr("disabled");
     }

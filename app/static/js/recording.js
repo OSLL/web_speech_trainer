@@ -116,5 +116,4 @@ $(document).ready(function () {
     $("#done").click(stopRecording);
     $("#record-processing")[0].style = "visibility: hidden; font-size: 0";
     window.onbeforeunload = null;
-    $("#denoising-note")[0].style = "visibility: hidden; font-size: 0";
 });

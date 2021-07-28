@@ -9,12 +9,16 @@
 <div id="alert" class="alert alert-danger" role="alert">
 <p id="error-text"></p>
 </div>
+<div id="alert-warning" class="alert alert-warning" role="alert">
+    <p id="warning-text"></p>
+</div>
 
-<h3>{{ t("Загрузите pdf-файл с презентацией и нажмите \"Начать тренировку\"") }}</h3>
+<h3>{{ t("Загрузите файл с презентацией и нажмите \"Начать тренировку\"") }}</h3>
 <form method=POST id="upload-presentation-form" enctype=multipart/form-data action="{{ url_for('routes_presentations.handle_presentation_upload') }}">
     <input id="file-loading" type=file name=presentation onchange="fileLoadingOnChange()">
-    <input id="button-submit" type="submit" value="Начать тренировку" disabled="True">
+    <input id="button-submit" type="submit" value="{{ t("Начать тренировку") }}" disabled="True">
 </form>
+<i>{{ t("Форматы, доступные для загрузки: ") }}<label id='user_allowed_formats'>...</label></i>
 
 <script src="/static/js/libraries/jquery.min.js"></script>
 <script src="/static/js/upload.js"></script>

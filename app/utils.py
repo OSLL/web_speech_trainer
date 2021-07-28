@@ -7,6 +7,7 @@ import fitz
 from bson import ObjectId
 import magic
 from pydub import AudioSegment
+import subprocess
 
 from app.config import Config
 
@@ -19,6 +20,7 @@ ALLOWED_MIMETYPES = {
         'odp': 'application/vnd.oasis.opendocument.presentation',
         'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
     }
+CONVERTIBLE_EXTENSIONS = ('ppt', 'pptx', 'odp')
 
 
 def file_has_pdf_beginning(file):
@@ -44,12 +46,45 @@ def check_file_mime(file, expected_ext):
     if expected_ext not in ALLOWED_MIMETYPES:
         return False, None
 
-    file_mime = magic.from_buffer(file.read(2048), mime=True)
-    file.seek(0)
+    file_mime = get_file_mime(file)
 
     # also we can check, that file_mime is allowed, but not for expected_ext
     # (for example, pptx renamed to ppt) 
     return file_mime == ALLOWED_MIMETYPES[expected_ext], file_mime
+
+
+def get_file_mime(file):
+    """
+    : file: file-object
+    return: file_mime (from magic)
+    """
+    file_mime = magic.from_buffer(file.read(4096), mime=True)
+    file.seek(0)
+    return file_mime
+
+
+def is_convertible(extension): return extension in CONVERTIBLE_EXTENSIONS
+
+
+def convert_to_pdf(presentation_file):
+    temp_file = tempfile.NamedTemporaryFile(delete=False)
+    temp_file.write(presentation_file.read())
+    temp_file.close()
+    presentation_file.seek(0)
+    
+    converted_file = None
+    convert_cmd = "unoconv -f pdf {}".format(temp_file.name)
+    if run_process(convert_cmd).returncode == 0:
+        # success conversion
+        new_filename = "{}.pdf".format(temp_file.name)
+        converted_file = open(new_filename, 'rb')
+        os.remove(new_filename)
+
+    os.remove(temp_file.name)
+    return converted_file
+
+
+def run_process(cmd: str): return subprocess.run(cmd.split(' '))
 
 
 def convert_from_mp3_to_wav(audio, frame_rate=8000, channels=1):

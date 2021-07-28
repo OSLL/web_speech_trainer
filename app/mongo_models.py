@@ -65,6 +65,8 @@ class PresentationFiles(MongoModel):
     file_id = fields.ObjectIdField()
     filename = fields.CharField()
     preview_id = fields.ObjectIdField()
+    filetype = fields.CharField(max_length=4, blank=True, default='pdf')
+    nonconverted_file_id = fields.ObjectIdField(blank=True)
 
 
 class PresentationsToRecognize(MongoModel):
