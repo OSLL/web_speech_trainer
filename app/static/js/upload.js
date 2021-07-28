@@ -1,4 +1,5 @@
 const MAX_PRESENTATION_SIZE = 16;
+let user_formats = []
 
 $(function(){
     $("#alert").hide();
@@ -9,6 +10,15 @@ $(function(){
         $('#button-submit').value = 'Обработка...';
         $('#button-submit').attr("disabled", true);
     })
+
+    fetch("/api/sessions/pres-formats/")
+        .then(response => response.json())
+        .then(responseJson => {
+            if (responseJson["message"] == "OK") {
+                user_formats = responseJson['formats']
+                $('#user_allowed_formats')[0].textContent = user_formats.join(', ')
+            }
+        });
 });
 
 
@@ -27,7 +37,7 @@ function fileLoadingOnChange() {
         /* TODO: use list with user-allowed extensions */
         if (parts.length < 1 || !['pdf', 'pptx', 'ppt', 'odp'].includes(extension)) {
             $("#alert").show();
-            $("#error-text").html("Презентация должна быть в формате (PDF, PPTX, PPT, ODP)!");
+            $("#error-text").html(`Презентация должна быть в формате ${user_formats.join(', ')}!`);
             return;
         }
         if (file.size > MAX_PRESENTATION_SIZE * 1024 * 1024) {
