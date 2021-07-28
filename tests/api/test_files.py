@@ -183,7 +183,7 @@ class TestUploadPresentation:
                 data=dict(presentation=(io.BytesIO(b"Definitely not a pdf file! :("), 'test.pdf')),
                 content_type='multipart/form-data',
             )
-            check_json_response(response, {"message":"Presentation file has not allowed extension: pdf (mimetype: text/plain)."}, 404)
+            check_json_response(response, {"message":"Presentation file has not allowed extension: pdf (mimetype: text/plain)."}, 200)
 
     def test_upload_presentation(self):
         with patch('app.api.files.check_auth', return_value=True), \
