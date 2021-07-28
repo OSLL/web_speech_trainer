@@ -46,6 +46,7 @@
     setPerSlideAudioTranscriptionTable("{{ training_id }}");
     setCriteriaResults("{{ criteria_results }}");
     setupPresentationViewer("{{ training_id }}");
+    changeTrainingStatsURL();
     var info = {{ slides_time }};
     configureAudio(info);
     renderPageButtons(info);
