@@ -56,3 +56,19 @@ def get_user_agent():
     if not browser_found:
         response['outdated'] = True
     return response, 200
+
+
+@api_sessions.route('/api/sessions/pres-formats/', methods=['GET'])
+def get_pres_formats():
+    """
+    Endpoint to get user-allowed presentation formats.
+
+    :return: Dictionary with formats, or
+        an empty dictionary with 404 HTTP code if access was denied.
+    """
+    if not check_auth():
+        return {}, 404
+    
+    formats = ('pdf', 'ppt', 'pptx' , 'odp')
+
+    return { 'formats': formats, 'message': 'OK' }, 200
