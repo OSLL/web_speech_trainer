@@ -4,6 +4,7 @@ from flask import Blueprint, request, session
 
 from app.config import Config
 from app.lti_session_passback.auth_checkers import check_auth
+from app.utils import DEFAULT_EXTENSION
 from packaging import version as version_util
 
 api_sessions = Blueprint('api_sessions', __name__)
@@ -62,13 +63,13 @@ def get_user_agent():
 def get_pres_formats():
     """
     Endpoint to get user-allowed presentation formats.
-
+        If user don't have format-parameter - allow only DEFAULT_EXTENSION ('pdf') 
     :return: Dictionary with formats, or
         an empty dictionary with 404 HTTP code if access was denied.
     """
     if not check_auth():
         return {}, 404
     
-    formats = ('pdf', 'ppt', 'pptx' , 'odp')
+    formats = session.get('formats', (DEFAULT_EXTENSION,))
 
     return { 'formats': formats, 'message': 'OK' }, 200

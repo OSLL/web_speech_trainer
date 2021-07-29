@@ -5,6 +5,7 @@ from flask import Blueprint, request, session, redirect, url_for
 from app.lti_session_passback.lti_module import utils
 from app.lti_session_passback.lti_module.check_request import check_request
 from app.mongo_odm import ConsumersDBManager, SessionsDBManager, TasksDBManager
+from app.utils import ALLOWED_EXTENSIONS
 
 routes_lti = Blueprint('routes_lti', __name__)
 logger = logging.getLogger('root_logger')
@@ -40,14 +41,16 @@ def lti():
     feedback_evaluator_id = int(custom_params.get('feedback_evaluator_id', 1))
     role = utils.get_role(params)
     params_for_passback = utils.extract_passback_params(params)
+    pres_formats = list(set(custom_params.get('formats', '').split(',')) & ALLOWED_EXTENSIONS)
 
-    SessionsDBManager().add_session(username, consumer_key, task_id, params_for_passback, role)
+    SessionsDBManager().add_session(username, consumer_key, task_id, params_for_passback, role, pres_formats)
     session['session_id'] = username
     session['task_id'] = task_id
     session['consumer_key'] = consumer_key
     session['full_name'] = full_name
     session['criteria_pack_id'] = criteria_pack_id
     session['feedback_evaluator_id'] = feedback_evaluator_id
+    session['formats'] = pres_formats
 
     TasksDBManager().add_task_if_absent(task_id, task_description, attempt_count, required_points, criteria_pack_id)
 

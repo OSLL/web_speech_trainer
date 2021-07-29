@@ -21,6 +21,8 @@ ALLOWED_MIMETYPES = {
         'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
     }
 CONVERTIBLE_EXTENSIONS = ('ppt', 'pptx', 'odp')
+ALLOWED_EXTENSIONS = set(ALLOWED_MIMETYPES.keys())
+DEFAULT_EXTENSION = 'pdf'
 
 
 def file_has_pdf_beginning(file):
