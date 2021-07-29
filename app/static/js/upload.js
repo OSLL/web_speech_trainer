@@ -60,7 +60,7 @@ function fileLoadingOnChange() {
         let extension = parts.pop().toLowerCase();
         console.log(`File extension ${extension}`)
         /* TODO: use list with user-allowed extensions */
-        if (parts.length < 1 || !['pdf', 'pptx', 'ppt', 'odp'].includes(extension)) {
+        if (parts.length < 1 || !user_formats.includes(extension)) {
             $("#alert").show();
             $("#error-text").html(`Презентация должна быть в формате ${user_formats.join(', ')}!`);
             return;
