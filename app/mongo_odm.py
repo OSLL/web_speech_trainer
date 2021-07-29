@@ -493,16 +493,18 @@ class SessionsDBManager:
             cls.init_done = True
         return cls.instance
 
-    def add_session(self, session_id, consumer_key, task_id, params_for_passback, is_admin):
+    def add_session(self, session_id, consumer_key, task_id, params_for_passback, is_admin, pres_formats=None):
         existing_session = self.get_session(session_id, consumer_key)
+        task_info = {task_id: {'params_for_passback': params_for_passback}}
+        if pres_formats: task_info[task_id]['pres_formats'] = pres_formats
         new_session = Sessions(
             session_id=session_id,
             consumer_key=consumer_key,
-            tasks={task_id: {'params_for_passback': params_for_passback}},
+            tasks=task_info,
             is_admin=is_admin,
         )
         if existing_session:
-            existing_session.tasks[task_id] = {'params_for_passback': params_for_passback}
+            existing_session.tasks.update(task_info)
             existing_session.is_admin = is_admin
             existing_session.save()
         else:
