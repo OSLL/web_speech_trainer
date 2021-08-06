@@ -4,7 +4,7 @@
         <tr>
             <th>{{ t("Название") }}</th>
             <th>{{ t("Время создания") }}</th>
-            <th>{{ t("Размер") }}</th>
+            <th>{{ t("Размер") }} (bytes)</th>
             <th>{{ t("Скачать") }}</th>
         </tr>
         {% for key in dumps %}
@@ -18,25 +18,29 @@
                     {% else %}
                         -
                     {% endif %}
+                <td>
+                    <button class="createDumpButton" name="{{key}}">{{ t("Создать архив БД") }}</button>
+                </td>
             </tr>
         {% endfor %}
     </table>
-    <button id="createDump">{{ t("Создать архивы БД") }}</button>
+    
     <label for="createDump">{{ t("Используйте с осторожностью! Может заблокировать сервис из-за активной работы с БД") }}</i>
 </div>
 
 <script src="{{ url_for('static', filename='js/libraries/jquery.min.js') }}"></script>
 <script type="text/javascript">
-    $("#createDump").click(function(){
+    $(".createDumpButton").click(function(){
         $(this).text('{{ t("Создание...")}}')
-        fetch(`/api/dumps/create`)
+        let name = $(this)[0].name
+        fetch(`/api/dumps/create/${name}`)
                 .then(response => response.json())
                 .then(function (data) {
                     if (data["message"] === "OK"){
                         window.location.reload();
                     }
                     else{
-                        console.log(error);
+                        console.log(data["message"]);
                         alert('{{ t("Ошибка создания архива.")}}' + '\n' + data["message"])
                     }
                 })

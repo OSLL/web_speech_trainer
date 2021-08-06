@@ -7,7 +7,7 @@
 	"Время создания": "Creation time",
 	"Размер": "Size",
 	"Скачать": "Download",
-	"Создать архивы БД": "Create DB backups",
+	"Создать архив БД": "Create DB backup",
 	"Создание...": "Creating...",
 	"Ошибка создания архива.": "Error while creating dump.",
 	"Используйте с осторожностью! Может заблокировать сервис из-за активной работы с БД": "Use with caution! May block the service due to active work with the database",

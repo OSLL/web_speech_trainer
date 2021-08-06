@@ -3,6 +3,7 @@ from datetime import datetime
 import logging
 import os
 import subprocess
+from werkzeug.utils import secure_filename
 
 from app.config import Config
 from app.lti_session_passback.auth_checkers import check_admin
@@ -41,8 +42,8 @@ def get_dumps_info() -> (dict, int):
     return info, 200
 
 
-@api_dump.route('/api/dumps/create', methods=['GET'])
-def create_dumps() -> (dict, int):
+@api_dump.route('/api/dumps/create/<backup_name>', methods=['GET'])
+def create_dump(backup_name) -> (dict, int):
     """
     Endpoint to create dumps.
 
@@ -52,11 +53,15 @@ def create_dumps() -> (dict, int):
     if not check_admin():
         return {}, 404
     
-    backup_script_command = "../scripts/db/mongo.sh -H db:27017 -a database" 
-    code = subprocess.call(backup_script_command.split(' '))
+    backup_name = secure_filename(backup_name)
+    
+    if backup_name not in backup_filenames:
+        return {'message': "No such backup filename: {}".format(backup_name)}, 404
+    
+    code = create_db_dump(backup_name)
 
     if code != 0:
-        logger.error("Non-zero code for dump command '{}''. Code {}".format(backup_script_command, code))
+        logger.error("Non-zero code for dump command for '{}'. Code {}".format(backup_name, code))
         return {'message': "Non-zero code for dump command: {}".format(code)}, 404
 
     return get_dumps_info()
@@ -73,8 +78,19 @@ def download_dump(backup_name: str) -> (dict, int):
     if not check_admin():
         return {}, 404
  
+    backup_name = secure_filename(backup_name)
+
     filepath = "{}{}".format(Config.c.constants.backup_path, backup_name)
     if backup_name not in backup_filenames or not os.path.isfile(filepath):
         return {'message': "No such backup file: {}".format(backup_name)}, 404
 
     return send_file(filepath, as_attachment=True, attachment_filename=backup_name)
+
+
+def create_db_dump(name):
+    CMDs = {
+        'backup.zip': "../scripts/db/mongo.sh -H db:27017 database",
+        'backup_nochunks.zip': "../scripts/db/mongo.sh -H db:27017 -f database",
+        'all': "../scripts/db/mongo.sh -H db:27017 -a database"
+    }
+    return subprocess.call(CMDs[name].split(' '))
