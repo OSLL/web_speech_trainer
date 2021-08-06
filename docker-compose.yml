@@ -10,7 +10,9 @@ services:
     depends_on:
       - db
       - training_processor
-
+    volumes:
+      - ../database-dump:/app/dump/database-dump/
+  
   vosk:
     image: "plyushchenko/vosk:latest"
     restart: always
