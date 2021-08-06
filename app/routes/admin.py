@@ -3,7 +3,7 @@ import logging
 from flask import render_template, redirect, Blueprint
 from flask.helpers import url_for 
 
-from app.api.dump import get_dumps_info, create_dumps
+from app.api.dump import get_dumps_info
 from app.lti_session_passback.auth_checkers import check_admin
 
 routes_admin = Blueprint('routes_admin', __name__)
