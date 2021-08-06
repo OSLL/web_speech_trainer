@@ -29,8 +29,7 @@ function configureAudio(info) {
     var audio = $('#presentation-record')[0]
     audio.addEventListener('timeupdate', function ()
         {
-            let page_num = parseInt($("#page_num")[0].textContent, 10)
-            for (let i = page_num-1; i < info.length-1; i++) {
+            for (let i = 0; i < info.length-1; i++) {
                 if (info[i] < this.currentTime && this.currentTime < info[i+1])
                 {
                     setPage(i+1, info);
