@@ -60,7 +60,7 @@ def get_file_mime(file):
     : file: file-object
     return: file_mime (from magic)
     """
-    file_mime = magic.from_buffer(file.read(4096), mime=True)
+    file_mime = magic.from_buffer(file.read(), mime=True)
     file.seek(0)
     return file_mime
 
