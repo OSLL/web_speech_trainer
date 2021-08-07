@@ -1,7 +1,7 @@
 import os
 import tempfile
 
-from pdf_parser.slide_splitter import parse_pdf
+from presentation_parser.slide_splitter import parse_pdf
 
 from app.recognized_presentation import RecognizedPresentation
 from app.recognized_slide import RecognizedSlide
