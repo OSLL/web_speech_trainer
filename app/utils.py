@@ -60,7 +60,7 @@ def get_file_mime(file):
     : file: file-object
     return: file_mime (from magic)
     """
-    file_mime = magic.from_buffer(file.read(4096), mime=True)
+    file_mime = magic.from_buffer(file.read(), mime=True)
     file.seek(0)
     return file_mime
 
@@ -74,8 +74,9 @@ def convert_to_pdf(presentation_file):
     temp_file.close()
     presentation_file.seek(0)
     
+    cmd_timeout = 20
     converted_file = None
-    convert_cmd = "unoconv -f pdf {}".format(temp_file.name)
+    convert_cmd = "unoconv --timeout {} -f pdf {}".format(cmd_timeout, temp_file.name)
     if run_process(convert_cmd).returncode == 0:
         # success conversion
         new_filename = "{}.pdf".format(temp_file.name)

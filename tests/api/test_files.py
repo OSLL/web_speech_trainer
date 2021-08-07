@@ -186,6 +186,12 @@ class TestUploadPresentation:
             check_json_response(response, {"message":"Presentation file has not allowed extension: pdf (mimetype: text/plain)."}, 200)
 
     def test_upload_presentation(self):
+        test_presentations = ('test_data/test_presentation_file_0.pdf', 
+        )
+        for presentation in test_presentations:
+            self.upload_presentation(presentation)
+
+    def upload_presentation(self, test_presentation_path):
         with patch('app.api.files.check_auth', return_value=True), \
              patch('app.api.files.DBManager') as mock_db_manager, \
              patch('app.api.files.PresentationFilesDBManager'), \
@@ -194,11 +200,11 @@ class TestUploadPresentation:
             mock_config.return_value = Mock(constants=Mock(presentation_file_max_size_in_megabytes='1'))
             mock_db_manager.return_value.add_file.return_value = PRESENTATION_FILE_ID
             mock_db_manager.return_value.read_and_add_file.return_value = PREVIEW_ID
-            data, content = open_file_and_copy_content('test_data/test_presentation_file_0.pdf', 'rb')
+            data, content = open_file_and_copy_content(test_presentation_path, 'rb')
             mock_db_manager.return_value.get_file.return_value = io.BytesIO(content)
             response = test_client.post(
                 '/api/files/presentations/',
-                data=dict(presentation=(io.BytesIO(data.read()), 'test.pdf')),
+                data=dict(presentation=(io.BytesIO(data.read()), test_presentation_path.split('/')[-1])),
                 content_type='multipart/form-data',
             )
             check_json_response(
