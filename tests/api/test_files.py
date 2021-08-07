@@ -207,7 +207,7 @@ class TestUploadPresentation:
             mock_db_manager.return_value.get_file.return_value = io.BytesIO(content)
             response = test_client.post(
                 '/api/files/presentations/',
-                data=dict(presentation=(io.BytesIO(data.read()), 'test.pdf')),
+                data=dict(presentation=(io.BytesIO(data.read()), test_presentation_path.split('/')[-1])),
                 content_type='multipart/form-data',
             )
             check_json_response(
