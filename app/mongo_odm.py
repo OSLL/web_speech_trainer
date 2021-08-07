@@ -18,7 +18,7 @@ from pymongo.errors import CollectionInvalid
 
 from app.config import Config
 from app.mongo_models import Trainings, AudioToRecognize, TrainingsToProcess, \
-    PresentationsToRecognize, RecognizedAudioToProcess, RecognizedPresentationsToProcess, PresentationFiles, \
+    PresentationsToRecognize, RecognizedAudioToProcess, RecognizedPresentationsToProcess, PresentationFiles, PresentationInfo, \
     Sessions, Consumers, Tasks, TaskAttempts, TaskAttemptsToPassBack, Logs
 from app.status import AudioStatus, PresentationStatus, TrainingStatus, PassBackStatus
 from app.utils import remove_blank_and_none
@@ -727,8 +727,9 @@ class PresentationFilesDBManager:
             file_id=file_id,
             filename=filename,
             preview_id=preview_id,
-            filetype=filetype,
-            nonconverted_file_id=nonconverted_file_id
+            presentation_info=PresentationInfo(
+                filetype=filetype,
+                nonconverted_file_id=nonconverted_file_id)
         ).save()
 
     def get_presentation_files(self):

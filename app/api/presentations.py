@@ -14,8 +14,8 @@ logger = logging.getLogger('root_logger')
 def get_presentation_information(current_presentation_file: PresentationFiles) -> dict:
     filename = current_presentation_file.filename
     preview_id = str(current_presentation_file.preview_id)
-    filetype = current_presentation_file.filetype
-    nonconverted_file_id = current_presentation_file.nonconverted_file_id
+    filetype = current_presentation_file.presentation_info.filetype
+    nonconverted_file_id = current_presentation_file.presentation_info.nonconverted_file_id
     return {
         'filename': filename,
         'preview_id': preview_id,

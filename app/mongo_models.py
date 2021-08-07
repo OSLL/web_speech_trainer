@@ -1,4 +1,4 @@
-from pymodm import MongoModel, fields
+from pymodm import EmbeddedMongoModel, MongoModel, fields
 
 
 class Trainings(MongoModel):
@@ -61,13 +61,16 @@ class Consumers(MongoModel):
     timestamp_and_nonce = fields.ListField(blank=True)
 
 
+class PresentationInfo(EmbeddedMongoModel):
+    filetype = fields.CharField(max_length=4, blank=True, default='pdf')
+    nonconverted_file_id = fields.ObjectIdField(blank=True)
+
+
 class PresentationFiles(MongoModel):
     file_id = fields.ObjectIdField()
     filename = fields.CharField()
     preview_id = fields.ObjectIdField()
-    filetype = fields.CharField(max_length=4, blank=True, default='pdf')
-    nonconverted_file_id = fields.ObjectIdField(blank=True)
-
+    presentation_info = fields.EmbeddedModelField(PresentationInfo)
 
 class PresentationsToRecognize(MongoModel):
     file_id = fields.ObjectIdField()
