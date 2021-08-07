@@ -72,6 +72,7 @@ class PresentationFiles(MongoModel):
     preview_id = fields.ObjectIdField()
     presentation_info = fields.EmbeddedModelField(PresentationInfo)
 
+
 class PresentationsToRecognize(MongoModel):
     file_id = fields.ObjectIdField()
     training_id = fields.ObjectIdField()

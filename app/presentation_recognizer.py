@@ -1,23 +1,63 @@
 import os
 import tempfile
 
-from presentation_parser.slide_splitter import parse_pdf
-
 from app.recognized_presentation import RecognizedPresentation
 from app.recognized_slide import RecognizedSlide
+from presentation_parser.odp_parser import parse_odp
+from presentation_parser.ppt_parser import parse_ppt
+from presentation_parser.slide_splitter import parse_pdf
 
 
 class PresentationRecognizer:
-    def recognize(self, presentation):
-        pass
 
-
-class SimplePresentationRecognizer:
     def recognize(self, presentation):
+        path = self.save_to_tmp(presentation)
+        slides = self.parse_presentation(path)
+        os.remove(path)
+        return self.process_slides(slides)
+
+    def save_to_tmp(self, presentation):
         tp = tempfile.NamedTemporaryFile(delete=False)
         tp.write(presentation.read())
         tp.close()
-        slides = parse_pdf(pdf_path=tp.name, extract_dir=tp.name.split('/')[-1])
-        recognized_slides = [RecognizedSlide(s) for s in slides]
-        os.remove(tp.name)
-        return RecognizedPresentation(recognized_slides)
+        return tp.name
+
+    def parse_presentation(self, path):
+        raise NotImplementedError()
+
+    def process_slides(self, slides):
+        raise NotImplementedError()
+
+
+class SimplePDFPresentationRecognizer:
+
+    def parse_presentation(self, path):
+        return parse_pdf(pdf_path=path, extract_dir=path.split('/')[-1])
+
+    def process_slides(self, slides):
+        return RecognizedPresentation([RecognizedSlide(s) for s in slides])
+
+
+class SimplePPTPresentationRecognizer:
+
+    def parse_presentation(self, path):
+        return parse_ppt(path)
+
+    def process_slides(self, slides):
+        return RecognizedPresentation([RecognizedSlide(**s) for s in slides])
+
+
+class SimpleODPPresentationRecognizer:
+    def parse_presentation(self, path):
+        return parse_odp(path)
+
+    def process_slides(self, slides):
+        return RecognizedPresentation([RecognizedSlide(**s) for s in slides])
+
+
+PRESENTATION_RECOGNIZERS = {
+    'pdf': SimplePDFPresentationRecognizer(),
+    'odp': SimpleODPPresentationRecognizer(),
+    'ppt': SimplePPTPresentationRecognizer(),
+    'pptx': SimplePPTPresentationRecognizer(),
+}

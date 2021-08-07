@@ -1,10 +1,11 @@
+from collections import defaultdict
 import sys
 from time import sleep
 
 from app.config import Config
-from app.mongo_odm import DBManager, PresentationsToRecognizeDBManager, TrainingsDBManager, \
+from app.mongo_odm import DBManager, PresentationFilesDBManager, PresentationsToRecognizeDBManager, TrainingsDBManager, \
     RecognizedPresentationsToProcessDBManager
-from app.presentation_recognizer import SimplePresentationRecognizer
+from app.presentation_recognizer import PRESENTATION_RECOGNIZERS
 from app.root_logger import get_root_logger
 from app.status import PresentationStatus
 
@@ -12,8 +13,8 @@ logger = get_root_logger(service_name='presentation_processor')
 
 
 class PresentationProcessor:
-    def __init__(self, presentation_recognizer):
-        self.presentation_recognizer = presentation_recognizer
+    def __init__(self, presentation_recognizers):
+        self.presentation_recognizers = presentation_recognizers
 
     def run(self):
         while True:
@@ -24,11 +25,11 @@ class PresentationProcessor:
                     continue
                 training_id = presentation_to_recognize_db.training_id
                 presentation_file_id = presentation_to_recognize_db.file_id
+                presentation_file_info = PresentationFilesDBManager().get_presentation_file(presentation_file_id)
                 logger.info('Extracted presentation to recognize with presentation_file_id = {}, training_id = {}.'
                             .format(presentation_file_id, training_id))
                 TrainingsDBManager().change_presentation_status(training_id, PresentationStatus.RECOGNIZING)
-                presentation_file = DBManager().get_file(presentation_file_id)
-                if presentation_file is None:
+                if presentation_file_info is None:
                     TrainingsDBManager().change_presentation_status(training_id, PresentationStatus.RECOGNITION_FAILED)
                     verdict = 'Presentation file with presentation_file_id = {} was not found.'\
                         .format(presentation_file_id)
@@ -37,7 +38,13 @@ class PresentationProcessor:
                     logger.warning(verdict)
                     continue
                 try:
-                    recognized_presentation = self.presentation_recognizer.recognize(presentation_file)
+                    pres_extension = presentation_file_info.presentation_info.filetype 
+                    nonconverted_file_id = presentation_file_info.presentation_info.nonconverted_file_id
+                    presentation_file = DBManager().get_file(
+                        presentation_file_id if not nonconverted_file_id else nonconverted_file_id
+                    )
+                    recognizer = self.presentation_recognizers[pres_extension]
+                    recognized_presentation = recognizer.recognize(presentation_file)
                 except Exception as e:
                     TrainingsDBManager().change_presentation_status(training_id, PresentationStatus.RECOGNITION_FAILED)
                     verdict = 'Recognition of presentation file with presentation_file_id = {} has failed.\n{}'\
@@ -59,6 +66,5 @@ class PresentationProcessor:
 
 if __name__ == "__main__":
     Config.init_config(sys.argv[1])
-    presentation_recognizer = SimplePresentationRecognizer()
-    presentation_processor = PresentationProcessor(presentation_recognizer)
+    presentation_processor = PresentationProcessor(PRESENTATION_RECOGNIZERS)
     presentation_processor.run()
