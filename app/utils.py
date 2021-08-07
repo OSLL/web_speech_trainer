@@ -74,8 +74,9 @@ def convert_to_pdf(presentation_file):
     temp_file.close()
     presentation_file.seek(0)
     
+    cmd_timeout = 20
     converted_file = None
-    convert_cmd = "unoconv -f pdf {}".format(temp_file.name)
+    convert_cmd = "unoconv --timeout {} -f pdf {}".format(cmd_timeout, temp_file.name)
     if run_process(convert_cmd).returncode == 0:
         # success conversion
         new_filename = "{}.pdf".format(temp_file.name)
