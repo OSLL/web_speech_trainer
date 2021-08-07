@@ -187,9 +187,6 @@ class TestUploadPresentation:
 
     def test_upload_presentation(self):
         test_presentations = ('test_data/test_presentation_file_0.pdf', 
-            'test_data/test_presentation_file_0.ppt',
-            'test_data/test_presentation_file_0.pptx',
-            'test_data/test_presentation_file_0.odp'
         )
         for presentation in test_presentations:
             self.upload_presentation(presentation)
