@@ -38,8 +38,11 @@ class PresentationProcessor:
                     logger.warning(verdict)
                     continue
                 try:
-                    pres_extension = presentation_file_info.presentation_info.filetype 
-                    nonconverted_file_id = presentation_file_info.presentation_info.nonconverted_file_id
+                    pres_extension = 'pdf'
+                    nonconverted_file_id = None
+                    if presentation_file_info.presentation_info:
+                        pres_extension = presentation_file_info.presentation_info.filetype 
+                        nonconverted_file_id = presentation_file_info.presentation_info.nonconverted_file_id
                     presentation_file = DBManager().get_file(
                         presentation_file_id if not nonconverted_file_id else nonconverted_file_id
                     )
