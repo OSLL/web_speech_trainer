@@ -24,6 +24,7 @@ from app.routes.version import routes_version
 from app.status import TrainingStatus, PassBackStatus
 from app.training_manager import TrainingManager
 from app.localisation import *
+from app.utils import ALLOWED_EXTENSIONS
 
 
 app = Flask(__name__)
@@ -87,6 +88,7 @@ def init():
     session['task_id'] = Config.c.testing.custom_task_id
     session['criteria_pack_id'] = Config.c.testing.custom_criteria_pack_id
     session['feedback_evaluator_id'] = Config.c.testing.custom_feedback_evaluator_id
+    session['formats'] = list(set(Config.c.testing.custom_formats.get('formats', '').split(',')) & ALLOWED_EXTENSIONS)
     from app.mongo_odm import TasksDBManager, TaskAttemptsDBManager
     session['task_attempt_id'] = str(TaskAttemptsDBManager().add_task_attempt(
         username=session['session_id'],

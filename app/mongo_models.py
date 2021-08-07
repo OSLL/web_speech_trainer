@@ -70,7 +70,7 @@ class PresentationFiles(MongoModel):
     file_id = fields.ObjectIdField()
     filename = fields.CharField()
     preview_id = fields.ObjectIdField()
-    presentation_info = fields.EmbeddedModelField(PresentationInfo)
+    presentation_info = fields.EmbeddedDocumentField(PresentationInfo)
 
 
 class PresentationsToRecognize(MongoModel):
