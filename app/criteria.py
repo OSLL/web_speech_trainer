@@ -49,8 +49,8 @@ class SpeechIsNotTooLongCriterion(Criterion):
         else:
             return CriterionResult(result=0)
 
-class KeywordsComparation(Criterion):
-    CLASS_NAME = 'KeywordsComparation'
+class KeywordsComparationCriterion(Criterion):
+    CLASS_NAME = 'KeywordsComparationCriterion'
     
     '''
     Критерий оценивает соответствие речи докладчика его презентации.
@@ -58,7 +58,7 @@ class KeywordsComparation(Criterion):
 
     def __init__(self, parameters, dependent_criteria):
         super().__init__(
-            name=SpeechIsNotInDatabaseCriterion.CLASS_NAME,
+            name=KeywordsComparationCriterion.CLASS_NAME,
             parameters=parameters,
             dependent_criteria=dependent_criteria,
         )
@@ -89,7 +89,7 @@ class KeywordsComparation(Criterion):
         for i in range(0, count): 
             words_in_speech = audio.audio_slides[i].recognized_words
             words_on_slide  = presentation.recognized_slides   
-            criteria_results_sum += KeywordsComparation.compare(words_in_speech, words_on_slide)
+            criteria_results_sum += KeywordsComparation.compare(words_in_speech, words_on_slide, self.parameters['level_prez'], self.parameters['level_speech'])
 
         return CriterionResult(criteria_results_sum / count)
 
