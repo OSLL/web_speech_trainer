@@ -29,7 +29,7 @@ class PresentationRecognizer:
         raise NotImplementedError()
 
 
-class SimplePDFPresentationRecognizer:
+class SimplePDFPresentationRecognizer(PresentationRecognizer):
 
     def parse_presentation(self, path):
         return parse_pdf(pdf_path=path, extract_dir=path.split('/')[-1])
@@ -38,7 +38,7 @@ class SimplePDFPresentationRecognizer:
         return RecognizedPresentation([RecognizedSlide(s) for s in slides])
 
 
-class SimplePPTPresentationRecognizer:
+class SimplePPTPresentationRecognizer(PresentationRecognizer):
 
     def parse_presentation(self, path):
         return parse_ppt(path)
@@ -47,7 +47,8 @@ class SimplePPTPresentationRecognizer:
         return RecognizedPresentation([RecognizedSlide(**s) for s in slides])
 
 
-class SimpleODPPresentationRecognizer:
+class SimpleODPPresentationRecognizer(PresentationRecognizer):
+    
     def parse_presentation(self, path):
         return parse_odp(path)
 
