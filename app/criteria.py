@@ -333,8 +333,8 @@ class KeywordsComparationCriterion(Criterion):
         speech_words_and_metrics        = Corpus.choose_keywords(speech_words, level=level_speech)
         prezentation_words_and_metrics  = Corpus.choose_keywords(slide_words, level=level_prez)
 
-        print('Транскрипция выступления: ', Corpus.normalize(kw_voice).keys())
-        print('Текст презентации: ', Corpus.normalize(kw_pres).keys())
+        #print('Транскрипция выступления: ', Corpus.normalize(kw_voice).keys())
+        #print('Текст презентации: ', Corpus.normalize(kw_pres).keys())
 
         kc= KeywordsComparator(speech_words_and_metrics, prezentation_words_and_metrics)
         return kc.compare_dict(level_audio=level_speech, level_prezentation=level_prez) 
