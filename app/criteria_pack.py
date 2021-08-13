@@ -2,7 +2,8 @@ import logging
 from app.localisation import *
 
 from app.criteria import NumberSlidesCriterion, NumberWordOnSlideCriterion, SpeechDurationCriterion, SpeechPaceCriterion, \
-    FillersRatioCriterion, SpeechIsNotInDatabaseCriterion, FillersNumberCriterion, StrictSpeechDurationCriterion
+    FillersRatioCriterion, SpeechIsNotInDatabaseCriterion, FillersNumberCriterion, StrictSpeechDurationCriterion, \
+    SpeechIsNotInDatabaseCriterion, KeywordsComparationCriterion
 from app.mongo_odm import TrainingsDBManager
 from app.utils import SECONDS_PER_MINUTE
 
@@ -179,6 +180,15 @@ DEFAULT_SPEECH_PACE_CRITERION = SpeechPaceCriterion(
     dependent_criteria=[],
 )
 
+# Критерий сравнения по ключевым словам
+DEFAULT_KEYWORDS_COMPARATION_CRITERION = KeywordsComparationCriterion(
+    parameters = {
+        'level_prez': 0.4,
+        'level_speech': 0.3
+    },
+    dependent_criteria=[],
+)
+
 
 class DuplicateAudioCriteriaPack(CriteriaPack):
     CLASS_NAME = 'DuplicateAudioCriteriaPack'
@@ -207,6 +217,7 @@ class TenMinutesTrainingCriteriaPack(CriteriaPack):
                 speech_duration_criterion,
                 DEFAULT_SPEECH_PACE_CRITERION,
                 DEFAULT_FILLERS_RATIO_CRITERION,
+                DEFAULT_KEYWORDS_COMPARATION_CRITERION,
             ],
         )
 
@@ -227,6 +238,7 @@ class FifteenMinutesTrainingCriteriaPack(CriteriaPack):
                 speech_duration_criterion,
                 DEFAULT_SPEECH_PACE_CRITERION,
                 DEFAULT_FILLERS_RATIO_CRITERION,
+                DEFAULT_KEYWORDS_COMPARATION_CRITERION,
             ],
         )
 
@@ -271,6 +283,7 @@ class PredefenceEightToTenMinutesCriteriaPack(CriteriaPack):
                 strict_speech_duration_criterion,
                 DEFAULT_SPEECH_PACE_CRITERION,
                 DEFAULT_FILLERS_NUMBER_CRITERION,
+                DEFAULT_KEYWORDS_COMPARATION_CRITERION,
             ],
         )
 

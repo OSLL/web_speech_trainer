@@ -1,0 +1,94 @@
+import numpy as np
+
+
+def idf(text_tokens, corpus_tokens_arrays, words_and_count=dict()):
+    corpus_sets = [set(tokens) for tokens in corpus_tokens_arrays]
+
+    for token in set(text_tokens):  # убрали повторы
+        count = 0
+        for token_set in corpus_sets:  # считаем число текстов
+            if token in token_set:  # в которых токен встречается
+                count += 1
+        words_and_count[token] = len(corpus_tokens_arrays) / count
+
+    return words_and_count
+
+
+# term frequency
+def tf(text_tokens, words_and_count=dict()):
+    for word in text_tokens:
+        if word not in words_and_count:
+            words_and_count[word] = text_tokens.count(word)
+
+    return words_and_count
+
+
+# document frequency
+def df(text_tokens, corpus_tokens_arrays, words_and_count=dict()):
+    corpus_sets = [set(tokens) for tokens in corpus_tokens_arrays]
+
+    for token in set(text_tokens):  # убрали повторы
+        count = 0
+        for token_set in corpus_sets:  # считаем число текстов
+            if token in token_set:  # в которых токен встречается
+                count += 1
+        words_and_count[token] = count / len(corpus_tokens_arrays)
+
+    return words_and_count
+
+
+def tf_idf(text_tokens, corpus_tokens_arrays):
+    return dict.fromkeys(text_tokens, tf(text_tokens) / df(text_tokens, corpus_tokens_arrays))
+
+from enum import Enum
+
+from nltk import word_tokenize
+from nltk.corpus import stopwords
+from nltk.tokenize import RegexpTokenizer
+from nltk import Text
+from nltk.stem.porter import PorterStemmer
+
+from string import punctuation
+
+# Токенизация
+# Вход - текст (str), выход - список токенов:
+def tokenization(text):
+    regexp = RegexpTokenizer(r'\w+')  # задаем регулярное выражение
+    redundant = stopwords.words('russian') + [punc for punc in punctuation]
+
+    # Непосредственно токенизация:
+    tokenize_text = regexp.tokenize(text.lower())  # выделяем токены
+    res_tokens = [token.replace('\n', '') for token in tokenize_text if token not in redundant]
+
+    return res_tokens
+
+
+class LemType(Enum):
+    pymystem3 = 0  # лемматизация от яндекса
+    pymorphy2 = 1  # стандартный лемматизатор
+    nltk = 2  # только английский
+
+
+# Лемматизация
+# Вход - список и тип лемматизатора, выход - список
+def lemmatize (tokens, type=LemType.pymystem3):
+    if type == LemType.pymystem3:
+
+        from pymystem3 import Mystem
+        morph = Mystem()
+        lem_tokens = [morph.lemmatize(token)[0] for token in tokens]
+
+    elif type == LemType.pymorphy2:
+        # он работает со словами
+        import pymorphy2
+        morph = pymorphy2.MorphAnalyzer()
+
+        lem_tokens = [morph.parse(token)[0] for token in tokens]
+
+    else:
+        from nltk.stem.wordnet import WordNetLemmatizer
+        morph = WordNetLemmatizer()
+        lem_tokens = [morph.lemmatize(token) for token in tokens]
+
+    return lem_tokens
+

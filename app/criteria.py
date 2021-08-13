@@ -11,6 +11,8 @@ from bson import ObjectId
 from scipy.spatial.distance import cosine
 
 from app.audio import Audio
+from app.keywords_extraction import Corpus
+from app.keywords_comparator import KeywordsComparator
 from app.mongo_odm import DBManager, TrainingsDBManager
 from app.presentation import Presentation
 from app.utils import convert_from_mp3_to_wav
@@ -304,6 +306,50 @@ class StrictSpeechDurationCriterion(Criterion):
         return CriterionResult(
             get_proportional_result(duration, minimal_allowed_duration, maximal_allowed_duration, f=lambda x: x * x)
         )
+
+class KeywordsComparationCriterion(Criterion):
+    CLASS_NAME = 'KeywordsComparationCriterion'
+    
+    '''
+    Критерий оценивает соответствие речи докладчика его презентации.
+    '''
+
+    def __init__(self, parameters, dependent_criteria):
+        super().__init__(
+            name=KeywordsComparationCriterion.CLASS_NAME,
+            parameters=parameters,
+            dependent_criteria=dependent_criteria,
+        )
+
+    @staticmethod
+    def compare(self, speech_words, slide_words, level_prez = 0.3, level_speech = 0.4):
+        corpus = Corpus()
+
+        # kw_voice = corpus.get_words_and_metrics.choose_keywords(speech_words, level=level_speech)
+        # kw_pres  = corpus.get_words_and_metrics.choose_keywords(slide_words, level=level_prez)
+
+        speech_words_and_metrics        = Corpus.choose_keywords(speech_words, level=level_speech)
+        prezentation_words_and_metrics  = Corpus.choose_keywords(slide_words, level=level_prez)
+
+        print('Транскрипция выступления: ', Corpus.normalize(kw_voice).keys())
+        print('Текст презентации: ', Corpus.normalize(kw_pres).keys())
+
+        kc= KeywordsComparator(speech_words_and_metrics, prezentation_words_and_metrics)
+        return kc.compare_dict(level_audio=level_speech, level_prezentation=level_prez) 
+
+
+    def apply(self, audio, presentation, training_id, criteria_results):
+        count = len(audio.audio_slides)
+        if  count != len(presentation.recognized_slide):
+            return CriterionResult(-1)
+
+        criteria_results_sum = 0
+        for i in range(0, count): 
+            words_in_speech = audio.audio_slides[i].recognized_words
+            words_on_slide  = presentation.recognized_slides   
+            criteria_results_sum += KeywordsComparation.compare(words_in_speech, words_on_slide, self.parameters['level_prez'], self.parameters['level_speech'])
+
+        return CriterionResult(criteria_results_sum / count)
 
 
 class SpeechIsNotInDatabaseCriterion(Criterion):
