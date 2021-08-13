@@ -18,6 +18,8 @@ from app.presentation import Presentation
 from app.utils import convert_from_mp3_to_wav
 from app.localisation import *
 
+import nltk
+nltk.download('stopwords')
 
 class CriterionResult:
     def __init__(self, result: float, verdict: Optional[str] = None):
