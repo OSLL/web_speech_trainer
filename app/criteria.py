@@ -342,14 +342,14 @@ class KeywordsComparationCriterion(Criterion):
 
     def apply(self, audio, presentation, training_id, criteria_results):
         count = len(audio.audio_slides)
-        if  count != len(presentation.recognized_slide):
+        if  count != len(presentation.slides):
             return CriterionResult(-1)
 
         criteria_results_sum = 0
         for i in range(0, count): 
             words_in_speech = audio.audio_slides[i].recognized_words
-            words_on_slide  = presentation.recognized_slides   
-            criteria_results_sum += KeywordsComparation.compare(words_in_speech, words_on_slide, self.parameters['level_prez'], self.parameters['level_speech'])
+            words_on_slide  = presentation.slides[i].words
+            criteria_results_sum += KeywordsComparationCriterion.compare(words_in_speech, words_on_slide, self.parameters['level_prez'], self.parameters['level_speech'])
 
         return CriterionResult(criteria_results_sum / count)
 
