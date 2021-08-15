@@ -9,7 +9,7 @@ RUN pip3 install fitz
 RUN apt install -y sudo zip mongodb-clients
 
 # for pptx/odp support
-RUN apt install software-properties-common
+RUN apt install -y software-properties-common
 RUN add-apt-repository ppa:libreoffice/ppa
 RUN apt update
 RUN apt install -y unoconv  
