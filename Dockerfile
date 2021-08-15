@@ -1,5 +1,7 @@
 FROM plyushchenko/ubuntu_python3:latest
 
+RUN apt update
+
 # The installation of `fitz` library is really tricky.
 # The library uses `frontend` internal package that can be obtained
 # via installation of `PyMuPDF` package but `PyMuPDF` itself requires `fitz`.
@@ -9,6 +11,7 @@ RUN pip3 install fitz
 RUN apt install -y sudo zip mongodb-clients
 
 # for pptx/odp support
+RUN apt install -y software-properties-common
 RUN add-apt-repository ppa:libreoffice/ppa
 RUN apt update
 RUN apt install -y unoconv  
