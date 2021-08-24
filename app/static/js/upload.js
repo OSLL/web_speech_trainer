@@ -45,8 +45,7 @@ $(function(){
         .then(responseJson => {
             if (responseJson["message"] == "OK") {
                 user_formats = responseJson['formats']
-                console.log(user_formats)
-                console.log(user_formats.length == 1 && user_formats[0] == 'pdf')
+                $("#file-loading").attr('accept', `.${user_formats.join(', .')}`)
                 if (user_formats.length == 1 && user_formats[0] == 'pdf')
                 {
                     $("#format_notification").hide()
