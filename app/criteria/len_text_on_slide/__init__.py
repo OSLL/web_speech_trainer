@@ -1,1 +1,0 @@
-from .critetion import LenTextOnSlideCriterion
