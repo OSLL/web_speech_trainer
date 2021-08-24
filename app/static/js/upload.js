@@ -1,12 +1,15 @@
 const MAX_PRESENTATION_SIZE = 16;
 let user_formats = []
+let convertible_formats = ['pptx', 'ppt', 'odp']
 
 $(function(){
     $("#alert").hide();
     $("#alert-warning").hide();
+    $("#spinner").hide();
     let button_value = $('#button-submit')[0].value
     $('#upload-presentation-form').submit(function(event)
     {
+        $("#spinner").show();
         event.preventDefault();
         $('#button-submit')[0].value = 'Обработка...';
         $('#button-submit').attr("disabled", true);
@@ -22,6 +25,7 @@ $(function(){
                 window.location.href = response.url;
                 return;
             }
+            $("#spinner").hide();
             response.json().then(responseJson => {
                 if (responseJson["message"] !== "OK"){
                     $("#alert").show();
@@ -41,6 +45,12 @@ $(function(){
         .then(responseJson => {
             if (responseJson["message"] == "OK") {
                 user_formats = responseJson['formats']
+                $("#file-loading").attr('accept', `.${user_formats.join(', .')}`)
+                if (user_formats.length == 1 && user_formats[0] == 'pdf')
+                {
+                    $("#format_notification").hide()
+                    return
+                }
                 $('#user_allowed_formats')[0].textContent = user_formats.join(', ')
             }
         });
@@ -50,6 +60,7 @@ $(function(){
 function fileLoadingOnChange() {
     $("#alert").hide();
     $("#alert-warning").hide();
+    $("#spinner").hide();
     $("#button-submit").attr("disabled", true);
     if ($("#file-loading").prop("files").length < 1) {
         $("#alert").show();
@@ -70,7 +81,7 @@ function fileLoadingOnChange() {
             $("#error-text").html(`Размер файла с презентацией не должен превышать ${MAX_PRESENTATION_SIZE} мегабайт!`);
             return;
         }
-        if (['pptx', 'ppt', 'odp'].includes(extension)) {
+        if (convertible_formats.includes(extension)) {
             $("#alert-warning").show();
             $("#warning-text").html("Презентация будет преобразована в PDF-формат. Это может занять некоторое время!");
         }
