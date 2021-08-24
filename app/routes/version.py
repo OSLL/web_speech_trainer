@@ -8,6 +8,4 @@ logger = logging.getLogger('root_logger')
 
 @routes_version.route('/version/', methods=['GET'])
 def view_version():
-    if not check_admin():
-        return {}, 404
     return render_template('version.html'), 200
