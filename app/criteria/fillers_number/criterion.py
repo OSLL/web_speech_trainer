@@ -23,7 +23,7 @@ class FillersNumberCriterion(Criterion):
                     self.name,
                     self.parameters['fillers'],
                     self.parameters['maximum_fillers_number'],
-                )
+        )
 
     def apply(self, audio, presentation, training_id, criteria_results):
         total_words = audio.audio_stats['total_words']
@@ -38,7 +38,8 @@ class FillersNumberCriterion(Criterion):
                 continue
             verdict += t('Слайд {}: {}.\n').format(i + 1, found_fillers[i])
         if verdict != '':
-            verdict = t('Использование слов-паразитов по слайдам:\n{}').format(verdict[:-1])
+            verdict = t(
+                'Использование слов-паразитов по слайдам:\n{}').format(verdict[:-1])
         else:
             verdict = None
         return CriterionResult(1 if fillers_number <= self.parameters['maximum_fillers_number'] else 0, verdict)
