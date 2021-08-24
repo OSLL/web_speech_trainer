@@ -9,7 +9,8 @@ class NumberWordOnSlideCriterion(Criterion):
 
     def __init__(self, parameters, dependent_criteria):
         if 'minimal_number_words' not in parameters:
-            raise ValueError('parameters should contain \'minimal_number_words\'.')
+            raise ValueError(
+                'parameters should contain \'minimal_number_words\'.')
         super().__init__(
             name=NumberWordOnSlideCriterion.CLASS_NAME,
             parameters=parameters,
@@ -30,9 +31,11 @@ class NumberWordOnSlideCriterion(Criterion):
         for index, audio_slide in enumerate(audio.audio_slides):
             count_words = len(audio_slide.recognized_words)
             if count_words < criteria_count:
-                verdict += t("Количество распознаных слов в аудиозаписи ({}) на слайде #{} меньше минимального числа = {}\n").format(count_words, index+1, criteria_count)
+                verdict += t("Количество распознаных слов в аудиозаписи ({}) на слайде #{} меньше минимального числа = {}\n").format(
+                    count_words, index+1, criteria_count)
                 bad_slides_number += 1
         good_slides_number = slides_number-bad_slides_number
         return CriterionResult(
-            get_proportional_result(good_slides_number, slides_number, None), verdict
+            get_proportional_result(
+                good_slides_number, slides_number, None), verdict
         )

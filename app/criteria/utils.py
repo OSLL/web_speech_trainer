@@ -22,7 +22,8 @@ def get_fillers(fillers: list, audio: Audio) -> list:
     found_fillers = []
     for audio_slide in audio.audio_slides:
         found_slide_fillers = []
-        audio_slide_words = [recognized_word.word.value for recognized_word in audio_slide.recognized_words]
+        audio_slide_words = [
+            recognized_word.word.value for recognized_word in audio_slide.recognized_words]
         for i in range(len(audio_slide_words)):
             for filler in fillers:
                 filler_split = filler.split()

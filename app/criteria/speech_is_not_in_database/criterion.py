@@ -92,10 +92,12 @@ class SpeechIsNotInDatabaseCriterion(Criterion):
                 t('оценка: 0, если не выполнен, 1, если выполнен.\n')).format(self.name)
 
     def apply(self, audio, presentation, training_id, criteria_results):
-        current_audio_id = TrainingsDBManager().get__raining(training_id).presentation_record_file_id
+        current_audio_id = TrainingsDBManager().get__raining(
+            training_id).presentation_record_file_id
         current_audio_file = DBManager().get_file(current_audio_id)
         try:
-            current_audio_file = convert_from_mp3_to_wav(current_audio_file, frame_rate=self.parameters['sample_rate'])
+            current_audio_file = convert_from_mp3_to_wav(
+                current_audio_file, frame_rate=self.parameters['sample_rate'])
         except:
             return CriterionResult(result=0, verdict='Cannot convert from mp3 to wav')
         current_audio_file, _ = librosa.load(current_audio_file.name)
@@ -108,7 +110,8 @@ class SpeechIsNotInDatabaseCriterion(Criterion):
                 continue
             db_audio_mp3 = DBManager().get_file(db_audio_id)
             try:
-                db_audio = convert_from_mp3_to_wav(db_audio_mp3, frame_rate=self.parameters['sample_rate'])
+                db_audio = convert_from_mp3_to_wav(
+                    db_audio_mp3, frame_rate=self.parameters['sample_rate'])
             except:
                 continue
             db_audio, _ = librosa.load(db_audio.name)
@@ -121,12 +124,13 @@ class SpeechIsNotInDatabaseCriterion(Criterion):
             aligned_audio = self.downsample(aligned_audio)
             db_audio = self.downsample(db_audio, aligned_audio)
 
-            audio_mfcc = librosa.feature.mfcc(y=aligned_audio, sr=self.parameters['sample_rate'])
-            db_audio_mfcc = librosa.feature.mfcc(y=db_audio, sr=self.parameters['sample_rate'])
+            audio_mfcc = librosa.feature.mfcc(
+                y=aligned_audio, sr=self.parameters['sample_rate'])
+            db_audio_mfcc = librosa.feature.mfcc(
+                y=db_audio, sr=self.parameters['sample_rate'])
             common_length_ratio = self.common_length(audio_mfcc, db_audio_mfcc)
 
             if common_length_ratio > self.parameters['common_ratio_threshold']:
                 return CriterionResult(result=0)
 
         return CriterionResult(result=1)
-
