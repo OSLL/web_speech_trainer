@@ -7,7 +7,6 @@ from ..utils import get_proportional_result
 
 
 class StrictSpeechDurationCriterion(Criterion):
-    CLASS_NAME = 'StrictSpeechDurationCriterion'
 
     def __init__(self, parameters, dependent_criteria):
         if 'minimal_allowed_duration' not in parameters and 'maximal_allowed_duration' not in parameters:
@@ -18,7 +17,6 @@ class StrictSpeechDurationCriterion(Criterion):
                 'parameters should contain \'strict_minimal_allowed_duration\' or \'strict_maximal_allowed_duration\'.'
             )
         super().__init__(
-            name=StrictSpeechDurationCriterion.CLASS_NAME,
             parameters=parameters,
             dependent_criteria=dependent_criteria,
         )

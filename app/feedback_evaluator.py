@@ -85,8 +85,8 @@ class PaceAndDurationFeedbackEvaluator(FeedbackEvaluator):
     def __init__(self, weights=None):
         if weights is None:
             weights = {
-                SpeechDurationCriterion.CLASS_NAME: 0.5,
-                SpeechPaceCriterion.CLASS_NAME: 0.5,
+                SpeechDurationCriterion.__name__: 0.5,
+                SpeechPaceCriterion.__name__: 0.5,
             }
 
         super().__init__(name=PaceAndDurationFeedbackEvaluator.CLASS_NAME, weights=weights)
@@ -109,7 +109,7 @@ class SimpleFeedbackEvaluator(FeedbackEvaluator):
     def __init__(self, weights=None):
         if weights is None:
             weights = {
-                SpeechDurationCriterion.CLASS_NAME: 1,
+                SpeechDurationCriterion.__name__: 1,
             }
 
         super().__init__(name=SimpleFeedbackEvaluator.CLASS_NAME, weights=weights)
@@ -122,22 +122,22 @@ class PredefenceEightToTenMinutesFeedbackEvaluator(FeedbackEvaluator):
     def __init__(self, weights=None):
         if weights is None:
             weights = {
-                StrictSpeechDurationCriterion.CLASS_NAME: 0.6,
-                SpeechPaceCriterion.CLASS_NAME: 0.2,
-                FillersNumberCriterion.CLASS_NAME: 0.2,
+                StrictSpeechDurationCriterion.__name__: 0.6,
+                SpeechPaceCriterion.__name__: 0.2,
+                FillersNumberCriterion.__name__: 0.2,
             }
 
         super().__init__(name=PredefenceEightToTenMinutesFeedbackEvaluator.CLASS_NAME, weights=weights)
 
     def evaluate_feedback(self, criteria_results):
-        if not criteria_results.get(StrictSpeechDurationCriterion.CLASS_NAME) or \
-                criteria_results[StrictSpeechDurationCriterion.CLASS_NAME].result == 0:
+        if not criteria_results.get(StrictSpeechDurationCriterion.__name__) or \
+                criteria_results[StrictSpeechDurationCriterion.__name__].result == 0:
             return Feedback(0)
         return super().evaluate_feedback(criteria_results)
 
     def get_result_as_sum_str(self, criteria_results):
         if criteria_results is None or self.weights is None or \
-                criteria_results.get(StrictSpeechDurationCriterion.CLASS_NAME, {}).get('result') == 0:
+                criteria_results.get(StrictSpeechDurationCriterion.__name__, {}).get('result') == 0:
             return None
         return super().get_result_as_sum_str(criteria_results)
 

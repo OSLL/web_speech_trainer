@@ -5,14 +5,12 @@ from ..utils import get_proportional_result
 
 
 class NumberWordOnSlideCriterion(Criterion):
-    CLASS_NAME = 'NumberWordOnSlideCriterion'
 
     def __init__(self, parameters, dependent_criteria):
         if 'minimal_number_words' not in parameters:
             raise ValueError(
                 'parameters should contain \'minimal_number_words\'.')
         super().__init__(
-            name=NumberWordOnSlideCriterion.CLASS_NAME,
             parameters=parameters,
             dependent_criteria=dependent_criteria,
         )

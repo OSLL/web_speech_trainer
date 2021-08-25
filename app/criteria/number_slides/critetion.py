@@ -7,13 +7,11 @@ from ..utils import get_proportional_result
 
 
 class NumberSlidesCriterion(Criterion):
-    CLASS_NAME = 'NumberSlidesCriterion'
 
     def __init__(self, parameters, dependent_criteria):
         if 'minimal_allowed_slide_number' not in parameters and 'maximal_allowed_slide_number' not in parameters:
             raise ValueError('parameters should contain \'minimal_allowed_slide_number\' or \'maximal_allowed_slide_number\'.')
         super().__init__(
-            name=NumberSlidesCriterion.CLASS_NAME,
             parameters=parameters,
             dependent_criteria=dependent_criteria,
         )

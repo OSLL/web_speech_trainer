@@ -10,7 +10,6 @@ from ..utils import get_proportional_result
 
 
 class SpeechPaceCriterion(Criterion):
-    CLASS_NAME = 'SpeechPaceCriterion'
 
     def __init__(self, parameters: dict, dependent_criteria: list):
         for parameter in ['minimal_allowed_pace', 'maximal_allowed_pace']:
@@ -18,7 +17,6 @@ class SpeechPaceCriterion(Criterion):
                 raise ValueError(
                     'parameters should contain {}.'.format(parameter))
         super().__init__(
-            name=SpeechPaceCriterion.CLASS_NAME,
             parameters=parameters,
             dependent_criteria=dependent_criteria,
         )

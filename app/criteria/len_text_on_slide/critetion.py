@@ -7,13 +7,11 @@ from ..utils import get_proportional_result
 
 
 class LenTextOnSlideCriterion(Criterion):
-    CLASS_NAME = 'LenTextOnSlideCriterion'
 
     def __init__(self, parameters, dependent_criteria):
         if 'minimal_number_words' not in parameters:
             raise ValueError('parameters should contain \'minimal_number_words\'.')
         super().__init__(
-            name=LenTextOnSlideCriterion.CLASS_NAME,
             parameters=parameters,
             dependent_criteria=dependent_criteria,
         )

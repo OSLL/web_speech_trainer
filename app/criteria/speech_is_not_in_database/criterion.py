@@ -11,7 +11,6 @@ from ..criterion_result import CriterionResult
 
 
 class SpeechIsNotInDatabaseCriterion(Criterion):
-    CLASS_NAME = 'SpeechIsNotInDatabaseCriterion'
 
     '''
     Критерий проверяет, не является ли аудиофайл нечеткой копией
@@ -20,7 +19,6 @@ class SpeechIsNotInDatabaseCriterion(Criterion):
 
     def __init__(self, parameters, dependent_criteria):
         super().__init__(
-            name=SpeechIsNotInDatabaseCriterion.CLASS_NAME,
             parameters=parameters,
             dependent_criteria=dependent_criteria,
         )

@@ -6,11 +6,8 @@ from ..utils import get_fillers
 
 class FillersNumberCriterion(Criterion):
 
-    CLASS_NAME = 'FillersNumberCriterion'
-
     def __init__(self, parameters, dependent_criteria):
         super().__init__(
-            name=FillersNumberCriterion.CLASS_NAME,
             parameters=parameters,
             dependent_criteria=dependent_criteria,
         )
