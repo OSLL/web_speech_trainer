@@ -17,6 +17,8 @@ class SpeechIsNotInDatabaseCriterion(Criterion):
     одного из имеющихся в базе от этого пользователя.
     '''
 
+    PARAMETERS = dict()
+
     def __init__(self, parameters, dependent_criteria):
         super().__init__(
             parameters=parameters,

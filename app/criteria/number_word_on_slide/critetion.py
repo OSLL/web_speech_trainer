@@ -6,6 +6,10 @@ from ..utils import get_proportional_result
 
 class NumberWordOnSlideCriterion(Criterion):
 
+    PARAMETERS = dict(
+        minimal_number_words=int.__name__
+    )
+
     def __init__(self, parameters, dependent_criteria):
         if 'minimal_number_words' not in parameters:
             raise ValueError(
@@ -37,3 +41,4 @@ class NumberWordOnSlideCriterion(Criterion):
             get_proportional_result(
                 good_slides_number, slides_number, None), verdict
         )
+

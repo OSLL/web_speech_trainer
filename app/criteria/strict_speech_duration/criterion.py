@@ -8,6 +8,13 @@ from ..utils import get_proportional_result
 
 class StrictSpeechDurationCriterion(Criterion):
 
+    PARAMETERS = dict(
+        minimal_allowed_duration=int.__name__,
+        maximal_allowed_duration=int.__name__,
+        strict_minimal_allowed_duration=int.__name__,
+        strict_maximal_allowed_duration=int.__name__
+    )
+
     def __init__(self, parameters, dependent_criteria):
         if 'minimal_allowed_duration' not in parameters and 'maximal_allowed_duration' not in parameters:
             raise ValueError(

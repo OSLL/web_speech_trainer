@@ -6,7 +6,15 @@ from ..utils import get_fillers_number
 
 class FillersRatioCriterion(Criterion):
 
+    PARAMETERS = dict(
+        fillers=list.__name__
+    )
+
     def __init__(self, parameters, dependent_criteria):
+        if 'fillers' not in parameters:
+            raise ValueError(
+                'parameters should contain {}.'.format('fillers'))
+    
         super().__init__(
             parameters=parameters,
             dependent_criteria=dependent_criteria,
