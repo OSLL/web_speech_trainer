@@ -157,6 +157,15 @@ def is_testing_active():
         return False
 
 
+def get_types():
+    return {
+        str.__name__: str,
+        int.__name__: int,
+        float.__name__: float,
+        list.__name__: list,
+        dict.__name__: dict
+    }
+
 class RepeatedTimer:
     """
     Utility class to call a function with a given interval between the end and the beginning of consecutive calls

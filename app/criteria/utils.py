@@ -1,7 +1,33 @@
 import math
+import traceback
 from typing import Optional, Callable
 
+
 from app.audio import Audio
+from app.utils import get_types
+
+
+def check_criterions(criterions):
+    try:
+        for key, value in criterions.items():
+            # check that criterion has structure
+            structure = value.structure_to_json()
+            # try to create criteria with default type value
+            criterion = create_empty_criterion_by_structure(value, structure)
+            # try to get criterion's description 
+            criterion.description
+    except Exception as exc:
+        traceback.print_exc()
+        return False
+    return True
+
+
+def create_empty_criterion_by_structure(criteria, structure):
+    types = get_types()
+    parameters = structure['parameters']
+    for key in parameters:
+        parameters[key] = types[parameters[key]]()
+    return criteria.from_dict(structure)
 
 
 def get_proportional_result(value: float,
