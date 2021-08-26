@@ -14,6 +14,7 @@ from app.api.task_attempts import api_task_attempts
 from app.api.trainings import api_trainings
 from app.api.version import api_version
 from app.config import Config
+from app.criteria import check_criterions, CRITERIONS
 from app.mongo_odm import ConsumersDBManager, TrainingsDBManager, TaskAttemptsDBManager, TaskAttemptsToPassBackDBManager
 from app.root_logger import get_logging_stdout_handler, get_root_logger
 from app.routes.admin import routes_admin
@@ -126,6 +127,12 @@ if __name__ == '__main__':
     app.logger.propagate = False
     app.wsgi_app = ReverseProxied(app.wsgi_app)
     app.secret_key = Config.c.constants.app_secret_key
+
+    # check correct criterions
+    if not check_criterions(CRITERIONS):
+        logging.critical("Criterion's checking failed! See traceback")
+        exit(1)
+
     if not ConsumersDBManager().is_key_valid(Config.c.constants.lti_consumer_key):
         ConsumersDBManager().add_consumer(Config.c.constants.lti_consumer_key, Config.c.constants.lti_consumer_secret)
     resubmit_failed_trainings()
