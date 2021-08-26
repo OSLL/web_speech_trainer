@@ -9,15 +9,15 @@ from .speech_pace.criterion import SpeechPaceCriterion
 from .strict_speech_duration.criterion import StrictSpeechDurationCriterion
 
 CRITERIONS = {
-    'FillersNumberCriterion': FillersNumberCriterion,
-    'FillersRatioCriterion': FillersRatioCriterion,
-    'LenTextOnSlideCriterion': LenTextOnSlideCriterion,
-    'NumberSlidesCriterion': NumberSlidesCriterion,
-    'NumberWordOnSlideCriterion': NumberWordOnSlideCriterion,
-    'SpeechDurationCriterion': SpeechDurationCriterion,
-    'SpeechIsNotInDatabaseCriterion': SpeechIsNotInDatabaseCriterion,
-    'SpeechPaceCriterion': SpeechPaceCriterion,
-    'StrictSpeechDurationCriterion': StrictSpeechDurationCriterion,
+    FillersNumberCriterion.__name__: FillersNumberCriterion,
+    FillersRatioCriterion.__name__: FillersRatioCriterion,
+    LenTextOnSlideCriterion.__name__: LenTextOnSlideCriterion,
+    NumberSlidesCriterion.__name__: NumberSlidesCriterion,
+    NumberWordOnSlideCriterion.__name__: NumberWordOnSlideCriterion,
+    SpeechDurationCriterion.__name__: SpeechDurationCriterion,
+    SpeechIsNotInDatabaseCriterion.__name__: SpeechIsNotInDatabaseCriterion,
+    SpeechPaceCriterion.__name__: SpeechPaceCriterion,
+    StrictSpeechDurationCriterion.__name__: StrictSpeechDurationCriterion,
 }
 
 
