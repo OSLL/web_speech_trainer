@@ -6,6 +6,11 @@ from ..utils import get_fillers
 
 class FillersNumberCriterion(Criterion):
 
+    PARAMETERS = dict(
+        fillers=list.__name__,
+        maximum_fillers_number=int.__name__
+    )
+
     def __init__(self, parameters, dependent_criteria):
         super().__init__(
             parameters=parameters,

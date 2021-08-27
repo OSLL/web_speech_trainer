@@ -11,6 +11,11 @@ from ..utils import get_proportional_result
 
 class SpeechPaceCriterion(Criterion):
 
+    PARAMETERS = dict(
+        minimal_allowed_pace=int.__name__,
+        maximal_allowed_pace=int.__name__
+    )
+
     def __init__(self, parameters: dict, dependent_criteria: list):
         for parameter in ['minimal_allowed_pace', 'maximal_allowed_pace']:
             if parameter not in parameters:

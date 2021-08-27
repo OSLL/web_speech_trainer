@@ -1,5 +1,3 @@
-import re
-
 from app.localisation import *
 from ..criterion_base import Criterion
 from ..criterion_result import CriterionResult
@@ -8,20 +6,27 @@ from ..utils import get_proportional_result
 
 class NumberSlidesCriterion(Criterion):
 
+    PARAMETERS = dict(
+        minimal_allowed_slide_number=int.__name__,
+        maximal_allowed_slide_number=int.__name__
+    )
+
     def __init__(self, parameters, dependent_criteria):
         if 'minimal_allowed_slide_number' not in parameters and 'maximal_allowed_slide_number' not in parameters:
-            raise ValueError('parameters should contain \'minimal_allowed_slide_number\' or \'maximal_allowed_slide_number\'.')
+            raise ValueError(
+                'parameters should contain \'minimal_allowed_slide_number\' or \'maximal_allowed_slide_number\'.')
         super().__init__(
             parameters=parameters,
             dependent_criteria=dependent_criteria,
         )
 
-    @property
+    @ property
     def description(self):
         boundaries = ''
         evaluation = ''
         if 'minimal_allowed_slide_number' in self.parameters:
-            boundaries = t('от {}').format(self.parameters['minimal_allowed_slide_number'])
+            boundaries = t('от {}').format(
+                self.parameters['minimal_allowed_slide_number'])
             evaluation = t('(n / {}), если количество рассказанных слайдов меньше минимума').format(
                 self.parameters['minimal_allowed_slide_number']
             )
@@ -30,7 +35,8 @@ class NumberSlidesCriterion(Criterion):
                 boundaries += ' '
             if evaluation:
                 evaluation += ', '
-            boundaries += t('до {}').format(self.parameters['maximal_allowed_slide_number'])
+            boundaries += t('до {}').format(
+                self.parameters['maximal_allowed_slide_number'])
             evaluation += t('({} / n), если количество рассказанных слайдов больше максимума.').format(
                 self.parameters['maximal_allowed_slide_number']
             )
@@ -42,13 +48,16 @@ class NumberSlidesCriterion(Criterion):
         slides_number = len(presentation.slides)
         criteria_min = self.parameters.get('minimal_allowed_slide_number')
         criteria_max = self.parameters.get('maximal_allowed_slide_number')
-        verdict = '' 
+        verdict = ''
 
         if criteria_min and slides_number < criteria_min:
-            verdict = t("Количество слайдов ({}) в презентации меньше минимального числа = {}\n").format(slides_number, criteria_min)
+            verdict = t("Количество слайдов ({}) в презентации меньше минимального числа = {}\n").format(
+                slides_number, criteria_min)
         if criteria_max and slides_number > criteria_max:
-            verdict = t("Количество слайдов ({}) в презентации превышает максимум = {}\n").format(slides_number, criteria_max)
+            verdict = t("Количество слайдов ({}) в презентации превышает максимум = {}\n").format(
+                slides_number, criteria_max)
 
         return CriterionResult(
-            get_proportional_result(slides_number, criteria_min, criteria_max), verdict
+            get_proportional_result(
+                slides_number, criteria_min, criteria_max), verdict
         )
