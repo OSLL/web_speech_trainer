@@ -66,7 +66,7 @@ class Criterion(MongoModel):
     base_criterion = fields.CharField()
     parameters = fields.DictField(blank=True, default={})
     dependent_critetions = fields.ListField(blank=True, default=[])
-    last_updated = fields.DateTimeField(default=datetime.now(timezone.utc))
+    last_update = fields.DateTimeField(default=datetime.now(timezone.utc))
 
     def to_dict(self):
         return dict(
@@ -74,11 +74,11 @@ class Criterion(MongoModel):
             base_criterion = self.base_criterion,
             parameters = self.parameters,
             dependent_critetions = self.dependent_critetions,
-            last_updated = int(self.last_updated.timestamp()*1000)
+            last_update = int(self.last_update.timestamp()*1000)
         )
 
     def save(self):
-        self.last_updated = datetime.now(timezone.utc)
+        self.last_update = datetime.now(timezone.utc)
         super().save()
 
 
