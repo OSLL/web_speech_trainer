@@ -15,7 +15,7 @@ class StrictSpeechDurationCriterion(Criterion):
         strict_maximal_allowed_duration=int.__name__
     )
 
-    def __init__(self, parameters, dependent_criteria):
+    def __init__(self, parameters, dependent_criteria, name=''):
         if 'minimal_allowed_duration' not in parameters and 'maximal_allowed_duration' not in parameters:
             raise ValueError(
                 'parameters should contain \'minimal_allowed_duration\' or \'maximal_allowed_duration\'.')
@@ -24,6 +24,7 @@ class StrictSpeechDurationCriterion(Criterion):
                 'parameters should contain \'strict_minimal_allowed_duration\' or \'strict_maximal_allowed_duration\'.'
             )
         super().__init__(
+            name=name,
             parameters=parameters,
             dependent_criteria=dependent_criteria,
         )

@@ -10,11 +10,12 @@ class NumberWordOnSlideCriterion(Criterion):
         minimal_number_words=int.__name__
     )
 
-    def __init__(self, parameters, dependent_criteria):
+    def __init__(self, parameters, dependent_criteria, name=''):
         if 'minimal_number_words' not in parameters:
             raise ValueError(
                 'parameters should contain \'minimal_number_words\'.')
         super().__init__(
+            name=name,
             parameters=parameters,
             dependent_criteria=dependent_criteria,
         )

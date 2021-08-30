@@ -16,12 +16,13 @@ class SpeechPaceCriterion(Criterion):
         maximal_allowed_pace=int.__name__
     )
 
-    def __init__(self, parameters: dict, dependent_criteria: list):
+    def __init__(self, parameters, dependent_criteria, name=''):
         for parameter in ['minimal_allowed_pace', 'maximal_allowed_pace']:
             if parameter not in parameters:
                 raise ValueError(
                     'parameters should contain {}.'.format(parameter))
         super().__init__(
+            name=name,
             parameters=parameters,
             dependent_criteria=dependent_criteria,
         )

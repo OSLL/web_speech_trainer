@@ -11,11 +11,12 @@ class NumberSlidesCriterion(Criterion):
         maximal_allowed_slide_number=int.__name__
     )
 
-    def __init__(self, parameters, dependent_criteria):
+    def __init__(self, parameters, dependent_criteria, name=''):
         if 'minimal_allowed_slide_number' not in parameters and 'maximal_allowed_slide_number' not in parameters:
             raise ValueError(
                 'parameters should contain \'minimal_allowed_slide_number\' or \'maximal_allowed_slide_number\'.')
         super().__init__(
+            name=name,
             parameters=parameters,
             dependent_criteria=dependent_criteria,
         )

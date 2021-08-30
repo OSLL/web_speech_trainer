@@ -1,24 +1,7 @@
-from .fillers_number.criterion import FillersNumberCriterion
-from .fillers_ratio.criterion import FillersRatioCriterion
-from .len_text_on_slide.critetion import LenTextOnSlideCriterion
-from .number_slides.critetion import NumberSlidesCriterion
-from .number_word_on_slide.critetion import NumberWordOnSlideCriterion
-from .speech_duration.criterion import SpeechDurationCriterion
-from .speech_is_not_in_database.criterion import SpeechIsNotInDatabaseCriterion
-from .speech_pace.criterion import SpeechPaceCriterion
-from .strict_speech_duration.criterion import StrictSpeechDurationCriterion
+import sys, inspect
 
-CRITERIONS = {
-    FillersNumberCriterion.__name__: FillersNumberCriterion,
-    FillersRatioCriterion.__name__: FillersRatioCriterion,
-    LenTextOnSlideCriterion.__name__: LenTextOnSlideCriterion,
-    NumberSlidesCriterion.__name__: NumberSlidesCriterion,
-    NumberWordOnSlideCriterion.__name__: NumberWordOnSlideCriterion,
-    SpeechDurationCriterion.__name__: SpeechDurationCriterion,
-    SpeechIsNotInDatabaseCriterion.__name__: SpeechIsNotInDatabaseCriterion,
-    SpeechPaceCriterion.__name__: SpeechPaceCriterion,
-    StrictSpeechDurationCriterion.__name__: StrictSpeechDurationCriterion,
-}
-
-
+from .criterions import *
 from .utils import check_criterions
+
+
+CRITERIONS = dict(inspect.getmembers(sys.modules[__name__], inspect.isclass))

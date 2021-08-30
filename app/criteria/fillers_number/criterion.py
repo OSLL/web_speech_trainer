@@ -11,8 +11,9 @@ class FillersNumberCriterion(Criterion):
         maximum_fillers_number=int.__name__
     )
 
-    def __init__(self, parameters, dependent_criteria):
+    def __init__(self, parameters, dependent_criteria, name=''):
         super().__init__(
+            name=name,
             parameters=parameters,
             dependent_criteria=dependent_criteria,
         )

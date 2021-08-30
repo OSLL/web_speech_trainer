@@ -8,8 +8,8 @@ class Criterion:
 
     PARAMETERS = dict()
 
-    def __init__(self, parameters: dict, dependent_criteria: list):
-        self.name = self.__class__.__name__
+    def __init__(self, parameters: dict, dependent_criteria: list, name=''):
+        self.name = name if name else self.__class__.__name__
         self.parameters = parameters
         self.dependent_criteria = dependent_criteria
 
@@ -21,8 +21,15 @@ class Criterion:
             -> CriterionResult:
         raise NotImplementedError()
 
+    @property
+    def dict(self) -> dict:
+        return dict(
+            name = self.name,
+            parameters = self.parameters
+        )
+
     @classmethod
-    def structure_to_json(cls):
+    def structure_to_json(cls) -> dict:
         # for simplicity, dependent criteria are removed
         return dict(
             name=cls.__name__,
@@ -32,4 +39,4 @@ class Criterion:
     @classmethod
     def from_dict(cls, dictionary):
         dependent_criterions = []   # for simplicity,  dependent criteria are removed
-        return cls(dictionary['parameters'], dependent_criterions)
+        return cls(dictionary['parameters'], dependent_criterions, name=dictionary.get('name'))

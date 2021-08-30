@@ -10,12 +10,13 @@ class FillersRatioCriterion(Criterion):
         fillers=list.__name__
     )
 
-    def __init__(self, parameters, dependent_criteria):
+    def __init__(self, parameters, dependent_criteria, name=''):
         if 'fillers' not in parameters:
             raise ValueError(
                 'parameters should contain {}.'.format('fillers'))
     
         super().__init__(
+            name=name,
             parameters=parameters,
             dependent_criteria=dependent_criteria,
         )
