@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<link rel="stylesheet" href="/static/css/danger-alert.css">
+<link rel="stylesheet" href="/static/css/libraries/codemirror.min.css">
+<link rel="stylesheet" href="/static/css/spinner.css">
+{% endblock %}
+
+{% block content %}
+
+<div id="alert" class="alert alert-danger" role="alert">
+    <p id="error-text"></p>
+</div>
+<div id="alert-warning" class="alert alert-warning" role="alert">
+    <p id="warning-text"></p>
+</div>
+
+<div id="spinner" class="central-spinner"></div>
+
+<h3>{{ t("Редактирование критерия") }}</h3>
+<b>Last update:</b>
+{% if data['last_update'] %}
+<script>document.write(new Date({{ data['last_update']}}));</script>
+{% else %}
+-
+{% endif %}
+
+
+<form method=POST id="update_criterion">
+    <b><label for="base_criterion">Base criterion:</label></b>
+    <select id="base_criterion" form="update_criterion" name="base_criterion" value="{{ data['base_criterion'] }}"
+        autocomplete="off" required />
+    {% for criterion_name in criterion_list %}
+    <option value="{{criterion_name}}" {% if criterion_name==data['base_criterion'] %} selected {% endif %}>
+        {{criterion_name}}
+    </option>
+    {% endfor %}
+    </select>
+    <br>
+    <b><label for="criterion_structure">Base criterion structure:</label></b>
+    <pre id="criterion_structure"></pre>
+    <textarea id="criterion_parameters">{{ data['info'] }}</textarea>
+    <input id="button-submit" type="submit" value="{{ t(" Сохранить") }}">
+</form>
+
+<script src="/static/js/libraries/jquery.min.js"></script>
+<script src="/static/js/libraries/codemirror.min.js"></script>
+<script src="/static/js/criterion.js"></script>
+
+{% endblock %}

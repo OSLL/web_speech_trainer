@@ -179,7 +179,7 @@ def check_dict_keys(dictionary, keys):
     msg = ''
     for key in keys:
         if key not in dictionary:
-            msg += f"No {key} in dictionary\n"
+            msg += f"No '{key}' in dictionary.\n"
     return f"{msg}\n{dictionary}" if msg else ''
 
 
