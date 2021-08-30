@@ -19,7 +19,7 @@ from pymongo.errors import CollectionInvalid
 from app.config import Config
 from app.mongo_models import Trainings, AudioToRecognize, TrainingsToProcess, \
     PresentationsToRecognize, RecognizedAudioToProcess, RecognizedPresentationsToProcess, PresentationFiles, PresentationInfo, \
-    Sessions, Consumers, Tasks, TaskAttempts, TaskAttemptsToPassBack, Logs
+    Sessions, Consumers, Tasks, TaskAttempts, TaskAttemptsToPassBack, Logs, Criterion
 from app.status import AudioStatus, PresentationStatus, TrainingStatus, PassBackStatus
 from app.utils import remove_blank_and_none
 
@@ -790,3 +790,29 @@ class LogsDBManager:
         if limit is not None:
             logs = logs.limit(limit)
         return logs
+
+
+class CriterionDBManager:
+
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super(CriterionDBManager, cls).__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
+        return cls.instance
+
+    def add_criterion(self, name, parameters, base_criterion):
+        new_criterion = Criterion(
+            name=name,
+            parameters=parameters,
+            base_criterion=base_criterion
+        )
+        new_criterion.save()
+        return new_criterion
+
+    def get_criterion_by_name(self, name):
+        try:
+            return Criterion.objects.get({'name': name})
+        except Criterion.DoesNotExist as e:
+            logger.warning('No criterion w/name = {}.'.format(name))
+            return None
