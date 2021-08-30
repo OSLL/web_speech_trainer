@@ -1,4 +1,3 @@
-from logging import critical
 import logging
 import math
 import traceback
@@ -12,15 +11,15 @@ from app.utils import get_types
 def check_criterions(criterions):
     try:
         all_ok = True
-        for key, value in criterions.items():
+        for criterion_name, criterion_class in criterions.items():
             # check that criterion has structure
-            structure = value.structure_to_json()
+            structure = criterion_class.structure()
             # try to create criteria with default type value
             criterion, msg = create_empty_criterion_by_structure(
-                value, structure)
+                criterion_class, structure)
             if not criterion:
                 logging.error(
-                    f"Can't create instance of {key} with structure {structure}. Error message: {msg}")
+                    f"Can't create instance of {criterion_name} with structure {structure}. Error message: {msg}")
                 all_ok = False
                 continue
             # try to get criterion's description
@@ -37,12 +36,12 @@ def create_empty_criterion_by_structure(criteria, structure):
     parameters = criterion_dict['parameters']
     for key in parameters:
         parameters[key] = types[parameters[key]]()
-    return create_criteria(criteria, criterion_dict)
+    return create_criterion(criteria, criterion_dict)
 
 
-def create_criteria(criteria_class, dictionary):
+def create_criterion(criterion_class, dictionary):
     try:
-        return criteria_class.from_dict(dictionary), ''
+        return criterion_class.from_dict(dictionary), ''
     except Exception as exc:
         traceback.print_exc()
         return None, str(exc)

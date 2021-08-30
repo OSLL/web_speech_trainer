@@ -29,7 +29,7 @@ class Criterion:
         )
 
     @classmethod
-    def structure_to_json(cls) -> dict:
+    def structure(cls) -> dict:
         # for simplicity, dependent criteria are removed
         return dict(
             name=cls.__name__,
