@@ -818,4 +818,4 @@ class CriterionDBManager:
             return None
     
     def get_all_criterions(self):
-        return Criterion.objects.all()
+        return Criterion.objects.all().order_by([("name", pymongo.ASCENDING)])
