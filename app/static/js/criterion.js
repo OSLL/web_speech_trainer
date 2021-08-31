@@ -1,8 +1,11 @@
 $(function () {
 
-    $("#alert").hide();
-    $("#alert-warning").hide();
-    $("#spinner").hide();
+    let alert_danger = $("#alert")
+    let alert_warn = $("#alert-warning").hide();
+    let alert_success = $("#alert-success").hide();
+    let spinner = $("#spinner").hide();
+
+    hideAll()
 
     let criterions = {}
 
@@ -24,6 +27,7 @@ $(function () {
                 mode: "python"
             }
         )
+        criterion_parameters.setSize(500, 150);
     }
 
     function get_text() {
@@ -32,6 +36,7 @@ $(function () {
     }
 
     $("#button-submit").click((e) => {
+        hideAll()
         e.preventDefault()
         $("#spinner").show();
         let fd = new FormData();
@@ -42,7 +47,7 @@ $(function () {
             .then(responseJson => {
                 $("#spinner").hide();
                 if (responseJson["message"] === "OK") {
-                    location.href = `/criterion/${responseJson['id']}/`;
+                    updatе(responseJson)
                 }
                 else {
                     $("#alert").show();
@@ -55,5 +60,20 @@ $(function () {
         let a = $("#base_criterion")
         let criterion = a.val()
         $("#criterion_structure").text(criterions[criterion])
+    }
+
+    function updatе(dictionary){
+        $("#criterion_name").text(dictionary['name'])
+        history.pushState(null, null, `/criterion/${dictionary['name']}/`); 
+
+        alert_success.text(`Updated: ${new Date(dictionary['time'])}`)
+        alert_success.show()
+    }
+
+    function hideAll(){
+        alert_danger.hide();
+        alert_warn.hide();
+        alert_success.hide();
+        spinner.hide();
     }
 })

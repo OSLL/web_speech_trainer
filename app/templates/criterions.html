@@ -14,17 +14,26 @@
 <div id="alert-warning" class="alert alert-warning" role="alert">
     <p id="warning-text"></p>
 </div>
+<div id="alert-success" class="alert alert-success" role="alert">
+    <p id="success-text"></p>
+</div>
+
 
 <div id="spinner" class="central-spinner"></div>
 
 <h3>{{ t("Редактирование критерия") }}</h3>
-<b>Last update:</b>
-{% if data['last_update'] %}
-<script>document.write(new Date({{ data['last_update']}}));</script>
-{% else %}
--
-{% endif %}
 
+<b>Criterion name:</b>
+<i id="criterion_name" > {{ data.get('name', '-') }} </i>
+<br>
+<b>Last update:</b>
+<i id="last_update">
+    {% if data['last_update'] %}
+    <script>document.write(new Date({{ data['last_update']}}));</script>
+    {% else %}
+    -
+    {% endif %}
+</i>
 
 <form method=POST id="update_criterion">
     <b><label for="base_criterion">Base criterion:</label></b>
@@ -39,7 +48,7 @@
     <br>
     <b><label for="criterion_structure">Base criterion structure:</label></b>
     <pre id="criterion_structure"></pre>
-    <textarea id="criterion_parameters">{{ data['info'] }}</textarea>
+    <textarea id="criterion_parameters" rows=5>{{ data['info'] }} </textarea>
     <input id="button-submit" type="submit" value="{{ t(" Сохранить") }}">
 </form>
 
