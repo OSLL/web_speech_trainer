@@ -19,8 +19,9 @@ class SpeechIsNotInDatabaseCriterion(Criterion):
 
     PARAMETERS = dict()
 
-    def __init__(self, parameters, dependent_criteria):
+    def __init__(self, parameters, dependent_criteria, name=''):
         super().__init__(
+            name=name,
             parameters=parameters,
             dependent_criteria=dependent_criteria,
         )

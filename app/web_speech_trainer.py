@@ -18,6 +18,7 @@ from app.criteria import check_criterions, CRITERIONS
 from app.mongo_odm import ConsumersDBManager, TrainingsDBManager, TaskAttemptsDBManager, TaskAttemptsToPassBackDBManager
 from app.root_logger import get_logging_stdout_handler, get_root_logger
 from app.routes.admin import routes_admin
+from app.routes.criterions import routes_criterion
 from app.routes.lti import routes_lti
 from app.routes.presentations import routes_presentations
 from app.routes.trainings import routes_trainings
@@ -40,6 +41,7 @@ app.register_blueprint(api_task_attempts)
 app.register_blueprint(api_trainings)
 app.register_blueprint(api_version)
 app.register_blueprint(routes_admin)
+app.register_blueprint(routes_criterion)
 app.register_blueprint(routes_lti)
 app.register_blueprint(routes_presentations)
 app.register_blueprint(routes_trainings)

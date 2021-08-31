@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<link rel="stylesheet" href="/static/css/danger-alert.css">
+<link rel="stylesheet" href="/static/css/libraries/codemirror.min.css">
+<link rel="stylesheet" href="/static/css/spinner.css">
+{% endblock %}
+
+{% block content %}
+
+
+<h3>{{ t("Критерии системы") }}</h3>
+
+<a href={{url_for("routes_criterion.create_new_critetion")}}>Создать новый критерий</a>
+
+<table border="1px">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Base criterion</th>
+            <th>Updated</th>
+            <th>Link</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for criterion in criterions %}
+            <tr>
+                <td>
+                    {{ criterion.name }}
+                </td>
+                <td>
+                    {{ criterion.base_criterion }}
+                </td>
+                <td>
+                    <script> document.write(new Date({{ "%d"|format(criterion.last_update.timestamp()*1000)}}));</script>
+                </td>
+                <td>
+                    <a href={{ url_for("routes_criterion.get_critetion", criterion_name=criterion.name)}}>>>>></a>
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

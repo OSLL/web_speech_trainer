@@ -1,5 +1,5 @@
 from pymodm import EmbeddedMongoModel, MongoModel, fields
-
+from datetime import datetime, timezone 
 
 class Trainings(MongoModel):
     task_attempt_id = fields.ObjectIdField(blank=True)
@@ -59,6 +59,27 @@ class Consumers(MongoModel):
     consumer_key = fields.CharField()
     consumer_secret = fields.CharField()
     timestamp_and_nonce = fields.ListField(blank=True)
+
+
+class Criterion(MongoModel):
+    name = fields.CharField()   # must be unique
+    base_criterion = fields.CharField()
+    parameters = fields.DictField(blank=True, default={})
+    dependent_critetions = fields.ListField(blank=True, default=[])
+    last_update = fields.DateTimeField(default=datetime.now(timezone.utc))
+
+    def to_dict(self):
+        return dict(
+            name = self.name,
+            base_criterion = self.base_criterion,
+            parameters = self.parameters,
+            dependent_critetions = self.dependent_critetions,
+            last_update = int(self.last_update.timestamp()*1000)
+        )
+
+    def save(self):
+        self.last_update = datetime.now(timezone.utc)
+        super().save()
 
 
 class PresentationInfo(EmbeddedMongoModel):

@@ -5,6 +5,7 @@ from threading import Timer
 
 import fitz
 from bson import ObjectId
+from flask import json
 import magic
 from pydub import AudioSegment
 import subprocess
@@ -165,6 +166,22 @@ def get_types():
         list.__name__: list,
         dict.__name__: dict
     }
+
+
+def try_load_json(json_string):
+    try:
+        return json.loads(json_string), ''
+    except Exception as exc:
+        return None, str(exc)
+
+
+def check_dict_keys(dictionary, keys):
+    msg = ''
+    for key in keys:
+        if key not in dictionary:
+            msg += f"No '{key}' in dictionary.\n"
+    return f"{msg}\n{dictionary}" if msg else ''
+
 
 class RepeatedTimer:
     """

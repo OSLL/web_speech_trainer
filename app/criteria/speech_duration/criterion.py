@@ -13,11 +13,12 @@ class SpeechDurationCriterion(Criterion):
         maximal_allowed_duration=int.__name__
     )
 
-    def __init__(self, parameters, dependent_criteria):
+    def __init__(self, parameters, dependent_criteria, name=''):
         if 'minimal_allowed_duration' not in parameters and 'maximal_allowed_duration' not in parameters:
             raise ValueError(
                 'parameters should contain \'minimal_allowed_duration\' or \'maximal_allowed_duration\'.')
         super().__init__(
+            name=name,
             parameters=parameters,
             dependent_criteria=dependent_criteria,
         )

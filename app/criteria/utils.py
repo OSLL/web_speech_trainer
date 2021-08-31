@@ -1,3 +1,4 @@
+import logging
 import math
 import traceback
 from typing import Optional, Callable
@@ -9,25 +10,41 @@ from app.utils import get_types
 
 def check_criterions(criterions):
     try:
-        for key, value in criterions.items():
+        all_ok = True
+        for criterion_name, criterion_class in criterions.items():
             # check that criterion has structure
-            structure = value.structure_to_json()
+            structure = criterion_class.structure()
             # try to create criteria with default type value
-            criterion = create_empty_criterion_by_structure(value, structure)
-            # try to get criterion's description 
+            criterion, msg = create_empty_criterion_by_structure(
+                criterion_class, structure)
+            if not criterion:
+                logging.error(
+                    f"Can't create instance of {criterion_name} with structure {structure}. Error message: {msg}")
+                all_ok = False
+                continue
+            # try to get criterion's description
             criterion.description
+        return all_ok
     except Exception as exc:
         traceback.print_exc()
         return False
-    return True
 
 
 def create_empty_criterion_by_structure(criteria, structure):
     types = get_types()
-    parameters = structure['parameters']
+    criterion_dict = structure
+    parameters = criterion_dict['parameters']
     for key in parameters:
         parameters[key] = types[parameters[key]]()
-    return criteria.from_dict(structure)
+    return create_criterion(criteria, criterion_dict)
+
+
+def create_criterion(criterion_class, dictionary):
+    try:
+        return criterion_class.from_dict(dictionary), ''
+    except Exception as exc:
+        traceback.print_exc()
+        return None, str(exc)
 
 
 def get_proportional_result(value: float,
