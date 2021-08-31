@@ -10,20 +10,26 @@ from app.criteria_pack import CriteriaPackFactory
 from app.lti_session_passback.auth_checkers import is_admin
 from app.mongo_models import Criterion
 from app.mongo_odm import TrainingsDBManager, CriterionDBManager
+from app.root_logger import get_root_logger
 from app.utils import check_argument_is_convertible_to_object_id, remove_blank_and_none, try_load_json, check_dict_keys
 
 
 api_criteria = Blueprint('api_criteria', __name__, url_prefix="/api/criterion")
-logger = logging.getLogger('root_logger')
+logger = get_root_logger('web')
 
 
 @api_criteria.route('/create/', methods=['POST'])
 def create_new_criterion():
+    if not is_admin():
+        return {}, 404
+
     return update_criterion('')
 
 
 @api_criteria.route('/<criterion_name>/', methods=['GET'])
 def get_criterion(criterion_name):
+    if not check_access():
+        return {}, 404
     db_criterion = CriterionDBManager().get_criterion_by_name(criterion_name)
     if db_criterion:
         return db_criterion.to_dict()
@@ -50,7 +56,7 @@ def update_criterion(criterion_name):
         criterion_dict['name'])
     if not db_criterion:
         db_criterion = Criterion(name=criterion_dict['name'], parameters={},
-            base_criterion=base_criterion_name)
+                                 base_criterion=base_criterion_name)
 
     instance, msg = check_criterion_dict(base_criterion, criterion_dict)
     if msg:
@@ -59,21 +65,41 @@ def update_criterion(criterion_name):
     db_criterion.parameters = instance.dict.get('parameters')
     db_criterion.base_criterion = base_criterion_name
     db_criterion.save()
-    #logger.info(f"Updated criterion {db_criterion.name}")
-    return {'message': 'OK', 'id': db_criterion.name}, 200
+    logger.info(f"Updated criterion {db_criterion.name}")
+    return {
+        'message': 'OK',
+        'name': db_criterion.name,
+        'time': int(db_criterion.last_update.timestamp()*1000)
+    }, 200
 
 
 @api_criteria.route('/<criterion_name>/structure/', methods=['GET'])
 def get_criteria_structure(criterion_name):
+    if not check_access():
+        return {}, 404
     criterion = CRITERIONS.get(criterion_name)
     if create_criterion:
         return criterion.structure()
     else:
         return {}, 404
 
+@api_criteria.route('/list/', methods=['GET'])
+def get_all_criterions():
+    if not is_admin():
+        return {}, 404
+    
+    criterions = CriterionDBManager().get_all_criterions()
+    return {
+        'criterions': criterions,
+        'message': 'OK'
+    }
+
 
 @api_criteria.route('/structures', methods=['GET'])
 def get_all_criterion_structures():
+    if not is_admin():
+        return {}, 404
+
     return {name: dumps(criterion.structure(), indent=3) for name, criterion in CRITERIONS.items()}
 
 

@@ -816,3 +816,6 @@ class CriterionDBManager:
         except Criterion.DoesNotExist as e:
             logger.warning('No criterion w/name = {}.'.format(name))
             return None
+    
+    def get_all_criterions(self):
+        return Criterion.objects.all()
