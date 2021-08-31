@@ -21,6 +21,7 @@ def create_dir():
 def timestamp_to_datetime(df,
         fields=('status_last_update', 'audio_status_last_update', 'presentation_status_last_update', 'processing_start_timestamp')):
     for field in fields:
+        df = df[df[field].notna()].copy()  # drop item, if timestamp is Nan
         df[field] = [timestamp.time if type(timestamp) != datetime else timestamp.timestamp() for timestamp in df[field]]
     return df
 
@@ -51,7 +52,9 @@ def plot_recognized_presentation(recognized_presentation_ids, dir='.'):
     slides_num = []
     words_per_slides = []
     for presentation_id in recognized_presentation_ids:
-        info = json_load(DBGetter.get_file(presentation_id))
+        file = DBGetter.get_file(presentation_id)
+        if not file: continue
+        info = json_load()
         slides_num.append(len(info['recognized_slides']))
         for slide_info in info['recognized_slides']:
             slide_words = json_loads(slide_info)['words']
@@ -64,7 +67,9 @@ def plot_recognized_presentation(recognized_presentation_ids, dir='.'):
 def plot_recognized_audio(recognized_audio_ids, dir='.'):
     recognized_words = []
     for audio_id in recognized_audio_ids:
-        info = json_load(DBGetter.get_file(audio_id))
+        file = DBGetter.get_file(audio_id)
+        if not file: continue
+        info = json_load(file)
         recognized_words.append(len(info['recognized_words']))
 
     plot_hist(recognized_words, 'recognized_words_hist', 'Number of recognized words', 'count', dir=dir)
@@ -81,7 +86,7 @@ def plot_criteria(criteria, dir='.'):
     criteria_info = defaultdict(list)
     general_scores = []
     for info in criteria:
-        results = info['criteria_results']
+        results = info.get('criteria_results', {})
         for criter_name, criter_info in results.items():
             criteria_info[criter_name].append(criter_info['result'])
         general_scores.append(info['score'])
@@ -99,17 +104,22 @@ if __name__ == "__main__":
 
     path_to_save = create_dir()
 
+    print("Getting all trainings from DB")
     trainings = tuple(DBGetter.get_trainings())
 
+    print("Loading trainings to dataframe")
     df = pd.DataFrame(trainings, columns=['_id', 'recognized_presentation_id', 'recognized_audio_id', 'presentation_record_duration',
         'slide_switch_timestamps', 'feedback', 'status', 'status_last_update',
         'audio_status', 'audio_status_last_update',
         'presentation_status', 'presentation_status_last_update', 'processing_start_timestamp'])
+    
+    print("Converting training's timestamp to datetime (and drop items w/timestamp = Nan)")
     df = timestamp_to_datetime(df)
 
     df_for_results = df[df.status == "PROCESSED"]
     train_processing_times = np.array(df_for_results['status_last_update']) - np.array(df_for_results['processing_start_timestamp'])
 
+    print("Ploting criteria info")
     plot_criteria(df_for_results['feedback'], dir=path_to_save)
     
     
@@ -123,19 +133,32 @@ if __name__ == "__main__":
     df_for_pres = df[df.presentation_status == "PROCESSED"]
     pres_processing_times = np.array(df_for_pres['presentation_status_last_update']) - np.array(df_for_pres['processing_start_timestamp'])
 
+    print("Ploting recognized_presentation info")
     numbers_slides = plot_recognized_presentation(df_for_pres['recognized_presentation_id'], dir=path_to_save)
     numbers_slides = np.array(numbers_slides)
     pres_process_per_number_slides = pres_processing_times/numbers_slides
     
+    print("Ploting average info about pres/audio processing")
     plot_lines({
         'pres_processing_time_per_number_slides': [pres_process_per_number_slides.mean() for _ in range(2)],
         'audio_processing_time_per_duration': [audio_process_per_duration.mean() for _ in range(2)]
     }, title='processing_time', dir=path_to_save)
 
+
+    print("Ploting recognized_audio info ")
     plot_recognized_audio(df_for_audio['recognized_audio_id'], dir=path_to_save)
+    
+    print("Ploting average info about swiching slides")
     plot_slide_switch_timestamps(df.slide_switch_timestamps.copy(), dir=path_to_save)
 
+    print("Ploting hist for train_processing_times")
     plot_hist(train_processing_times, 'train_processing_times_hist', 'Seconds', 'count', dir=path_to_save)
+
+    print("Ploting hist for pres_processing_times")
     plot_hist(pres_processing_times, 'pres_processing_times_hist', 'Seconds', 'count', dir=path_to_save)
+
+    print("Ploting hist for audio_processing_times")
     plot_hist(audio_processing_times, 'audio_processing_times_hist', 'Seconds', 'count', dir=path_to_save)
+
+    print("Ploting hist for duration_times")
     plot_hist(duration_times, 'duration_times_hist', 'Seconds', 'count', dir=path_to_save)
