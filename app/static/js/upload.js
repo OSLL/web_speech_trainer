@@ -83,7 +83,7 @@ function fileLoadingOnChange() {
         }
         if (convertible_formats.includes(extension)) {
             $("#alert-warning").show();
-            $("#warning-text").html("Презентация будет преобразована в PDF-формат. Это может занять некоторое время!");
+            $("#warning-text").html("После загрузки презентация будет преобразована в PDF-формат (это может занять некоторое время). Для продолжения нажмите 'Начать тренировку'");
         }
         $("#button-submit").removeAttr("disabled");
     }
