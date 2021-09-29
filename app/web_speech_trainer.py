@@ -16,6 +16,8 @@ from app.api.version import api_version
 from app.config import Config
 from app.criteria import check_criterions, CRITERIONS
 from app.mongo_odm import ConsumersDBManager, TrainingsDBManager, TaskAttemptsDBManager, TaskAttemptsToPassBackDBManager
+from app.criteria.preconfigured_criterions import \
+    add_preconfigured_criterions_to_db
 from app.root_logger import get_logging_stdout_handler, get_root_logger
 from app.routes.admin import routes_admin
 from app.routes.criterions import routes_criterion
@@ -134,6 +136,8 @@ if __name__ == '__main__':
     if not check_criterions(CRITERIONS):
         logging.critical("Criterion's checking failed! See traceback")
         exit(1)
+    # add/update preconfigured criterions
+    add_preconfigured_criterions_to_db()
 
     if not ConsumersDBManager().is_key_valid(Config.c.constants.lti_consumer_key):
         ConsumersDBManager().add_consumer(Config.c.constants.lti_consumer_key, Config.c.constants.lti_consumer_secret)

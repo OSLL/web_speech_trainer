@@ -1,10 +1,10 @@
 from app.localisation import *
-from ..criterion_base import Criterion
+from ..criterion_base import BaseCriterion
 from ..criterion_result import CriterionResult
 from ..utils import get_fillers
 
 
-class FillersNumberCriterion(Criterion):
+class FillersNumberCriterion(BaseCriterion):
 
     PARAMETERS = dict(
         fillers=list.__name__,

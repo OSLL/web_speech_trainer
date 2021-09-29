@@ -4,12 +4,12 @@ import time
 from app.audio import Audio
 from app.localisation import *
 from app.presentation import Presentation
-from ..criterion_base import Criterion
+from ..criterion_base import BaseCriterion
 from ..criterion_result import CriterionResult
 from ..utils import get_proportional_result
 
 
-class SpeechPaceCriterion(Criterion):
+class SpeechPaceCriterion(BaseCriterion):
 
     PARAMETERS = dict(
         minimal_allowed_pace=int.__name__,

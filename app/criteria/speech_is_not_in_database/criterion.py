@@ -6,11 +6,11 @@ from scipy.spatial.distance import cosine
 from app.localisation import *
 from app.mongo_odm import DBManager, TrainingsDBManager
 from app.utils import convert_from_mp3_to_wav
-from ..criterion_base import Criterion
+from ..criterion_base import BaseCriterion
 from ..criterion_result import CriterionResult
 
 
-class SpeechIsNotInDatabaseCriterion(Criterion):
+class SpeechIsNotInDatabaseCriterion(BaseCriterion):
 
     '''
     Критерий проверяет, не является ли аудиофайл нечеткой копией

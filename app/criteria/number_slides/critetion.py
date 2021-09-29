@@ -1,10 +1,10 @@
 from app.localisation import *
-from ..criterion_base import Criterion
+from ..criterion_base import BaseCriterion
 from ..criterion_result import CriterionResult
 from ..utils import get_proportional_result
 
 
-class NumberSlidesCriterion(Criterion):
+class NumberSlidesCriterion(BaseCriterion):
 
     PARAMETERS = dict(
         minimal_allowed_slide_number=int.__name__,

@@ -1,12 +1,12 @@
 import re
 
 from app.localisation import *
-from ..criterion_base import Criterion
+from ..criterion_base import BaseCriterion
 from ..criterion_result import CriterionResult
 from ..utils import get_proportional_result
 
 
-class LenTextOnSlideCriterion(Criterion):
+class LenTextOnSlideCriterion(BaseCriterion):
 
     PARAMETERS = dict(
         minimal_number_words=int.__name__
