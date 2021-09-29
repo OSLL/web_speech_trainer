@@ -123,34 +123,36 @@ def get_remaining_processing_time_by_training_id(training_id: str) -> (dict, int
         logger.debug(message)
         time_estimation += max(0, estimated_remaining_recognition_time)
     current_presentation_record_file_id = current_training_db.presentation_record_file_id
-    current_presentation_record_file_generation_time = current_presentation_record_file_id.generation_time
-    trainings_with_audio_status_before_recognizing = TrainingsDBManager().get_trainings_filtered(
-        filters={'$or': [{'audio_status': {'$in': [AudioStatus.NEW, AudioStatus.SENT_FOR_RECOGNITION]}}]},
-    )
-    for training in trainings_with_audio_status_before_recognizing:
-        if training.presentation_record_file_id is None:
-            continue
-        presentation_record_file_generation_time = training.presentation_record_file_id.generation_time
-        training_id = training.pk
-        try:
-            time_estimation_add = training.presentation_record_duration / 2
-        except (AttributeError, TypeError):
-            continue
-        if presentation_record_file_generation_time > current_presentation_record_file_generation_time:
-            continue
-        logger.debug(
-            'Presentation record file generation time for a training with training_id = {} is {}. '
-            'It is earlier than or equals to generation time for the current training with training_id = {} '
-            'that is {}. Adding {} seconds.'
-            .format(
-                training_id,
-                presentation_record_file_generation_time,
-                training_id,
-                current_presentation_record_file_generation_time,
-                time_estimation_add,
-            )
+    current_presentation_record_file_generation_time = current_presentation_record_file_id.generation_time if current_presentation_record_file_id else None
+    if current_presentation_record_file_generation_time:
+        # if training doesn't have presentation_record_file_id -> skip this
+        trainings_with_audio_status_before_recognizing = TrainingsDBManager().get_trainings_filtered(
+            filters={'$or': [{'audio_status': {'$in': [AudioStatus.NEW, AudioStatus.SENT_FOR_RECOGNITION]}}]},
         )
-        time_estimation += time_estimation_add
+        for training in trainings_with_audio_status_before_recognizing:
+            if not training.presentation_record_file_id or (not current_presentation_record_file_generation_time):
+                continue
+            presentation_record_file_generation_time = training.presentation_record_file_id.generation_time
+            training_id = training.pk
+            try:
+                time_estimation_add = training.presentation_record_duration / 2
+            except (AttributeError, TypeError):
+                continue
+            if presentation_record_file_generation_time > current_presentation_record_file_generation_time:
+                continue
+            logger.debug(
+                'Presentation record file generation time for a training with training_id = {} is {}. '
+                'It is earlier than or equals to generation time for the current training with training_id = {} '
+                'that is {}. Adding {} seconds.'
+                .format(
+                    training_id,
+                    presentation_record_file_generation_time,
+                    training_id,
+                    current_presentation_record_file_generation_time,
+                    time_estimation_add,
+                )
+            )
+            time_estimation += time_estimation_add
     trainings_with_sent_for_processing_or_processing_status = TrainingsDBManager().get_trainings_filtered(
         filters={'$or': [{'status': {'$in': [
             TrainingStatus.PREPARED, TrainingStatus.SENT_FOR_PROCESSING, TrainingStatus.PROCESSING
