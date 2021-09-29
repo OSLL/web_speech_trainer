@@ -15,5 +15,5 @@ function changeURLByParam(tag, par) {
         url += `&${tag}=${par}`
     }
 
-    //history.pushState(null, null, url); 
+    history.pushState(null, null, url); 
 }
