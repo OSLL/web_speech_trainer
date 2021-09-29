@@ -6,6 +6,9 @@ let gumStream,
     timer;
 
 function startRecording() {
+    console.log("call startRecording(). Try to call navigator.mediaDevices.getUserMedia")
+    console.log(navigator)
+    console.log(navigator.mediaDevices)
     navigator.mediaDevices.getUserMedia({audio: true, video: false}).then(function (stream) {
         currentTimestamp = Date.now();
         $("#tutorial")[0].style = "visibility: hidden; font-size: 0";
@@ -73,6 +76,8 @@ function startRecording() {
         $("#record")[0].disabled = true;
         $("#done")[0].disabled = false;
     }).catch( err => {
+        console.log('Error on calling avigator.mediaDevices.getUserMedia')
+        console.log(err)
         $("#alert").show();
         $("#error-text").html("Микрофон не доступен!");
     });
