@@ -4,7 +4,7 @@ from app.presentation import Presentation
 from .criterion_result import CriterionResult
 
 
-class Criterion:
+class BaseCriterion:
 
     PARAMETERS = dict()
 

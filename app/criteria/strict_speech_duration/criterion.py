@@ -1,12 +1,12 @@
 import time
 
 from app.localisation import *
-from ..criterion_base import Criterion
+from ..criterion_base import BaseCriterion
 from ..criterion_result import CriterionResult
 from ..utils import get_proportional_result
 
 
-class StrictSpeechDurationCriterion(Criterion):
+class StrictSpeechDurationCriterion(BaseCriterion):
 
     PARAMETERS = dict(
         minimal_allowed_duration=int.__name__,
