@@ -54,7 +54,7 @@ def plot_recognized_presentation(recognized_presentation_ids, dir='.'):
     for presentation_id in recognized_presentation_ids:
         file = DBGetter.get_file(presentation_id)
         if not file: continue
-        info = json_load()
+        info = json_load(file)
         slides_num.append(len(info['recognized_slides']))
         for slide_info in info['recognized_slides']:
             slide_words = json_loads(slide_info)['words']
