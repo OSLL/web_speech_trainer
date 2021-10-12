@@ -79,7 +79,7 @@ preconfigured_criterions= [
 
     # SpeechPaceCriterion
     SpeechPaceCriterion(
-        name='SpeechPaceCriterion',
+        name='DEFAULT_SPEECH_PACE_CRITERION',
         parameters={
             'minimal_allowed_pace': 75,
             'maximal_allowed_pace': 175,

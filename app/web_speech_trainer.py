@@ -14,10 +14,13 @@ from app.api.task_attempts import api_task_attempts
 from app.api.trainings import api_trainings
 from app.api.version import api_version
 from app.config import Config
-from app.criteria import check_criterions, CRITERIONS
-from app.mongo_odm import ConsumersDBManager, TrainingsDBManager, TaskAttemptsDBManager, TaskAttemptsToPassBackDBManager
+from app.criteria import CRITERIONS, check_criterions
 from app.criteria.preconfigured_criterions import \
     add_preconfigured_criterions_to_db
+from app.criteria_pack.preconfigured_pack import add_preconf_packs
+from app.localisation import *
+from app.mongo_odm import (ConsumersDBManager, TaskAttemptsDBManager,
+                           TaskAttemptsToPassBackDBManager, TrainingsDBManager)
 from app.root_logger import get_logging_stdout_handler, get_root_logger
 from app.routes.admin import routes_admin
 from app.routes.criterions import routes_criterion
@@ -25,11 +28,9 @@ from app.routes.lti import routes_lti
 from app.routes.presentations import routes_presentations
 from app.routes.trainings import routes_trainings
 from app.routes.version import routes_version
-from app.status import TrainingStatus, PassBackStatus
+from app.status import PassBackStatus, TrainingStatus
 from app.training_manager import TrainingManager
-from app.localisation import *
 from app.utils import ALLOWED_EXTENSIONS, DEFAULT_EXTENSION
-
 
 app = Flask(__name__)
 app.register_blueprint(api_audio)
@@ -138,6 +139,8 @@ if __name__ == '__main__':
         exit(1)
     # add/update preconfigured criterions
     add_preconfigured_criterions_to_db()
+    # add/update preconfigured criterion's packs
+    add_preconf_packs()
 
     if not ConsumersDBManager().is_key_valid(Config.c.constants.lti_consumer_key):
         ConsumersDBManager().add_consumer(Config.c.constants.lti_consumer_key, Config.c.constants.lti_consumer_secret)
