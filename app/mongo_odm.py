@@ -835,12 +835,12 @@ class CriterionPackDBManager:
         return cls.instance
 
     def add_criterion_pack(self, name, criterion_ids):
-        new_pack = CriterionPack(
-            name=name,
-            criterions=criterion_ids
-        )
-        new_pack.save()
-        return new_pack
+        pack = self.get_criterion_pack_by_name(name)
+        if not pack:
+            pack = CriterionPack(name=name)
+        pack.criterions=criterion_ids
+        pack.save()
+        return pack
 
     def add_pack_from_names(self, pack_name, criteria_names):
         # criteria_names is list of criterion's names (=> to DB id)

@@ -2,7 +2,7 @@ from flask import render_template, Blueprint
 import logging
 from json import dumps
 
-from app.api.criteria import CRITERIONS, get_all_criterions
+from app.api.criteria import CRITERIONS, get_all_criterion_packs, get_all_criterions
 from app.mongo_odm import CriterionDBManager
 from app.lti_session_passback.auth_checkers import is_admin
 
@@ -41,9 +41,19 @@ def get_critetion(criterion_name):
 
 
 @routes_criterion.route('/list/', methods=['GET'])
-def get_critetions():
+def get_criterions():
     if not is_admin():
         return {}, 404
     criterions = get_all_criterions()['criterions']
     return render_template('criterion_list.html', criterions=criterions)
 
+
+@routes_criterion.route('/pack/list/', methods=['GET'])
+def get_packs():
+    if not is_admin():
+        return {}, 404
+    import logging
+    logging.getLogger('root').error(str(get_all_criterion_packs()))
+    packs = get_all_criterion_packs()['packs']
+
+    return render_template('pack_list.html', packs=packs)

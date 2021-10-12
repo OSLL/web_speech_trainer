@@ -9,7 +9,7 @@ from app.criteria.utils import create_criterion
 from app.criteria_pack import CriteriaPackFactory
 from app.lti_session_passback.auth_checkers import is_admin
 from app.mongo_models import Criterion
-from app.mongo_odm import TrainingsDBManager, CriterionDBManager
+from app.mongo_odm import CriterionPackDBManager, TrainingsDBManager, CriterionDBManager
 from app.root_logger import get_root_logger
 from app.utils import check_argument_is_convertible_to_object_id, remove_blank_and_none, try_load_json, check_dict_keys
 
@@ -83,7 +83,14 @@ def get_criteria_structure(criterion_name):
     else:
         return {}, 404
 
-@api_criteria.route('/list/', methods=['GET'])
+@api_criteria.route('/structures', methods=['GET'])
+def get_all_criterion_structures():
+    if not is_admin():
+        return {}, 404
+
+    return {name: dumps(criterion.structure(), indent=3) for name, criterion in CRITERIONS.items()}
+
+
 def get_all_criterions():
     if not is_admin():
         return {}, 404
@@ -95,12 +102,15 @@ def get_all_criterions():
     }
 
 
-@api_criteria.route('/structures', methods=['GET'])
-def get_all_criterion_structures():
+def get_all_criterion_packs():
     if not is_admin():
         return {}, 404
-
-    return {name: dumps(criterion.structure(), indent=3) for name, criterion in CRITERIONS.items()}
+    
+    packs = CriterionPackDBManager().get_all_criterion_packs()
+    return {
+        'packs': packs,
+        'message': 'OK'
+    }
 
 
 @api_criteria.route('/<training_id>/<criterion_name>/<parameter_name>/', methods=['GET'])
