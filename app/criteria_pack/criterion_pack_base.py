@@ -68,13 +68,14 @@ class BaseCriterionPack:
     def from_dict(cls, dictionary):
         # 'criteria' in dictionary is list of criterion's names (=> to class instance)
         criteria = []
-        for name in dictionary:
+        for name in dictionary['criterions']:
             # get criterion info from db
-            db_criterion = CriterionDBManager.get_criterion_by_name(name)
+            db_criterion = CriterionDBManager().get_criterion_by_name(name)
             if not db_criterion:
                 continue
             # create instance of criterion
             criterion_class = CRITERIONS.get(db_criterion.base_criterion)
-            criteria.append(criterion_class.from_dict(db_criterion.dict))
+            if not criterion_class:
+                criteria.append(criterion_class.from_dict(db_criterion.to_dict()))
 
         return cls(criteria, name=dictionary.get('name'))
