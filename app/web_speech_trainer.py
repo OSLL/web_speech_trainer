@@ -17,7 +17,7 @@ from app.config import Config
 from app.criteria import CRITERIONS, check_criterions
 from app.criteria.preconfigured_criterions import \
     add_preconfigured_criterions_to_db
-from app.criteria_pack.preconfigured_pack import add_preconf_packs
+from app.new_criteria_pack.preconfigured_pack import add_preconf_packs
 from app.localisation import *
 from app.mongo_odm import (ConsumersDBManager, TaskAttemptsDBManager,
                            TaskAttemptsToPassBackDBManager, TrainingsDBManager)
