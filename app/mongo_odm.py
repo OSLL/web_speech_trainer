@@ -2,12 +2,12 @@ import logging
 import os
 import time
 import uuid
+from datetime import datetime
 from typing import Union
 
 import pymongo
 from bson import ObjectId
 from bson.errors import InvalidId
-from datetime import datetime
 from gridfs import GridFSBucket, NoFile
 from pymodm import connect
 from pymodm.connection import _get_db
@@ -17,10 +17,15 @@ from pymongo import ReturnDocument
 from pymongo.errors import CollectionInvalid
 
 from app.config import Config
-from app.mongo_models import Trainings, AudioToRecognize, TrainingsToProcess, \
-    PresentationsToRecognize, RecognizedAudioToProcess, RecognizedPresentationsToProcess, PresentationFiles, PresentationInfo, \
-    Sessions, Consumers, Tasks, TaskAttempts, TaskAttemptsToPassBack, Logs, Criterion
-from app.status import AudioStatus, PresentationStatus, TrainingStatus, PassBackStatus
+from app.mongo_models import (AudioToRecognize, Consumers, Criterion, CriterionPack, Logs,
+                              PresentationFiles, PresentationInfo,
+                              PresentationsToRecognize,
+                              RecognizedAudioToProcess,
+                              RecognizedPresentationsToProcess, Sessions,
+                              TaskAttempts, TaskAttemptsToPassBack, Tasks,
+                              Trainings, TrainingsToProcess)
+from app.status import (AudioStatus, PassBackStatus, PresentationStatus,
+                        TrainingStatus)
 from app.utils import remove_blank_and_none
 
 logger = logging.getLogger('root_logger')
@@ -819,3 +824,42 @@ class CriterionDBManager:
     
     def get_all_criterions(self):
         return Criterion.objects.all().order_by([("name", pymongo.ASCENDING)])
+
+class CriterionPackDBManager:
+
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super(CriterionPackDBManager, cls).__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
+        return cls.instance
+
+    def add_criterion_pack(self, name, criterion_ids):
+        pack = self.get_criterion_pack_by_name(name)
+        if not pack:
+            pack = CriterionPack(name=name)
+        pack.criterions=criterion_ids
+        pack.save()
+        return pack
+
+    def add_pack_from_names(self, pack_name, criteria_names):
+        # criteria_names is list of criterion's names (=> to DB id)
+        criteria = []
+        for name in criteria_names:
+            # get criterion info from db
+            db_criterion = CriterionDBManager().get_criterion_by_name(name)
+            if not db_criterion:
+                continue
+            criteria.append(db_criterion._id)
+
+        return self.add_criterion_pack(pack_name, criteria)
+
+    def get_criterion_pack_by_name(self, name):
+        try:
+            return CriterionPack.objects.raw({'name': name}).first()
+        except CriterionPack.DoesNotExist as e:
+            logger.warning('No criterion pack w/name = {}.'.format(name))
+            return None
+    
+    def get_all_criterion_packs(self):
+        return CriterionPack.objects.all().order_by([("name", pymongo.ASCENDING)])

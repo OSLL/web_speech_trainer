@@ -1,5 +1,6 @@
+from datetime import datetime, timezone
 from pymodm import EmbeddedMongoModel, MongoModel, fields
-from datetime import datetime, timezone 
+
 
 class Trainings(MongoModel):
     task_attempt_id = fields.ObjectIdField(blank=True)
@@ -74,6 +75,23 @@ class Criterion(MongoModel):
             base_criterion = self.base_criterion,
             parameters = self.parameters,
             dependent_critetions = self.dependent_critetions,
+            last_update = int(self.last_update.timestamp()*1000)
+        )
+
+    def save(self):
+        self.last_update = datetime.now(timezone.utc)
+        super().save()
+
+
+class CriterionPack(MongoModel):
+    name = fields.CharField()   # must be unique
+    criterions = fields.ListField(fields.ReferenceField(Criterion), blank=True, default=[])
+    last_update = fields.DateTimeField(default=datetime.now(timezone.utc))
+
+    def to_dict(self):
+        return dict(
+            name = self.name,
+            criterions = [criterion.name for criterion in self.criterions],
             last_update = int(self.last_update.timestamp()*1000)
         )
 

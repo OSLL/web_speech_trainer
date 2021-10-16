@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<link rel="stylesheet" href="/static/css/danger-alert.css">
+<link rel="stylesheet" href="/static/css/libraries/codemirror.min.css">
+<link rel="stylesheet" href="/static/css/spinner.css">
+{% endblock %}
+
+{% block content %}
+
+
+<h3>{{ t("Наборы критериев системы") }}</h3>
+
+<a href="">Создать новый набор</a>
+
+<table border="1px">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Criterions</th>
+            <th>Updated</th>
+            <th>Link</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for pack in packs %}
+            <tr>
+                <td>
+                    {{ pack.name }}
+                </td>
+                <td>
+                    <ul>
+                        {% for criterion in pack.criterions %}
+                            <li>
+                                <a href={{ url_for("routes_criterion.get_critetion", criterion_name=criterion.name)}}>{{criterion.name}}</a>
+                            </li>
+                        {% endfor %}
+                      </ul>
+                    
+                </td>
+                <td>
+                    <script> document.write(new Date({{ "%d"|format(pack.last_update.timestamp()*1000)}}));</script>
+                </td>
+                <td>
+                    <a href="">>>>></a>
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}
