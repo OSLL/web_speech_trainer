@@ -2,66 +2,6 @@ from datetime import datetime, timezone
 from pymodm import EmbeddedMongoModel, MongoModel, fields
 
 
-class Trainings(MongoModel):
-    task_attempt_id = fields.ObjectIdField(blank=True)
-    username = fields.CharField(blank=True)
-    full_name = fields.CharField(blank=True)
-    presentation_file_id = fields.ObjectIdField()
-    recognized_presentation_id = fields.ObjectIdField()
-    presentation_id = fields.ObjectIdField()
-    presentation_record_file_id = fields.ObjectIdField()
-    presentation_record_duration = fields.FloatField()
-    recognized_audio_id = fields.ObjectIdField()
-    audio_id = fields.ObjectIdField()
-    status = fields.CharField()
-    status_last_update = fields.TimestampField()
-    audio_status = fields.CharField()
-    audio_status_last_update = fields.TimestampField()
-    presentation_status = fields.CharField()
-    presentation_status_last_update = fields.TimestampField()
-    processing_start_timestamp = fields.TimestampField(blank=True)
-    feedback = fields.DictField(blank=True)
-    slide_switch_timestamps = fields.ListField(blank=True)
-    criteria_pack_id = fields.IntegerField(blank=True)
-    feedback_evaluator_id = fields.IntegerField(blank=True)
-
-
-class Tasks(MongoModel):
-    task_id = fields.CharField()
-    task_description = fields.CharField()
-    attempt_count = fields.IntegerField()
-    required_points = fields.FloatField()
-    criteria_pack_id = fields.IntegerField()
-
-
-class TaskAttempts(MongoModel):
-    username = fields.CharField()
-    task_id = fields.CharField()
-    params_for_passback = fields.DictField()
-    training_count = fields.IntegerField()
-    training_scores = fields.OrderedDictField(blank=True)
-    is_passed_back = fields.OrderedDictField(blank=True)
-
-
-class TaskAttemptsToPassBack(MongoModel):
-    task_attempt_id = fields.ObjectIdField()
-    training_id = fields.ObjectIdField()
-    is_retry = fields.BooleanField(blank=True)
-
-
-class Sessions(MongoModel):
-    session_id = fields.CharField()
-    consumer_key = fields.CharField()
-    tasks = fields.DictField(blank=True)
-    is_admin = fields.BooleanField()
-
-
-class Consumers(MongoModel):
-    consumer_key = fields.CharField()
-    consumer_secret = fields.CharField()
-    timestamp_and_nonce = fields.ListField(blank=True)
-
-
 class Criterion(MongoModel):
     name = fields.CharField()   # must be unique
     base_criterion = fields.CharField()
@@ -98,6 +38,66 @@ class CriterionPack(MongoModel):
     def save(self):
         self.last_update = datetime.now(timezone.utc)
         super().save()
+
+
+class Trainings(MongoModel):
+    task_attempt_id = fields.ObjectIdField(blank=True)
+    username = fields.CharField(blank=True)
+    full_name = fields.CharField(blank=True)
+    presentation_file_id = fields.ObjectIdField()
+    recognized_presentation_id = fields.ObjectIdField()
+    presentation_id = fields.ObjectIdField()
+    presentation_record_file_id = fields.ObjectIdField()
+    presentation_record_duration = fields.FloatField()
+    recognized_audio_id = fields.ObjectIdField()
+    audio_id = fields.ObjectIdField()
+    status = fields.CharField()
+    status_last_update = fields.TimestampField()
+    audio_status = fields.CharField()
+    audio_status_last_update = fields.TimestampField()
+    presentation_status = fields.CharField()
+    presentation_status_last_update = fields.TimestampField()
+    processing_start_timestamp = fields.TimestampField(blank=True)
+    feedback = fields.DictField(blank=True)
+    slide_switch_timestamps = fields.ListField(blank=True)
+    criteria_pack_id = fields.CharField()
+    feedback_evaluator_id = fields.IntegerField(blank=True)
+
+
+class Tasks(MongoModel):
+    task_id = fields.CharField()
+    task_description = fields.CharField()
+    attempt_count = fields.IntegerField()
+    required_points = fields.FloatField()
+    criteria_pack_id = fields.CharField()
+
+
+class TaskAttempts(MongoModel):
+    username = fields.CharField()
+    task_id = fields.CharField()
+    params_for_passback = fields.DictField()
+    training_count = fields.IntegerField()
+    training_scores = fields.OrderedDictField(blank=True)
+    is_passed_back = fields.OrderedDictField(blank=True)
+
+
+class TaskAttemptsToPassBack(MongoModel):
+    task_attempt_id = fields.ObjectIdField()
+    training_id = fields.ObjectIdField()
+    is_retry = fields.BooleanField(blank=True)
+
+
+class Sessions(MongoModel):
+    session_id = fields.CharField()
+    consumer_key = fields.CharField()
+    tasks = fields.DictField(blank=True)
+    is_admin = fields.BooleanField()
+
+
+class Consumers(MongoModel):
+    consumer_key = fields.CharField()
+    consumer_secret = fields.CharField()
+    timestamp_and_nonce = fields.ListField(blank=True)
 
 
 class PresentationInfo(EmbeddedMongoModel):
