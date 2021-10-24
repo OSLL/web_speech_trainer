@@ -65,7 +65,7 @@ preconfigured_criterions= [
 
     # SpeechIsNotInDatabaseCriterion
     SpeechIsNotInDatabaseCriterion(
-        name='SpeechIsNotInDatabaseCriterion',
+        name='DEFAULT_SPEECH_IS_NOT_IN_DATABASE_CRITERION',
         parameters={
             'sample_rate': 22050,
             'window_size': 1,

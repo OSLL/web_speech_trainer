@@ -66,7 +66,7 @@ class BaseCriterionPack:
 
     @classmethod
     def from_dict(cls, dictionary):
-        # 'criteria' in dictionary is list of criterion's names (=> to class instance)
+        # 'criterions' in dictionary is list of criterion's names (=> to class instance)
         criteria = []
         for name in dictionary['criterions']:
             # get criterion info from db
@@ -75,7 +75,7 @@ class BaseCriterionPack:
                 continue
             # create instance of criterion
             criterion_class = CRITERIONS.get(db_criterion.base_criterion)
-            if not criterion_class:
+            if criterion_class:
                 criteria.append(criterion_class.from_dict(db_criterion.to_dict()))
 
         return cls(criteria, name=dictionary.get('name'))
