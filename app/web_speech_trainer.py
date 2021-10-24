@@ -17,7 +17,7 @@ from app.config import Config
 from app.criteria import CRITERIONS, check_criterions
 from app.criteria.preconfigured_criterions import \
     add_preconfigured_criterions_to_db
-from app.new_criteria_pack.preconfigured_pack import add_preconf_packs
+from app.criteria_pack.preconfigured_pack import add_preconf_packs
 from app.localisation import *
 from app.mongo_odm import (ConsumersDBManager, TaskAttemptsDBManager,
                            TaskAttemptsToPassBackDBManager, TrainingsDBManager)
@@ -111,7 +111,7 @@ def init():
         Config.c.testing.custom_task_description,
         int(Config.c.testing.custom_attempt_count),
         float(Config.c.testing.custom_required_points),
-        int(Config.c.testing.custom_criteria_pack_id),
+        Config.c.testing.custom_criteria_pack_id,
     )
     return {}, 200
 

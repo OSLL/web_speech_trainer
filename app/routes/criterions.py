@@ -52,8 +52,7 @@ def get_criterions():
 def get_packs():
     if not is_admin():
         return {}, 404
-    import logging
-    logging.getLogger('root').error(str(get_all_criterion_packs()))
+
     packs = get_all_criterion_packs()['packs']
 
     return render_template('pack_list.html', packs=packs)

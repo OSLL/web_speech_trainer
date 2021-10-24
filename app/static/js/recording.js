@@ -9,6 +9,7 @@ function startRecording() {
     console.log("call startRecording(). Try to call navigator.mediaDevices.getUserMedia")
     console.log(navigator)
     console.log(navigator.mediaDevices)
+    $("#alert").hide()
     navigator.mediaDevices.getUserMedia({audio: true, video: false}).then(function (stream) {
         currentTimestamp = Date.now();
         $("#tutorial")[0].style = "visibility: hidden; font-size: 0";

@@ -37,7 +37,7 @@ def lti():
     task_description = custom_params.get('task_description', '')
     attempt_count = int(custom_params.get('attempt_count', 1))
     required_points = float(custom_params.get('required_points', 0))
-    criteria_pack_id = int(custom_params.get('criteria_pack_id', 1))
+    criteria_pack_id = custom_params.get('criteria_pack_id', 'SimplePack')
     feedback_evaluator_id = int(custom_params.get('feedback_evaluator_id', 1))
     role = utils.get_role(params)
     params_for_passback = utils.extract_passback_params(params)

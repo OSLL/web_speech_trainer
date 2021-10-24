@@ -164,6 +164,7 @@ def view_training_greeting():
     session['task_attempt_id'] = str(current_task_attempt.pk)
     criteria_pack_id = session.get('criteria_pack_id')
     criteria_pack = CriteriaPackFactory().get_criteria_pack(criteria_pack_id)
+    criteria_pack_id = criteria_pack.name
     maximal_points = attempt_count * 1
     criteria_pack_description = criteria_pack.get_criteria_pack_weights_description(
         FeedbackEvaluatorFactory().get_feedback_evaluator(session.get('feedback_evaluator_id')).weights,
