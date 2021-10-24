@@ -1,5 +1,5 @@
-from app.criteria import FillersNumberCriterion
-from app.criteria_pack import DEFAULT_SPEECH_PACE_CRITERION, DEFAULT_FILLERS_NUMBER_CRITERION, DEFAULT_FILLERS
+from app.criteria import SpeechPaceCriterion, FillersNumberCriterion
+from app.criteria.utils import DEFAULT_FILLERS
 from app.presentation import Presentation
 
 
@@ -11,6 +11,22 @@ sys.path.append(str(Path(os.getcwd()).parent.absolute()))
 # noinspection PyUnresolvedReferences
 from mock_data import TRAINING_ID, AUDIO, TIMESTAMP
 
+
+DEFAULT_SPEECH_PACE_CRITERION= SpeechPaceCriterion(
+    name='DEFAULT_SPEECH_PACE_CRITERION',
+    parameters={
+        'minimal_allowed_pace': 75,
+        'maximal_allowed_pace': 175,
+    },
+    dependent_criteria=[],
+)
+
+DEFAULT_FILLERS_NUMBER_CRITERION = FillersNumberCriterion(
+    name='DEFAULT_FILLERS_NUMBER_CRITERION',
+    parameters={'fillers': DEFAULT_FILLERS,
+                'maximum_fillers_number': 20},
+    dependent_criteria=[],
+)
 
 def test_speech_pace_criterion():
     audio = AUDIO
