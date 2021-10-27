@@ -5,7 +5,7 @@ from bson import ObjectId
 from flask import Blueprint, render_template, request, session
 from app.localisation import *
 
-from app.api.trainings import get_training_statistics
+from app.api.trainings import add_training, get_training_statistics
 from app.check_access import check_access
 from app.criteria_pack import CriteriaPackFactory
 from app.feedback_evaluator import FeedbackEvaluatorFactory
@@ -169,6 +169,9 @@ def view_training_greeting():
     criteria_pack_description = criteria_pack.get_criteria_pack_weights_description(
         FeedbackEvaluatorFactory().get_feedback_evaluator(session.get('feedback_evaluator_id')).weights,
     )
+    # immediately create training if task has presentation 
+    presentation_id, training_id = (str(task_db.presentation_id), add_training(str(task_db.presentation_id))[0].get('training_id')) if task_db.presentation_id else (None, None)
+
     return render_template(
         'training_greeting.html',
         task_id=task_id,
@@ -181,4 +184,6 @@ def view_training_greeting():
         attempt_count=attempt_count,
         criteria_pack_id=criteria_pack_id,
         criteria_pack_description=criteria_pack_description.replace('\n', '\\n').replace('\'', ''),
+        training_id=training_id,
+        presentation_id=presentation_id
     )

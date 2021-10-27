@@ -8,7 +8,27 @@
     <h3>{{ t("Сумма баллов за предыдущие тренировки") }}: {{ current_points_sum }}</h3>
     <h3>{{ t("Набор критериев") }}: {{ criteria_pack_id }}</h3>
     <div id="criteria-pack-description">{{ criteria_pack_description }}</div>
-    <button id="start-training-button" type="button" onclick="location.href={{ url_for('routes_presentations.view_presentation_upload') }}">{{ t("Начать") }}</button>
+    <button id="start-training-button" type="button"
+        onclick="location.href=
+        {% if not training_id %}
+            '{{ url_for('routes_presentations.view_presentation_upload')}}'
+        {% else %}
+            '{{ url_for('routes_trainings.view_training', training_id=training_id) }}'
+        {% endif %}
+        "
+    >{{ t("Начать") }}</button>
+    {% if training_id %}
+        <br>
+        <div>
+            <i>
+            Для тренировки используется презентация:
+            </i>
+        </div>
+        <img src="{{ url_for('api_files.get_presentation_preview', presentation_file_id=presentation_id)}}"
+            style="max-width: 200px; max-height: 200px"    
+        >
+    {% endif %}
+
 </div>
 <script src="{{ url_for('static', filename='js/training_greeting.js') }}"></script>
 <script type="text/javascript">

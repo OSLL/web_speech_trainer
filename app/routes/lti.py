@@ -1,11 +1,12 @@
 import logging
+from bson.objectid import ObjectId
 
 from flask import Blueprint, request, session, redirect, url_for
 
 from app.lti_session_passback.lti_module import utils
 from app.lti_session_passback.lti_module.check_request import check_request
-from app.mongo_odm import ConsumersDBManager, SessionsDBManager, TasksDBManager
-from app.utils import ALLOWED_EXTENSIONS, DEFAULT_EXTENSION
+from app.mongo_odm import ConsumersDBManager, PresentationFilesDBManager, SessionsDBManager, TasksDBManager
+from app.utils import ALLOWED_EXTENSIONS, DEFAULT_EXTENSION, check_argument_is_convertible_to_object_id
 
 routes_lti = Blueprint('routes_lti', __name__)
 logger = logging.getLogger('root_logger')
@@ -38,6 +39,7 @@ def lti():
     attempt_count = int(custom_params.get('attempt_count', 1))
     required_points = float(custom_params.get('required_points', 0))
     criteria_pack_id = custom_params.get('criteria_pack_id', 'SimplePack')
+    presentation_id = custom_params.get('presentation_id')
     feedback_evaluator_id = int(custom_params.get('feedback_evaluator_id', 1))
     role = utils.get_role(params)
     params_for_passback = utils.extract_passback_params(params)
@@ -52,6 +54,11 @@ def lti():
     session['feedback_evaluator_id'] = feedback_evaluator_id
     session['formats'] = pres_formats
 
-    TasksDBManager().add_task_if_absent(task_id, task_description, attempt_count, required_points, criteria_pack_id)
+    if presentation_id and not check_argument_is_convertible_to_object_id(presentation_id):
+        presentation_id = ObjectId(presentation_id)
+        if not PresentationFilesDBManager().get_presentation_file(presentation_id):
+            presentation_id = None
+
+    TasksDBManager().add_task_if_absent(task_id, task_description, attempt_count, required_points, criteria_pack_id, presentation_id)
 
     return redirect(url_for('routes_trainings.view_training_greeting'))
