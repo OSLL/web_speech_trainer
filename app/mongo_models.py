@@ -70,6 +70,7 @@ class Tasks(MongoModel):
     attempt_count = fields.IntegerField()
     required_points = fields.FloatField()
     criteria_pack_id = fields.CharField()
+    presentation_id = fields.ObjectIdField(blank=True)
 
 
 class TaskAttempts(MongoModel):

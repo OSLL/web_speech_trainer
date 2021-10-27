@@ -379,16 +379,18 @@ class TasksDBManager:
             logger.warning('task_id = {}, {}: {}.'.format(task_id, e.__class__, e))
             return None
 
-    def add_task(self, task_id, task_description, attempt_count, required_points, criteria_pack_id):
-        return Tasks(
+    def add_task(self, task_id, task_description, attempt_count, required_points, criteria_pack_id, presentation_id=None):
+        task = Tasks(
             task_id=task_id,
             task_description=task_description,
             attempt_count=attempt_count,
             required_points=required_points,
             criteria_pack_id=criteria_pack_id,
-        ).save()
+        )
+        if presentation_id: task.presentation_id = presentation_id
+        return task.save()
 
-    def add_task_if_absent(self, task_id, task_description, attempt_count, required_points, criteria_pack_id):
+    def add_task_if_absent(self, task_id, task_description, attempt_count, required_points, criteria_pack_id, presentation_id=None):
         task_db = self.get_task(task_id)
         if task_db is None:
             return self.add_task(task_id, task_description, attempt_count, required_points, criteria_pack_id)
@@ -400,6 +402,8 @@ class TasksDBManager:
             task_db.required_points = required_points
         if task_db.criteria_pack_id != criteria_pack_id:
             task_db.criteria_pack_id = criteria_pack_id
+        if task_db.presentation_id != presentation_id:
+            task_db.presentation_id = presentation_id
         return task_db.save()
 
 
