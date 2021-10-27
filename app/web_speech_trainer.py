@@ -5,6 +5,7 @@ from flask import Flask, session
 
 from app.api.audio import api_audio
 from app.api.criteria import api_criteria
+from app.api.criteria_pack import api_criteria_pack
 from app.api.dump import api_dump
 from app.api.files import api_files
 from app.api.logs import api_logs
@@ -24,6 +25,7 @@ from app.mongo_odm import (ConsumersDBManager, TaskAttemptsDBManager,
 from app.root_logger import get_logging_stdout_handler, get_root_logger
 from app.routes.admin import routes_admin
 from app.routes.criterions import routes_criterion
+from app.routes.packs import routes_criteria_pack
 from app.routes.lti import routes_lti
 from app.routes.presentations import routes_presentations
 from app.routes.trainings import routes_trainings
@@ -36,6 +38,7 @@ app = Flask(__name__)
 app.register_blueprint(api_audio)
 app.register_blueprint(api_dump)
 app.register_blueprint(api_criteria)
+app.register_blueprint(api_criteria_pack)
 app.register_blueprint(api_files)
 app.register_blueprint(api_logs)
 app.register_blueprint(api_presentations)
@@ -45,6 +48,7 @@ app.register_blueprint(api_trainings)
 app.register_blueprint(api_version)
 app.register_blueprint(routes_admin)
 app.register_blueprint(routes_criterion)
+app.register_blueprint(routes_criteria_pack)
 app.register_blueprint(routes_lti)
 app.register_blueprint(routes_presentations)
 app.register_blueprint(routes_trainings)
