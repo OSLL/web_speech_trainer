@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<link rel="stylesheet" href="/static/css/danger-alert.css">
+<link rel="stylesheet" href="/static/css/libraries/codemirror.min.css">
+<link rel="stylesheet" href="/static/css/spinner.css">
+{% endblock %}
+
+{% block content %}
+
+<div id="alert" class="alert alert-danger" role="alert" style="display: none;">
+    <p id="error-text"></p>
+</div>
+<div id="alert-warning" class="alert alert-warning" role="alert" style="display: none;">
+    <p id="warning-text"></p>
+</div>
+<div id="alert-success" class="alert alert-success" role="alert" style="display: none;">
+    <p id="success-text"></p>
+</div>
+
+
+<div id="spinner" class="central-spinner"></div>
+
+<h3>{{ t("Редактирование набора критериев") }}</h3>
+
+<b>Pack name:</b>
+<i id="pack_name" > {{ data.get('name', '-') }} </i>
+<br>
+<b>Last update:</b>
+<i id="last_update">
+    {% if data['last_update'] %}
+    <script>document.write(new Date({{ data['last_update']}}));</script>
+    {% else %}
+    -
+    {% endif %}
+</i>
+<br>
+<a href="{{url_for("routes_criterion.get_criterions")}}" target="_blank">{{ t("Доступные критерии") }}</a>
+<pre>В списке указывайте <b>Name</b> критериев</pre>
+<form method=POST id="update_pack">
+    <textarea id="pack_parameters" rows=5>{{ data['info'] }} </textarea>
+    <input id="button-submit" type="submit" value="{{ t(" Сохранить") }}">
+</form>
+
+<script src="/static/js/libraries/jquery.min.js"></script>
+<script src="/static/js/libraries/codemirror.min.js"></script>
+<script src="/static/js/pack.js"></script>
+
+{% endblock %}

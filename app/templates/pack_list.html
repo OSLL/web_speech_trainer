@@ -11,7 +11,8 @@
 
 <h3>{{ t("Наборы критериев системы") }}</h3>
 
-<a href="">Создать новый набор</a>
+<a href="{{url_for('routes_criteria_pack.create_new_critetia_pack')}}">Создать новый набор</a>
+
 
 <table border="1px">
     <thead>
@@ -42,7 +43,7 @@
                     <script> document.write(new Date({{ "%d"|format(pack.last_update.timestamp()*1000)}}));</script>
                 </td>
                 <td>
-                    <a href="">>>>></a>
+                    <a href="{{ url_for("routes_criteria_pack.get_critetia_pack", pack_name=pack.name)}}">>>>>></a>
                 </td>
             </tr>
         {% endfor %}

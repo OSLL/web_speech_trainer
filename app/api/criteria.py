@@ -102,17 +102,6 @@ def get_all_criterions():
     }
 
 
-def get_all_criterion_packs():
-    if not is_admin():
-        return {}, 404
-    
-    packs = CriterionPackDBManager().get_all_criterion_packs()
-    return {
-        'packs': packs,
-        'message': 'OK'
-    }
-
-
 @api_criteria.route('/<training_id>/<criterion_name>/<parameter_name>/', methods=['GET'])
 def get_criterion_parameter_value(training_id: str, criterion_name, parameter_name) -> (dict, int):
     """
