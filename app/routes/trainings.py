@@ -170,7 +170,7 @@ def view_training_greeting():
         FeedbackEvaluatorFactory().get_feedback_evaluator(session.get('feedback_evaluator_id')).weights,
     )
     # immediately create training if task has presentation 
-    training_id = add_training(str(task_db.presentation_id))[0].get('training_id') if task_db.presentation_id else None 
+    presentation_id, training_id = (str(task_db.presentation_id), add_training(str(task_db.presentation_id))[0].get('training_id')) if task_db.presentation_id else (None, None)
 
     return render_template(
         'training_greeting.html',
@@ -184,5 +184,6 @@ def view_training_greeting():
         attempt_count=attempt_count,
         criteria_pack_id=criteria_pack_id,
         criteria_pack_description=criteria_pack_description.replace('\n', '\\n').replace('\'', ''),
-        training_id=training_id
+        training_id=training_id,
+        presentation_id=presentation_id
     )

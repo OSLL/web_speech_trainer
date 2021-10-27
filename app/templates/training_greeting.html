@@ -11,12 +11,24 @@
     <button id="start-training-button" type="button"
         onclick="location.href=
         {% if not training_id %}
-            '{{ url_for('routes_presentations.view_presentation_upload') }}'
+            '{{ url_for('routes_presentations.view_presentation_upload')}}'
         {% else %}
             '{{ url_for('routes_trainings.view_training', training_id=training_id) }}'
         {% endif %}
         "
     >{{ t("Начать") }}</button>
+    {% if training_id %}
+        <br>
+        <div>
+            <i>
+            Для тренировки используется презентация:
+            </i>
+        </div>
+        <img src="{{ url_for('api_files.get_presentation_preview', presentation_file_id=presentation_id)}}"
+            style="max-width: 200px; max-height: 200px"    
+        >
+    {% endif %}
+
 </div>
 <script src="{{ url_for('static', filename='js/training_greeting.js') }}"></script>
 <script type="text/javascript">
