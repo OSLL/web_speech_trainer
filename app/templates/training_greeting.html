@@ -24,9 +24,11 @@
             Для тренировки используется презентация:
             </i>
         </div>
+        <a href="{{ url_for('api_files.get_presentation_file', presentation_file_id=presentation_id) }}" target="_blank">
         <img src="{{ url_for('api_files.get_presentation_preview', presentation_file_id=presentation_id)}}"
-            style="max-width: 200px; max-height: 200px"    
+            style="max-width: 400px; max-height: 400px"    
         >
+        </a>
     {% endif %}
 
 </div>
