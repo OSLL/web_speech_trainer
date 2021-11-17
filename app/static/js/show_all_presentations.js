@@ -6,8 +6,19 @@ function buildCurrentPresentationRow(presentationFileId, presentationJson) {
     presentationPreviewImageElement.src = `/api/files/presentations/previews/${presentationFileId}/`;
     presentationPreviewImageElement.style.maxWidth = "200px";
     presentationPreviewImageElement.style.maxHeight = "200px";
-    presentationPreviewElement.appendChild(presentationPreviewImageElement);
+    
+    const presentationLink = document.createElement("a");
+    presentationLink.innerHTML = presentationPreviewImageElement.outerHTML
+    presentationLink.href = `/api/files/presentations/${presentationFileId}`
+    presentationLink.target = "_blank"
+
+    presentationPreviewElement.appendChild(presentationLink);
     currentPresentationRowElement.appendChild(presentationPreviewElement);
+
+
+    const presentationNameElement = document.createElement("td");
+    presentationNameElement.textContent = presentationJson['filename'];
+    currentPresentationRowElement.appendChild(presentationNameElement);
 
     const presentationIdElement = document.createElement("td");
     presentationIdElement.textContent = presentationFileId;
@@ -37,7 +48,7 @@ function buildAllPresentationsTable(presentationsJson) {
         return;
     }
     const allPresentationsTable = document.getElementById("all-presentations-table");
-    const titleRow = buildTitleRow(["Превью", "id", ""]);
+    const titleRow = buildTitleRow(["Превью", "Filename", "id", ""]);
     allPresentationsTable.appendChild(titleRow);
 
     Object.keys(presentationsJson["presentations"]).forEach(presentationFileId => {
