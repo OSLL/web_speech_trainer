@@ -1,17 +1,17 @@
 {% extends "base.html" %} {% block content %}
-<div class="base-container">
-    <a href="/show_all_trainings">{{ t("Все тренировки") }}</a>
+<div class="container">
+    <a href="{{ url_for("routes_trainings.view_all_trainings")}}">{{ t("Все тренировки") }}</a>
     <br>
-    <a href="/show_all_presentations">{{ t("Все презентации") }}</a>
+    <a href="{{ url_for("routes_presentations.view_all_presentations")}}">{{ t("Все презентации") }}</a>
     <br>
     <a href="{{url_for("routes_criterion.get_criterions")}}" target="_blank">{{ t("Критерии") }}</a>
     <br>
     <a href="{{url_for("routes_criteria_pack.get_packs")}}" target="_blank">{{ t("Наборы критериев") }}</a>
     <br>
-    <a href="/get_logs">{{ t("Все логи") }}</a>
+    <a href="{{ url_for("api_logs.get_logs")}}" target="_blank"">{{ t("Все логи") }}</a>
     <br>
-    <a href="/dumps" target="_blank">{{ t("Архивы БД") }}</a>
+    <a href="{{ url_for("routes_admin.view_dumps")}}" target="_blank">{{ t("Архивы БД") }}</a>
     <br>
-    <a href="/version" target="_blank">{{ t("Версия") }}</a>
+    <a href="{{ url_for("routes_version.view_version")}}" target="_blank">{{ t("Версия") }}</a>
 </div>
 {% endblock %}
