@@ -26,7 +26,7 @@ pack_configuration = {
          'DEFAULT_SPEECH_PACE_CRITERION',
          'DEFAULT_FILLERS_RATIO_CRITERION'],
     'TwentyMinutesTrainingPack':
-        ['FifteenMinutesSpeechDurationCriterion',
+        ['TwentyMinutesSpeechDurationCriterion',
          'DEFAULT_SPEECH_PACE_CRITERION',
          'DEFAULT_FILLERS_RATIO_CRITERION']}
 

@@ -99,6 +99,33 @@ def get_presentation_preview(presentation_file_id):
     return send_file(presentation_preview_file, mimetype='image/png', as_attachment=as_attachment), 200
 
 
+@check_arguments_are_convertible_to_object_id
+@api_files.route('/api/files/presentations/<presentation_file_id>/', methods=['GET'])
+def get_presentation_file(presentation_file_id):
+    """
+    Endpoint to get a presentation file by presentation ID.
+
+    :param presentation_file_id: Presentation file identifier
+    :return: Presentation file with the given identifier, or
+        a dictionary with an explanation and 404 HTTP return code if a presentation file or a preview was not found, or
+        an empty dictionary with 404 HTTP return code if access was denied.
+    """
+    if not check_access({'presentation_file_id': presentation_file_id}):
+        return {}, 404
+    presentation_file_id = PresentationFilesDBManager().get_presentation_file(presentation_file_id)
+    if presentation_file_id is None:
+        return {'message': 'No presentation file with presentation_file_id = {}.'.format(presentation_file_id)}, 404
+    else:
+        presentation_file_id = presentation_file_id.file_id
+    presentation_file = DBManager().get_file(presentation_file_id)
+    if presentation_file is None:
+        return {'message': 'No presentation binary file with presentation_file_id = {}.'.format(presentation_file_id)}, 404
+    
+    logger.debug('Got presentation file with presentation_file_id = {}'.format(presentation_file_id))
+    as_attachment = safe_strtobool(request.args.get('as_attachment', default=False), on_error=False)
+    return send_file(presentation_file, mimetype='application/pdf', as_attachment=as_attachment), 200
+
+
 @api_files.route('/api/files/presentations/', methods=['POST'])
 def upload_presentation() -> (dict, int):
     """
