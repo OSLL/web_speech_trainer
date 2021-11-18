@@ -7,14 +7,6 @@ RUN apt update
 # via installation of `PyMuPDF` package but `PyMuPDF` itself requires `fitz`.
 # That's why `fitz` is installed separately.
 RUN pip3 install fitz
-# for DB dumps
-RUN apt install -y sudo zip mongodb-clients
-
-# for pptx/odp support
-RUN apt install -y software-properties-common
-RUN add-apt-repository ppa:libreoffice/ppa
-RUN apt update
-RUN apt install -y unoconv  
 
 WORKDIR /app
 COPY . .
