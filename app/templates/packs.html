@@ -23,13 +23,17 @@
 
 <h3>{{ t("Редактирование набора критериев") }}</h3>
 
+<i><pre style="white-space: pre-wrap; display: inline-block;">
+{{ t("Для редактирования/создания набора критериев: укажите название набора (должно быть уникальным), а также заполните список критериев, используя имена параметризованных критериев. (Используйте формат JSON)") }}
+</pre></i>
+
 <b>Pack name:</b>
 <i id="pack_name" > {{ data.get('name', '-') }} </i>
 <br>
 <b>Last update:</b>
 <i id="last_update">
     {% if data['last_update'] %}
-    <script>document.write(new Date({{ data['last_update']}}));</script>
+    <script>document.write((new Date({{ data['last_update']}})).toLocaleString());</script>
     {% else %}
     -
     {% endif %}

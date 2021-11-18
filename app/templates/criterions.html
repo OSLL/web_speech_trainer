@@ -23,13 +23,17 @@
 
 <h3>{{ t("Редактирование критерия") }}</h3>
 
+<i><pre style="white-space: pre-wrap; display: inline-block;">
+{{ t("Для редактирования/создания параметризованного критерия: выберите базовый критерий, структура которого будет автоматически добавлена в поле ввода. Заполните имя (должно быть уникальным) и необходимые параметры критерия.") }}
+</pre></i>
+
 <b>Criterion name:</b>
 <i id="criterion_name" > {{ data.get('name', '-') }} </i>
 <br>
 <b>Last update:</b>
 <i id="last_update">
     {% if data['last_update'] %}
-    <script>document.write(new Date({{ data['last_update']}}));</script>
+    <script>document.write((new Date({{ data['last_update']}}).toLocaleString()));</script>
     {% else %}
     -
     {% endif %}
@@ -46,8 +50,8 @@
     {% endfor %}
     </select>
     <br>
-    <b><label for="criterion_structure">Base criterion structure:</label></b>
-    <pre id="criterion_structure"></pre>
+    <b><label for="criterion_structure">Base criterion structure:</label></b><br>
+    <i><pre id="criterion_structure" style="background:#e4e4ec; white-space: pre-wrap; display: inline-block;"></pre></i>
     <textarea id="criterion_parameters" rows=5>{{ data['info'] }} </textarea>
     <input id="button-submit" type="submit" value="{{ t(" Сохранить") }}">
 </form>
