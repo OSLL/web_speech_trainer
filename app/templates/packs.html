@@ -33,7 +33,7 @@
 <b>Last update:</b>
 <i id="last_update">
     {% if data['last_update'] %}
-    <script>document.write(new Date({{ data['last_update']}}));</script>
+    <script>document.write((new Date({{ data['last_update']}})).toLocaleString());</script>
     {% else %}
     -
     {% endif %}

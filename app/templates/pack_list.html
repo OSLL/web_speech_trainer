@@ -40,7 +40,7 @@
                     
                 </td>
                 <td>
-                    <script> document.write(new Date({{ "%d"|format(pack.last_update.timestamp()*1000)}}));</script>
+                    <script> document.write((new Date({{ "%d"|format(pack.last_update.timestamp()*1000)}})).toLocaleString());</script>
                 </td>
                 <td>
                     <a href="{{ url_for("routes_criteria_pack.get_critetia_pack", pack_name=pack.name)}}">>>>>></a>

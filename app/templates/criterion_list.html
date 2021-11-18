@@ -32,7 +32,7 @@
                     {{ criterion.base_criterion }}
                 </td>
                 <td>
-                    <script> document.write(new Date({{ "%d"|format(criterion.last_update.timestamp()*1000)}}));</script>
+                    <script> document.write((new Date({{ "%d"|format(criterion.last_update.timestamp()*1000)}})).toLocaleString());</script>
                 </td>
                 <td>
                     <a href={{ url_for("routes_criterion.get_critetion", criterion_name=criterion.name)}}>>>>></a>
