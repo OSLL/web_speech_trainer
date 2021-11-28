@@ -10,8 +10,12 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: Build system images (non-pulling)
-      run: ./scripts/build_system_image.sh
-      shell: bash
+      run: |
+        # build base image
+        docker build -f Dockerfile_base -t osll/wst_base .
+
+        # build vosk
+        docker build -f "Dockerfile.kaldi-ru" -t osll/vosk .
 
     - name: Build docker-compose
       run: |
