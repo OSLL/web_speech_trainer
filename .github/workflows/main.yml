@@ -9,6 +9,10 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+    - name: Build system images (non-pulling)
+      run: |
+        ./scripts/build_system_image.sh
+
     - name: Build docker-compose
       run: |
         docker-compose build
