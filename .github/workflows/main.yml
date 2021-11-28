@@ -10,7 +10,7 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: Build system images (non-pulling)
-      run: scripts/build_system_image.sh
+      run: ./scripts/build_system_image.sh
       shell: bash
 
     - name: Build docker-compose
