@@ -11,7 +11,7 @@ jobs:
 
     - name: Build system images (non-pulling)
       run: |
-        ./scripts/build_system_image.sh
+        bash scripts/build_system_image.sh
 
     - name: Build docker-compose
       run: |
