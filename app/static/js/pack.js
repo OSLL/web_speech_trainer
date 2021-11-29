@@ -47,7 +47,7 @@ $(function () {
     
     function updatе(dictionary){
         $("#pack_name").text(dictionary['name'])
-        history.pushState(null, null, `/criterion/${dictionary['name']}/`); 
+        history.pushState(null, null, `/criteria_pack/${dictionary['name']}/`); 
 
         alert_success.text(`Updated: ${new Date(dictionary['time'])}`)
         alert_success.show()
