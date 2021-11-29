@@ -850,8 +850,6 @@ class CriterionPackDBManager:
 
     def add_pack_from_names(self, pack_name, criteria_names, **kwargs):
         # criteria_names is list of criterion's names (=> to DB id)
-        from logging import getLogger
-        getLogger('root_logger').error(f'AAAAAAAAAAA {kwargs}')
         criteria = []
         for name in criteria_names:
             # get criterion info from db
