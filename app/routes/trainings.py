@@ -54,8 +54,7 @@ def view_training_statistics(training_id: str):
         ) for (name, result) in criteria_results.items())
     else:
         criteria_results_str = ''
-    criteria_results_str += '\n' + criteria_pack_db.feedback
-    criteria_results_str = criteria_results_str.replace('\n', '<br>')
+    criteria_results_str = '<br>'.join((criteria_results_str.replace('\n', '<br>'), criteria_pack_db.feedback))
     if 'verdict' in feedback:
         verdict_str = feedback.get('verdict').replace('\n', '\\n')
     else:
