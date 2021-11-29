@@ -91,7 +91,7 @@ function setVerdict(s) {
 }
 
 function setCriteriaResults(s) {
-    document.getElementById("criteria-results").innerText = `${s}`;
+    document.getElementById("criteria-results").innerHTML = `${s}`;
 }
 
 function setRecognizedInfo(slides){

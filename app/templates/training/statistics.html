@@ -44,7 +44,7 @@
 <script type="text/javascript">
     setVerdict("{{ verdict }}");
     setPerSlideAudioTranscriptionTable("{{ training_id }}");
-    setCriteriaResults("{{ criteria_results }}");
+    setCriteriaResults("{{ criteria_results | safe }}");
     setupPresentationViewer("{{ training_id }}");
     changeTrainingStatsURL();
     var info = {{ slides_time }};
