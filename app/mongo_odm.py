@@ -838,16 +838,20 @@ class CriterionPackDBManager:
             cls.init_done = True
         return cls.instance
 
-    def add_criterion_pack(self, name, criterion_ids):
+    def add_criterion_pack(self, name, criterion_ids, weights=None, feedback=None):
         pack = self.get_criterion_pack_by_name(name)
         if not pack:
             pack = CriterionPack(name=name)
-        pack.criterions=criterion_ids
+        pack.criterions = criterion_ids
+        if weights: pack.criterion_weights = weights
+        if feedback: pack.feedback = feedback 
         pack.save()
         return pack
 
-    def add_pack_from_names(self, pack_name, criteria_names):
+    def add_pack_from_names(self, pack_name, criteria_names, **kwargs):
         # criteria_names is list of criterion's names (=> to DB id)
+        from logging import getLogger
+        getLogger('root_logger').error(f'AAAAAAAAAAA {kwargs}')
         criteria = []
         for name in criteria_names:
             # get criterion info from db
@@ -856,7 +860,7 @@ class CriterionPackDBManager:
                 continue
             criteria.append(db_criterion._id)
 
-        return self.add_criterion_pack(pack_name, criteria)
+        return self.add_criterion_pack(pack_name, criteria, **kwargs)
 
     def get_criterion_pack_by_name(self, name):
         try:
