@@ -5,7 +5,7 @@ from app.audio import Audio
 from app.config import Config
 from app.criteria_pack import CriteriaPackFactory
 from app.feedback_evaluator import FeedbackEvaluatorFactory
-from app.mongo_odm import DBManager, TrainingsToProcessDBManager, TrainingsDBManager, TaskAttemptsDBManager
+from app.mongo_odm import CriterionPackDBManager, DBManager, TrainingsToProcessDBManager, TrainingsDBManager, TaskAttemptsDBManager
 from app.presentation import Presentation
 from app.root_logger import get_root_logger
 from app.status import PresentationStatus, TrainingStatus
@@ -62,8 +62,9 @@ class TrainingProcessor:
                 presentation_file.close()
                 criteria_pack_id = training_db.criteria_pack_id
                 criteria_pack = CriteriaPackFactory().get_criteria_pack(criteria_pack_id)
+                criteria_pack_db = CriterionPackDBManager().get_criterion_pack_by_name(criteria_pack.name)
                 feedback_evaluator_id = training_db.feedback_evaluator_id
-                feedback_evaluator = FeedbackEvaluatorFactory().get_feedback_evaluator(feedback_evaluator_id)
+                feedback_evaluator = FeedbackEvaluatorFactory().get_feedback_evaluator(feedback_evaluator_id)(criteria_pack_db.criterion_weights)
                 training = Training(training_id, audio, presentation, criteria_pack, feedback_evaluator)
                 try:
                     feedback = training.evaluate_feedback()

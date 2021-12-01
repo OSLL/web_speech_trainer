@@ -34,7 +34,7 @@ def get_critetia_pack(pack_name):
     data = pack.to_dict()
     data['info'] = dumps({
         'name': data['name'],
-        'criterions': data['criterions']
+        'criterions': [[name, data['criterion_weights'].get(name, 0)] for name in data['criterions'] ]
     }, indent=2, ensure_ascii=False)
     return render_template('packs.html', data=data)
 

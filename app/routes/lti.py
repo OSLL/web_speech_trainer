@@ -1,4 +1,5 @@
 import logging
+from app.criteria_pack import CriteriaPackFactory
 from bson.objectid import ObjectId
 
 from flask import Blueprint, request, session, redirect, url_for
@@ -38,7 +39,7 @@ def lti():
     task_description = custom_params.get('task_description', '')
     attempt_count = int(custom_params.get('attempt_count', 1))
     required_points = float(custom_params.get('required_points', 0))
-    criteria_pack_id = custom_params.get('criteria_pack_id', 'SimplePack')
+    criteria_pack_id = CriteriaPackFactory().get_criteria_pack(custom_params.get('criteria_pack_id', '')).name
     presentation_id = custom_params.get('presentation_id')
     feedback_evaluator_id = int(custom_params.get('feedback_evaluator_id', 1))
     role = utils.get_role(params)

@@ -7,21 +7,27 @@ $(function () {
 
     hideAll()
 
-
-    let pack_parameters = document.getElementById("pack_parameters")
-    if (pack_parameters) {
-        pack_parameters = CodeMirror.fromTextArea(pack_parameters,
-            {
-                lineNumbers: true,
-                lineWrapping: true,
-                mode: "python"
-            }
-        )
-        pack_parameters.setSize(500, 150);
+    function createCodeMirror(elem, mode){
+        if (elem) {
+            elem = CodeMirror.fromTextArea(elem,
+                {
+                    lineNumbers: true,
+                    lineWrapping: true,
+                    mode: mode
+                }
+            )
+            elem.setSize(500, 200);
+        }
     }
 
-    function get_text() {
-        let editor = $('.CodeMirror')[0].CodeMirror;
+    let pack_parameters = document.getElementById("pack_parameters")
+    createCodeMirror(pack_parameters, 'python')
+    
+    let pack_feedback = document.getElementById("pack_feedback")
+    createCodeMirror(pack_feedback, 'htmlmixed')
+
+    function get_text(index=0) {
+        let editor = $('.CodeMirror')[index].CodeMirror;
         return editor.getValue()
     }
 
@@ -31,6 +37,7 @@ $(function () {
         $("#spinner").show();
         let fd = new FormData();
         fd.append("parameters", get_text());
+        fd.append("feedback", get_text(1));
         fetch(`/api${window.location.pathname}`, { method: "POST", body: fd })
             .then(response => response.json())
             .then(responseJson => {
@@ -47,7 +54,7 @@ $(function () {
     
     function updatе(dictionary){
         $("#pack_name").text(dictionary['name'])
-        history.pushState(null, null, `/criterion/${dictionary['name']}/`); 
+        history.pushState(null, null, `/criteria_pack/${dictionary['name']}/`); 
 
         alert_success.text(`Updated: ${new Date(dictionary['time'])}`)
         alert_success.show()

@@ -35,13 +35,15 @@ def update_criteria_pack(pack_name):
     if not is_admin():
         return {}, 404
 
-    pack_dict, msg = try_load_pack_dict(request.form['parameters'])
+    pack_dict, msg = try_load_pack_dict(request.form.get('parameters'))
     if msg:
         return {'message': msg}, 200
-    
+
+    feedback = request.form.get('feedback', '<h4>No feedback</h4>')
+
     # will be created if doesn't exist
     db_pack = CriterionPackDBManager().add_pack_from_names(
-        pack_dict['name'], pack_dict['criterions'])
+        pack_dict['name'], (critetion[0] for critetion in pack_dict['criterions']), weights=dict(pack_dict['criterions']), feedback=feedback)
 
     logger.info(f"Updated criteria pack {db_pack.name}")
     return {
@@ -62,6 +64,23 @@ def get_all_criterion_packs():
     }
 
 
+def check_criterion_weights(criterions):
+    msg = ''
+    weight_sum = 0
+    for criterion_info in criterions:
+        # criterion_info = [criterion_name, weight]
+        if not(type(criterion_info) == list and len(criterion_info) == 2
+               and type(criterion_info[0]) == str and type(criterion_info[1]) == float):
+            msg += f"Criterion's specification: '{criterion_info}' must be list(criterion_name, criterion_weight)\n"
+        else:
+            weight_sum += criterion_info[1]
+    weight_sum = round(weight_sum, 2)
+    if weight_sum != 1:
+        msg += f"Summary weight of pack {weight_sum} != 1\n"
+
+    return msg
+
+
 def try_load_pack_dict(json_str):
     pack_dict, msg = try_load_json(json_str)
     if msg:
@@ -73,5 +92,9 @@ def try_load_pack_dict(json_str):
         pack_dict, ('name', 'criterions'))
     if msg:
         return False, msg  # error with dict keys
+
+    msg = check_criterion_weights(pack_dict['criterions'])
+    if msg:
+        return False, msg  # error with criterion's weights
 
     return pack_dict, ''

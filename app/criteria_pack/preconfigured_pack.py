@@ -2,35 +2,37 @@ from app.mongo_odm import CriterionPackDBManager
 
 pack_configuration = {
     'DuplicateAudioPack':
-        ['DEFAULT_SPEECH_IS_NOT_IN_DATABASE_CRITERION'],
+        [['DEFAULT_SPEECH_IS_NOT_IN_DATABASE_CRITERION', 1]],
     'FifteenMinutesTrainingPack':
-        ['FifteenMinutesSpeechDurationCriterion',
-         'DEFAULT_SPEECH_PACE_CRITERION',
-         'DEFAULT_FILLERS_RATIO_CRITERION'],
+        [['FifteenMinutesSpeechDurationCriterion', 0.33],
+         ['DEFAULT_SPEECH_PACE_CRITERION', 0.33],
+         ['DEFAULT_FILLERS_RATIO_CRITERION', 0.33]],
     'FillersRatioPack':
-        ['DEFAULT_FILLERS_RATIO_CRITERION'],
+        [['DEFAULT_FILLERS_RATIO_CRITERION', 1]],
     'PaceAndDurationPack':
-        ['SimpleDurationCriterion',
-         'SimpleSpeechPaceCriterion'],
+        [['SimpleDurationCriterion', 0.5],
+         ['SimpleSpeechPaceCriterion', 0.5]],
     'PredefenceEightToTenMinutesPack':
-        ['PredefenceStrictSpeechDurationCriterion',
-         'DEFAULT_SPEECH_PACE_CRITERION',
-         'DEFAULT_FILLERS_NUMBER_CRITERION'],
+        [['PredefenceStrictSpeechDurationCriterion', 0.6],
+         ['DEFAULT_SPEECH_PACE_CRITERION', 0.2],
+         ['DEFAULT_FILLERS_NUMBER_CRITERION', 0.2]],
     'PrimitivePack':
-        ['SimpleDurationCriterion',
-         'SimpleNumberWordOnSlideCriterion',
-         'SimpleNumberSlidesCriterion'],
-    'SimplePack': ['SimpleDurationCriterion'],
+        [['SimpleDurationCriterion', 0.33],
+         ['SimpleNumberWordOnSlideCriterion', 0.33],
+         ['SimpleNumberSlidesCriterion', 0.33]],
+    'SimplePack': [['SimpleDurationCriterion', 0.55],
+         ['SimpleNumberSlidesCriterion', 0.45]],
     'TenMinutesTrainingPack':
-        ['TenMinutesSpeechDurationCriterion',
-         'DEFAULT_SPEECH_PACE_CRITERION',
-         'DEFAULT_FILLERS_RATIO_CRITERION'],
+        [['TenMinutesSpeechDurationCriterion', 0.33],
+         ['DEFAULT_SPEECH_PACE_CRITERION', 0.33],
+         ['DEFAULT_FILLERS_RATIO_CRITERION', 0.33]],
     'TwentyMinutesTrainingPack':
-        ['TwentyMinutesSpeechDurationCriterion',
-         'DEFAULT_SPEECH_PACE_CRITERION',
-         'DEFAULT_FILLERS_RATIO_CRITERION']}
+        [['TwentyMinutesSpeechDurationCriterion', 0.33],
+         ['DEFAULT_SPEECH_PACE_CRITERION', 0.33],
+         ['DEFAULT_FILLERS_RATIO_CRITERION', 0.33]]}
 
 
 def add_preconf_packs():
-    for pack_name, criteria in pack_configuration.items():
-        CriterionPackDBManager().add_pack_from_names(pack_name, criteria)
+    for pack_name, criterion_info in pack_configuration.items():
+        CriterionPackDBManager().add_pack_from_names(
+            pack_name, (critetion[0] for critetion in criterion_info), weights=dict(criterion_info))
