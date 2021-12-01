@@ -39,6 +39,7 @@ class Version10(Version):
 class Version20(Version):
     VERSION_NAME = '2.0'
     CHANGES = "Перевод criteria_pack_id из IntField в CharField с использованием сконфигурированных наборов"
+    SUPPORTED_PREV_VERSIONS = (Version10.VERSION_NAME, )
 
     @classmethod
     def update_database(cls, db, prev_version):
@@ -54,22 +55,29 @@ class Version20(Version):
             9: 'PrimitivePack'
         }
 
-        if prev_version in (Version10.VERSION_NAME, ):
+        if prev_version in cls.SUPPORTED_PREV_VERSIONS:
             for pack_id, pack_name in CRITERIA_PACK_CLASS_BY_ID.items():
                 find_query = {'criteria_pack_id': pack_id}
                 update_query = {'$set': {'criteria_pack_id': pack_name}}
-                db['trainings'].update(find_query, update_query)
-                db['tasks'].update(find_query, update_query)
+                db['trainings'].update_many(find_query, update_query)
+                db['tasks'].update_many(find_query, update_query)
         else:
             raise Exception(
                 f'Неподдерживаемый переход с версии {prev_version}')
 
 
+class Version21(Version20):
+    VERSION_NAME = '2.1'
+    CHANGES = "Repeat version 2.0 with updated PyMongo methods"
+    SUPPORTED_PREV_VERSIONS = (Version10.VERSION_NAME, Version20.VERSION_NAME)
+
+
 VERSIONS = {
     '1.0': Version10,
     '2.0': Version20,
+    '2.1': Version21
 }
-LAST_VERSION = '2.0'
+LAST_VERSION = '2.1'
 
 
 for _, ver in VERSIONS.items():
