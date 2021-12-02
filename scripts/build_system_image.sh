@@ -3,7 +3,7 @@
 set -e
 
 # build vosk
-./scripts/build_image.sh "Dockerfile.kaldi-ru" osll/vosk
+./scripts/build_image.sh "Dockerfile.kaldi-ru" OSLL/vosk
 
 # build base image
-./scripts/build_image.sh Dockerfile_base osll/wst_base
+./scripts/build_image.sh Dockerfile_base OSLL/wst_base
