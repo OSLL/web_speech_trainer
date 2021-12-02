@@ -7,7 +7,7 @@ RUN wget https://chromedriver.storage.googleapis.com/90.0.4430.24/chromedriver_l
 RUN unzip chromedriver_linux64.zip
 RUN wget http://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_90.0.4430.72-1_amd64.deb
 RUN apt-get install -y ./google-chrome-stable_90.0.4430.72-1_amd64.deb
-RUN pip3 install --upgrade pip
+RUN pip3 install --upgrade pip==21.3.1
 RUN pip3 install --upgrade setuptools
 
 # for DB dumps

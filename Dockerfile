@@ -6,7 +6,7 @@ RUN apt update
 # The library uses `frontend` internal package that can be obtained
 # via installation of `PyMuPDF` package but `PyMuPDF` itself requires `fitz`.
 # That's why `fitz` is installed separately.
-RUN pip3 install fitz
+RUN pip3 install fitz==0.0.1.dev2
 
 WORKDIR /app
 COPY . .
