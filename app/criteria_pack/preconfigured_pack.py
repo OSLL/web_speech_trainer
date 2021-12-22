@@ -21,7 +21,7 @@ pack_configuration = {
          ['SimpleNumberWordOnSlideCriterion', 0.33],
          ['SimpleNumberSlidesCriterion', 0.33]],
     'SimplePack': [['SimpleDurationCriterion', 0.55],
-         ['SimpleNumberSlidesCriterion', 0.45]],
+                   ['SimpleNumberSlidesCriterion', 0.45]],
     'TenMinutesTrainingPack':
         [['TenMinutesSpeechDurationCriterion', 0.33],
          ['DEFAULT_SPEECH_PACE_CRITERION', 0.33],
@@ -29,7 +29,11 @@ pack_configuration = {
     'TwentyMinutesTrainingPack':
         [['TwentyMinutesSpeechDurationCriterion', 0.33],
          ['DEFAULT_SPEECH_PACE_CRITERION', 0.33],
-         ['DEFAULT_FILLERS_RATIO_CRITERION', 0.33]]}
+         ['DEFAULT_FILLERS_RATIO_CRITERION', 0.33]],
+    'SlidesCheckerPack':
+        [['SimpleNumberSlidesCriterion', 0.05],
+         ['SlidesCheckerCriterion', 0.95]]
+}
 
 
 def add_preconf_packs():

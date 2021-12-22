@@ -6,11 +6,11 @@ def parse_odp(presentation_filepath):
 
     slides = []
     for slide in presentation.getElementsByType(draw.Page):
-        slide = {}
+        slide_info = {'title': '', 'words': ''}
 
         title = []
         texts = []
-        for node in slides.childNodes:
+        for node in slide.childNodes:
             if _is_title(node):
                 _walk_children(node, title)
             else:
@@ -18,11 +18,10 @@ def parse_odp(presentation_filepath):
                 _walk_children(node, node_text)
                 texts.append(node_text)
 
-        slide['title'] = "\n".join(title)
+        slide_info['title'] = "\n".join(title)
         for text in texts:
-            slide['words'] += " ".join(text) + "\n"
-
-        slides.append(slide)
+            slide_info['words'] += " ".join(text) + "\n"
+        slides.append(slide_info)
     return slides
 
 
@@ -32,9 +31,9 @@ def _is_title(node):
             return node.attributes[tuple_key] == "title"
 
 
-def _walk_children(self, child, child_container):
+def _walk_children(child, child_container):
     if hasattr(child, "data"):
         child_container.append(child.data)
     else:
         for in_child in child.childNodes:
-            self.__walk_children(in_child, child_container)
+            _walk_children(in_child, child_container)

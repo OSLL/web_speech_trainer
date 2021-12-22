@@ -27,7 +27,7 @@ $(function () {
                 mode: "python"
             }
         )
-        criterion_parameters.setSize(500, 150);
+        criterion_parameters.setSize(700, 300);
     }
 
     function get_text() {
