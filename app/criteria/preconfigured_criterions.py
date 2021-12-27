@@ -9,7 +9,7 @@ from app.utils import SECONDS_PER_MINUTE
 
 from criteria import (FillersNumberCriterion, FillersRatioCriterion,
                       SpeechIsNotInDatabaseCriterion, SpeechPaceCriterion,
-                      StrictSpeechDurationCriterion)
+                      StrictSpeechDurationCriterion, IntonationStabilityCriterion)
 
 from .utils import DEFAULT_FILLERS
 
@@ -144,6 +144,13 @@ preconfigured_criterions = [
         },
         dependent_criteria=[],
     )
+    
+    # StrictSpeechDurationCriterion
+    IntonationStabilityCriterion(
+        name="IntonationStabilityCriterion",
+        parameters={},
+        dependent_criteria=[],
+    ),
 ]
 
 

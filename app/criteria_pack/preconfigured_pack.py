@@ -34,6 +34,8 @@ pack_configuration = {
         [['SimpleNumberSlidesCriterion', 0.05],
          ['SlidesCheckerCriterion', 0.95]]
 }
+    'IntonationTrainingPack':
+        [['IntonationStabilityCriterion', 1]]}
 
 
 def add_preconf_packs():
