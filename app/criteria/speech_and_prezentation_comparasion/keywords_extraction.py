@@ -1,8 +1,6 @@
 import operator
-import pymorphy2
-
-from tf_idf_metrics import Metric
-from text_parser import TextParser
+from app.criteria.speech_and_prezentation_comparasion.tf_idf_metrics import Metric
+from app.criteria.speech_and_prezentation_comparasion.text_parser import TextParser
 
 
 class KeywordsExtractor:
@@ -11,23 +9,24 @@ class KeywordsExtractor:
         self.parser = TextParser()
         self.tf_idf_calculator = Metric(text_list)
 
-    # просто все слова без метрик
-    def get_words_with_metrics(self, text):
-        words = self.parser.parse(text)
-        return self.normalize(self.tf_idf_calculator.get_words_with_metrics(words))
-
-    # Извлечение ключевых слов:
-    # count - ограничение на число слов, -1 означает отстутствие ограничения
-    # level - минимальное значение метрики tf-idf (нормализованной), 0 означает отстутствие ограничения
-    # Выбираются в ключевые только те слова, которые удовлетворяют обеим метрикам
+    # returns list of keywords from list of tokens
+    # count - count of words with max metric
+    # level - border level of metric
+    # all words satisfies to both metrics are returned
     def get_keywords(self, text, count=-1, level=-1.0):
         words_dict = self.get_words_with_metrics(text)
-        return self.choose_keywords(words_dict, count, level)
+        return self.choose_keywords(words_dict,count=count, level=level)
+
+    # returns all tokens with their metrics
+    def get_words_with_metrics(self, words: list):
+        return self.normalize(self.tf_idf_calculator.get_words_with_metrics(words))
 
     @staticmethod
     def normalize(keywords_dict):
-        max_metric_value = max(keywords_dict.values())
-        return {key: keywords_dict[key] / max_metric_value for key in keywords_dict.keys()}
+        if len(keywords_dict.values()) > 0:
+            max_metric_value = max(keywords_dict.values())
+            return {key: keywords_dict[key] / max_metric_value for key in keywords_dict.keys()}
+        return keywords_dict
 
     @staticmethod
     def choose_keywords(keywords_dict, count=-1, level=-1.0):
@@ -46,18 +45,3 @@ class KeywordsExtractor:
             return {key: value for key, value in sorted_tuples}
         else:
             return {key: value for key, value in sorted_tuples if value > level}
-
-    # принимает токен
-    @staticmethod
-    def weight(word):
-        morph = pymorphy2.MorphAnalyzer()
-        parsed = morph.parse(word)[0].tag.POS
-
-        if 'NOUN' == parsed:
-            return 'NOUN', 1
-        elif parsed in {'VERB', 'INFN', 'GRND', 'PRTF', 'PRTS'}:
-            return 'VERB', 0.85
-        elif parsed in {'ADJF', 'ADJS', 'COMP'}:
-            return 'ADJ', 0.75
-        else:
-            return 'NOT_IMPORTANT', 0.1

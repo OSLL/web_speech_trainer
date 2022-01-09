@@ -1,19 +1,10 @@
-import operator
-import pymorphy2
-
-from nltk.corpus import stopwords
-from nltk.tokenize import RegexpTokenizer
-from nltk.stem import SnowballStemmer
-
-from string import punctuation
-
-
 class Metric:
 
     def __init__(self, corpus_tokens):
         self.document_frequency = dict()
-        for text_tokens in [set(tokens) for tokens in corpus_tokens]:
-            self.df()
+        if not corpus_tokens is None:
+            for corpus_tokens in [set(tokens) for tokens in corpus_tokens]:
+                self.calculate_document_frequency(corpus_tokens)
 
     @staticmethod
     def calculate_term_frequency(text_tokens):
@@ -35,14 +26,12 @@ class Metric:
             else:
                 self.document_frequency[token] = 1
 
-    def get_words_with_metrics(self, text_tokens, corpus_tokens_arrays):
-        tf_res = self.calculate_term_frequency()
+    def get_words_with_metrics(self, text_tokens):
+        tf_res = self.calculate_term_frequency(text_tokens)
 
-        metric_result = {key: \
-            tf_res[key] if key not in self.document_frequency \
-            else tf_res[key] / self.document_frequency[key] \
-            for key in tf_res.keys()}
+        metric_result = {key: tf_res[key] if key not in self.document_frequency \
+            else tf_res[key] / self.document_frequency[key] for key in tf_res.keys()}
 
-        self.df(list(tf_res.keys()))
+        self.calculate_document_frequency(list(tf_res.keys()))
 
         return metric_result
