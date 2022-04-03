@@ -5,6 +5,7 @@ from app.mongo_odm import DBManager, TrainingsDBManager
 from app.criteria.speech_and_prezentation_comparasion.special_dictionaries import *
 from app.criteria.speech_and_prezentation_comparasion.keywords_extraction import KeywordsExtractor
 from app.criteria.speech_and_prezentation_comparasion.text_parser import TextParser
+from app.criteria.speech_and_prezentation_comparasion.estimator import Estimator
 
 from app.criteria.speech_and_prezentation_comparasion.comparison import *
 
@@ -30,17 +31,17 @@ class KeywordsComparisonCriterion(BaseCriterion):
             parameters=parameters,
             dependent_criteria=dependent_criteria,
         )
-        self.higher_weight = {'задача', 'приложение', 'цель', 'метод', 'актуальность', 'обзор', 'решение', 'результат'}
-        self.lower_weight = {'пример', 'модель', 'данные', 'технология', 'спасибо', 'внимание', 'команда'}
+
         self.parser = TextParser()
+        self.estimator = Estimator(self.parser)
         self.extractor = KeywordsExtractor()
-        self.weights = [0.3, 0.6, 0.9]
-        self.part_weights = {'NOUN': 1, 'VERB': 1, 'ADJ': 0.8, 'OTHER': 0.0}
+        self.important_words = set()
+        self.slide_tokens = set()
+
         self.count_pres = parameters['count_pres']
         self.count_speech = parameters['count_speech']
         self.level_pres = parameters['level_pres']
         self.level_speech = parameters['level_speech']
-
 
     @property
     def description(self):
@@ -52,7 +53,6 @@ class KeywordsComparisonCriterion(BaseCriterion):
 
     def apply(self, audio, presentation, training_id, criteria_results):
         count = min(len(audio.audio_slides), len(presentation.slides))
-        criteria_result = {self.weights[0]: [], self.weights[1]: [], self.weights[2]: []}
 
         per_slide = []
         for i in range(0, count):
