@@ -75,9 +75,11 @@ class SlidesCheckerCriterion(BaseCriterion):
 
         check_id = self.send_file(file)
 
-        result = self.try_get_result(check_id)
-
-        return CriterionResult(result=result['score'], verdict=f"С результатом проверки можно ознакомиться по ссылке: {self.parameters['result_url']}{result['check_id']}")
+        flag, result = self.try_get_result(check_id)
+        if not flag:
+            return CriterionResult(result=0, verdict=f"Проблемы с проверкой (на стороне инстурмента): {result}")
+        else:
+            return CriterionResult(result=result['score'], verdict=f"С результатом проверки можно ознакомиться по ссылке: {self.parameters['result_url']}{result['check_id']}")
 
     def check_alive(self, username):
         try:
@@ -87,6 +89,7 @@ class SlidesCheckerCriterion(BaseCriterion):
                 return False
             session = requests.Session()
             task_params = self.parameters.get('task_params', {})
+            
             custom_params = {'custom_' + key: task_params[key] for key in task_params}
             consumer = self._gen_lti_params(username, custom_params=custom_params)
             launch_params = consumer.generate_launch_data()
@@ -116,14 +119,18 @@ class SlidesCheckerCriterion(BaseCriterion):
             except Exception as exc:
                 logger.error(traceback.format_exc())
                 logging.warning(f'Error while checking result: {exc}')
-                return 0, None
+                return False, f"Ошибка во время соединения с инструментом ({exc})"
             res = res.json()
+            logger.warning(f'try_get_result: {res}')
             if res['task_status'] != 'SUCCESS':
                 time.sleep(self.parameters['pause'])
             else:
                 result = res['task_result']
-                break
-        return result
+                if isinstance(result, dict):
+                    return True, result
+                else:
+                    return False, f"Проблемы во время проверки ({result})"
+        return False, "Max retries to get result"
 
     def _gen_lti_params(self, username, custom_params={}):
         params = {
@@ -147,3 +154,20 @@ class SlidesCheckerCriterion(BaseCriterion):
         )
         return consumer
 
+
+    """
+    {
+        "name": "SlidesCheckerCriterion",
+        "parameters": {
+            "lti_url": "http://slides-checker.moevm.info/lti",
+            "send_url": "http://slides-checker.moevm.info/tasks",
+            "result_url": "http://slides-checker.moevm.info/results/",
+            "check_alive_url": "http://slides-checker.moevm.info/version",
+            "max_tries": 4,
+            "pause": 4,
+            "consumer_key": "544HLHhmWB9BME7dHhwtp3",
+            "consumer_secret": "jq7FygfqcmjEW8yrxyio0zr1BvIZ"
+        }
+    }
+    """
+    
