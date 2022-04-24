@@ -27,12 +27,16 @@ class CriterionPack(MongoModel):
     name = fields.CharField()   # must be unique
     criterions = fields.ListField(fields.ReferenceField(Criterion), blank=True, default=[])
     last_update = fields.DateTimeField(default=datetime.now(timezone.utc))
+    feedback = fields.CharField(blank=True, default='')
+    criterion_weights = fields.DictField(blank=True, default={})
 
     def to_dict(self):
         return dict(
             name = self.name,
             criterions = [criterion.name for criterion in self.criterions],
-            last_update = int(self.last_update.timestamp()*1000)
+            last_update = int(self.last_update.timestamp()*1000),
+            feedback = self.feedback,
+            criterion_weights = self.criterion_weights,
         )
 
     def save(self):

@@ -10,7 +10,7 @@ from app.check_access import check_access
 from app.criteria_pack import CriteriaPackFactory
 from app.feedback_evaluator import FeedbackEvaluatorFactory
 from app.lti_session_passback.auth_checkers import check_admin, check_auth
-from app.mongo_odm import TasksDBManager, TaskAttemptsDBManager
+from app.mongo_odm import CriterionPackDBManager, TasksDBManager, TaskAttemptsDBManager
 from app.status import TrainingStatus, AudioStatus, PresentationStatus
 from app.utils import check_arguments_are_convertible_to_object_id
 
@@ -34,9 +34,10 @@ def view_training_statistics(training_id: str):
     training_statistics, training_statistics_status_code = get_training_statistics(training_id)
     if training_statistics.get('message') != 'OK':
         return training_statistics, training_statistics_status_code
+    criteria_pack_db = CriterionPackDBManager().get_criterion_pack_by_name(training_statistics['criteria_pack_id'])
     feedback = training_statistics['feedback']
     feedback_evaluator_id = training_statistics['feedback_evaluator_id']
-    feedback_evaluator = FeedbackEvaluatorFactory().get_feedback_evaluator(feedback_evaluator_id)
+    feedback_evaluator = FeedbackEvaluatorFactory().get_feedback_evaluator(feedback_evaluator_id)(criteria_pack_db.criterion_weights)
     criteria_results = feedback.get('criteria_results', {})
     if 'score' in feedback:
         feedback_str = '{} = {}'.format(t("Оценка за тренировку"),'{:.2f}'.format(feedback.get('score')))
@@ -49,10 +50,11 @@ def view_training_statistics(training_id: str):
         criteria_results_str = '\n'.join('{} = {}{}'.format(
             name,
             '{:.2f}'.format(result.get('result')),
-            '' if result.get('verdict') is None else ', ' + result.get('verdict'),
+            '' if not result.get('verdict', '')  else (', ' + result.get('verdict')),
         ) for (name, result) in criteria_results.items())
     else:
         criteria_results_str = ''
+    criteria_results_str = '<br>'.join((criteria_results_str.replace('\n', '<br>'), criteria_pack_db.feedback))
     if 'verdict' in feedback:
         verdict_str = feedback.get('verdict').replace('\n', '\\n')
     else:
@@ -167,7 +169,7 @@ def view_training_greeting():
     criteria_pack_id = criteria_pack.name
     maximal_points = attempt_count * 1
     criteria_pack_description = criteria_pack.get_criteria_pack_weights_description(
-        FeedbackEvaluatorFactory().get_feedback_evaluator(session.get('feedback_evaluator_id')).weights,
+        CriterionPackDBManager().get_criterion_pack_by_name(criteria_pack_id).criterion_weights,
     )
     # immediately create training if task has presentation 
     presentation_id, training_id = (str(task_db.presentation_id), add_training(str(task_db.presentation_id))[0].get('training_id')) if task_db.presentation_id else (None, None)

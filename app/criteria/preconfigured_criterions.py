@@ -1,6 +1,7 @@
 from app.criteria.number_slides.critetion import NumberSlidesCriterion
 from app.criteria.number_word_on_slide.critetion import \
     NumberWordOnSlideCriterion
+from app.criteria.slides_checker.criterion import SlidesCheckerCriterion
 from app.criteria.speech_duration.criterion import SpeechDurationCriterion
 from app.mongo_models import Criterion
 from app.mongo_odm import CriterionDBManager
@@ -13,7 +14,7 @@ from criteria import (FillersNumberCriterion, FillersRatioCriterion,
 from .utils import DEFAULT_FILLERS
 
 
-preconfigured_criterions= [
+preconfigured_criterions = [
     # SpeechDurationCriterion
     SpeechDurationCriterion(
         name="SimpleDurationCriterion",
@@ -111,6 +112,35 @@ preconfigured_criterions= [
             'strict_minimal_allowed_duration': 5 * SECONDS_PER_MINUTE,
             'minimal_allowed_duration': 8 * SECONDS_PER_MINUTE,
             'maximal_allowed_duration': 10 * SECONDS_PER_MINUTE,
+        },
+        dependent_criteria=[],
+    ),
+
+    # SlidesCheckerCriterion
+    SlidesCheckerCriterion(
+        name="SlidesCheckerCriterion",
+        parameters={
+            "lti_url": "http://slides-checker.moevm.info/lti",
+            "send_url": "http://slides-checker.moevm.info/tasks",
+            "result_url": "http://slides-checker.moevm.info/results/",
+            "check_alive_url": "http://slides-checker.moevm.info/version",
+            "max_tries": 4,
+            "pause": 4,
+            "consumer_key": "",
+            "consumer_secret": "",
+            'task_params': {
+                'slides_number': 'bsc',
+                'detect_additional': False,
+                'slides_enum': False,
+                'slides_headers': True,
+                'goals_slide': True,
+                'probe_slide': True,
+                'actual_slide': True,
+                'conclusion_slide': True,
+                'conclusion_actual': 65,
+                'conclusion_along': True,
+                'slide_every_task': 75
+            }
         },
         dependent_criteria=[],
     )
