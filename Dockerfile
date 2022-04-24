@@ -1,4 +1,4 @@
-FROM plyushchenko/ubuntu_python3:latest
+FROM osll/wst_base:v0.1
 
 RUN apt update
 
