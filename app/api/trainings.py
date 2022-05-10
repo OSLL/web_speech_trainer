@@ -316,17 +316,18 @@ def get_training_information(current_training: Trainings) -> dict:
     _id = current_training.pk
     try:
         processing_start_timestamp = None
+        presentation_record_duration = None
         if current_training.processing_start_timestamp:
             processing_start_timestamp = datetime.fromtimestamp(current_training.processing_start_timestamp.time)
         try:
             # type NoneType doesn't define __round__ method => presentation_record_duration = None
-            presentation_record_duration = time.strftime(
-                "%M:%S", time.gmtime(round(current_training.presentation_record_duration))
-            )
+            if current_training.presentation_record_duration:
+                presentation_record_duration = time.strftime(
+                    "%M:%S", time.gmtime(round(current_training.presentation_record_duration))
+                )
         except Exception as e:
             logger.warning('Cannot extract presentation_record_duration, training_id = {}.\n{}: {}.'
                            .format(current_training.pk, e.__class__, e))
-            presentation_record_duration = None
         processing_finish_timestamp = None
         if TrainingStatus.is_terminal(current_training.status):
             processing_finish_timestamp = datetime.fromtimestamp(current_training.status_last_update.time)
