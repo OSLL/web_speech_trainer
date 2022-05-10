@@ -14,7 +14,7 @@ services:
       - ../database-dump:/app/dump/database-dump/
   
   vosk:
-    image: "plyushchenko/vosk:latest"
+    image: "osll/vosk:v0.1"
     restart: always
     ports:
       - 2700:2700

@@ -1,4 +1,4 @@
-FROM plyushchenko/ubuntu_python3:latest
+FROM osll/wst_base:v0.1
 
 RUN apt update
 
@@ -6,15 +6,7 @@ RUN apt update
 # The library uses `frontend` internal package that can be obtained
 # via installation of `PyMuPDF` package but `PyMuPDF` itself requires `fitz`.
 # That's why `fitz` is installed separately.
-RUN pip3 install fitz
-# for DB dumps
-RUN apt install -y sudo zip mongodb-clients
-
-# for pptx/odp support
-RUN apt install -y software-properties-common
-RUN add-apt-repository ppa:libreoffice/ppa
-RUN apt update
-RUN apt install -y unoconv  
+RUN pip3 install fitz==0.0.1.dev2
 
 WORKDIR /app
 COPY . .
