@@ -289,7 +289,7 @@ def start_training_processing(training_id: str) -> (dict, int):
         return {}, 404
     if not is_admin():
         training_db = TrainingsDBManager().get_training(training_id)
-        if training_db.status != TrainingStatus.IN_PROGRESS:
+        if training_db.status != TrainingStatus.SENT_FOR_PREPARATION:
             logger.info(f"start_training_processing. user not admin AND training_db.status != TrainingStatus.IN_PROGRESS (it's {training_db.status})")
             return {}, 404
     TrainingManager().add_training(training_id)
