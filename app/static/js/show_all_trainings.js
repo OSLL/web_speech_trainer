@@ -8,7 +8,7 @@ function get_time_string(timestamp){
     }
 }
 
-function buildCurrentTrainingRow(trainingId, trainingJson) {
+function buildCurrentTrainingRow(trainingId, trainingJson, is_Admin=false) {
 
     const currentTrainingRowElement = document.createElement("tr");
 
@@ -93,42 +93,64 @@ function buildCurrentTrainingRow(trainingId, trainingJson) {
     }
     currentTrainingRowElement.appendChild(recordingElement);
 
+    if (is_Admin) {
+        const recheckingElement = document.createElement("td");
+        const button = document.createElement("input")
+        button.type = "button"
+        button.value = "Запустить перепроверку"
+        button.name = `${trainingId}`        
+        button.onclick = function () { recheck(this.name); };
+        recheckingElement.appendChild(button);
+        currentTrainingRowElement.appendChild(recheckingElement);
+    }
     return currentTrainingRowElement;
 }
 
-function buildAllTrainingsTable(trainingsJson) {
+function recheck(trainingId){
+    console.log(`Start recheck for ${trainingId}`)
+    fetch(`/api/trainings/${trainingId}/`, {method: "POST"})
+    .then(response => response.json())
+    .then(innerResponseJson => {
+        if (innerResponseJson["message"] === "OK") {
+            window.open(`/trainings/statistics/${trainingId}/`);
+            //location.href = `/trainings/statistics/${trainingId}/`;
+        }
+    });
+}
+
+function buildAllTrainingsTable(trainingsJson, is_Admin=false) {
     if (trainingsJson["message"] !== "OK") {
         return;
     }
     const allTrainingsTable = document.getElementById("all-trainings-table");
-    const titleRow = buildTitleRow(
-        [
-            "id тренировки",
-            "id попытки",
-            "Логин",
-            "Имя",
-            "Длительность аудиозаписи",
-            "Начало обработки",
-            "Конец обработки",
-            "Статус тренировки",
-            "Статус аудио",
-            "Статус презентации",
-            "Статус отправки в LMS",
-            "Балл",
-            "Презентация",
-            "Аудиозапись"
-        ]
-    );
+    let titles = [
+        "id тренировки",
+        "id попытки",
+        "Логин",
+        "Имя",
+        "Длительность аудиозаписи",
+        "Начало обработки",
+        "Конец обработки",
+        "Статус тренировки",
+        "Статус аудио",
+        "Статус презентации",
+        "Статус отправки в LMS",
+        "Балл",
+        "Презентация",
+        "Аудиозапись"
+    ]
+    if (is_Admin) {titles.push('Запустить перепроверку')}
+    const titleRow = buildTitleRow(titles);
     allTrainingsTable.appendChild(titleRow);
 
     Object.keys(trainingsJson["trainings"]).forEach(trainingId => {
-        const currentTrainingRowElement = buildCurrentTrainingRow(trainingId, trainingsJson["trainings"][trainingId]);
+        const currentTrainingRowElement = buildCurrentTrainingRow(trainingId, trainingsJson["trainings"][trainingId], is_Admin);
         allTrainingsTable.appendChild(currentTrainingRowElement);
     });
 }
 
-function call_get_all_trainings(username, full_name) {
+function call_get_all_trainings(username, full_name, admin=false) {
     fetch(`/api/trainings?username=${username}&full_name=${full_name}`)
         .then(response => response.json())
-        .then(responseJson => buildAllTrainingsTable(responseJson));
+        .then(responseJson => buildAllTrainingsTable(responseJson, admin));
 }
