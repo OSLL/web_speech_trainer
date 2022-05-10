@@ -283,11 +283,14 @@ def start_training_processing(training_id: str) -> (dict, int):
     :return: {'message': 'OK'}, or
         an empty dictionary with 404 HTTP return code if access was denied or training status is not NEW.
     """
+    logger.info(f'start_training_processing. training_id = {training_id}')
     if not check_access({'_id': ObjectId(training_id)}):
+        logger.info(f'start_training_processing. not access to training_id = {training_id}')
         return {}, 404
     if not is_admin():
         training_db = TrainingsDBManager().get_training(training_id)
         if training_db.status != TrainingStatus.IN_PROGRESS:
+            logger.info(f"start_training_processing. user not admin AND training_db.status != TrainingStatus.IN_PROGRESS (it's {training_db.status})")
             return {}, 404
     TrainingManager().add_training(training_id)
     return {'message': 'OK'}, 200
@@ -316,6 +319,7 @@ def get_training_information(current_training: Trainings) -> dict:
         if current_training.processing_start_timestamp:
             processing_start_timestamp = datetime.fromtimestamp(current_training.processing_start_timestamp.time)
         try:
+            # type NoneType doesn't define __round__ method => presentation_record_duration = None
             presentation_record_duration = time.strftime(
                 "%M:%S", time.gmtime(round(current_training.presentation_record_duration))
             )
