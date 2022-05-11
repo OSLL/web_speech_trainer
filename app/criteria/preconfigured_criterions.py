@@ -1,5 +1,5 @@
-from app.criteria.number_slides.critetion import NumberSlidesCriterion
-from app.criteria.number_word_on_slide.critetion import \
+from app.criteria.number_slides.criterion import NumberSlidesCriterion
+from app.criteria.number_word_on_slide.criterion import \
     NumberWordOnSlideCriterion
 from app.criteria.slides_checker.criterion import SlidesCheckerCriterion
 from app.criteria.speech_duration.criterion import SpeechDurationCriterion
@@ -143,7 +143,7 @@ preconfigured_criterions = [
             }
         },
         dependent_criteria=[],
-    )
+    ),
     
     # StrictSpeechDurationCriterion
     IntonationStabilityCriterion(

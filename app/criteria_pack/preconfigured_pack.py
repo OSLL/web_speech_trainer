@@ -32,10 +32,10 @@ pack_configuration = {
          ['DEFAULT_FILLERS_RATIO_CRITERION', 0.33]],
     'SlidesCheckerPack':
         [['SimpleNumberSlidesCriterion', 0.05],
-         ['SlidesCheckerCriterion', 0.95]]
-}
+         ['SlidesCheckerCriterion', 0.95]],
     'IntonationTrainingPack':
-        [['IntonationStabilityCriterion', 1]]}
+        [['IntonationStabilityCriterion', 1]]
+}
 
 
 def add_preconf_packs():
