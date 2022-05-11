@@ -162,6 +162,10 @@ def upload_presentation() -> (dict, int):
         converted_name = 'pdf'.join(presentation_file.filename.rsplit(extension, 1))
         # convert to pdf
         converted_pdf_file = convert_to_pdf(presentation_file)
+        if not converted_pdf_file:
+            msg = f"Cannot convert uploaded presentation file {original_name}."
+            logger.warning(f"{msg} Presentation name: {presentation_file.filename}. task_id={session['task_id']} task_id={session['criteria_pack_id']} username={session.get('session_id')} full_name={session.get('full_name')}")
+            return {'message': msg}, 200
         # swap converted and nonconverted files for further work 
         presentation_file, non_converted_file = converted_pdf_file, presentation_file
         presentation_file.filename = converted_name
