@@ -1,7 +1,7 @@
 import logging
 
 from bson import ObjectId
-from flask import Blueprint, make_response, request, send_file
+from flask import Blueprint, make_response, request, send_file, session
 
 from app.check_access import check_access
 from app.config import Config
@@ -152,6 +152,7 @@ def upload_presentation() -> (dict, int):
     passed, filemime = check_file_mime(presentation_file, extension) 
     if not passed:
         msg = 'Presentation file has not allowed extension: {} (mimetype: {}).'.format(extension,filemime)
+        logger.warning(f"{msg} Presentation name: {presentation_file.filename}. task_id={session['task_id']} task_id={session['criteria_pack_id']} username={session.get('session_id')} full_name={session.get('full_name')}")
         return {'message': msg}, 200
 
     nonconverted_file_id = None
