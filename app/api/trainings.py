@@ -283,11 +283,14 @@ def start_training_processing(training_id: str) -> (dict, int):
     :return: {'message': 'OK'}, or
         an empty dictionary with 404 HTTP return code if access was denied or training status is not NEW.
     """
+    logger.info(f'start_training_processing. training_id = {training_id}')
     if not check_access({'_id': ObjectId(training_id)}):
+        logger.info(f'start_training_processing. not access to training_id = {training_id}')
         return {}, 404
     if not is_admin():
         training_db = TrainingsDBManager().get_training(training_id)
-        if training_db.status != TrainingStatus.IN_PROGRESS:
+        if training_db.status != TrainingStatus.SENT_FOR_PREPARATION:
+            logger.info(f"start_training_processing. user not admin AND training_db.status != TrainingStatus.IN_PROGRESS (it's {training_db.status})")
             return {}, 404
     TrainingManager().add_training(training_id)
     return {'message': 'OK'}, 200
@@ -313,16 +316,18 @@ def get_training_information(current_training: Trainings) -> dict:
     _id = current_training.pk
     try:
         processing_start_timestamp = None
+        presentation_record_duration = None
         if current_training.processing_start_timestamp:
             processing_start_timestamp = datetime.fromtimestamp(current_training.processing_start_timestamp.time)
         try:
-            presentation_record_duration = time.strftime(
-                "%M:%S", time.gmtime(round(current_training.presentation_record_duration))
-            )
+            # type NoneType doesn't define __round__ method => presentation_record_duration = None
+            if current_training.presentation_record_duration:
+                presentation_record_duration = time.strftime(
+                    "%M:%S", time.gmtime(round(current_training.presentation_record_duration))
+                )
         except Exception as e:
             logger.warning('Cannot extract presentation_record_duration, training_id = {}.\n{}: {}.'
                            .format(current_training.pk, e.__class__, e))
-            presentation_record_duration = None
         processing_finish_timestamp = None
         if TrainingStatus.is_terminal(current_training.status):
             processing_finish_timestamp = datetime.fromtimestamp(current_training.status_last_update.time)

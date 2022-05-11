@@ -28,13 +28,13 @@ function startRecording() {
         setTimeout(function () {
             callShowPage();
             maxTime = undefined;
-            fetch(`/api/criteria/${trainingId}/SpeechDurationCriterion/maximal_allowed_duration/`)
+            /*fetch(`/api/criteria/${trainingId}/SpeechDurationCriterion/maximal_allowed_duration/`)
                 .then(response => response.json())
                 .then(function (data) {
                     if (data["message"] === "OK") {
                         maxTime = data["parameterValue"];
                     }
-                })
+                })*/
             time = 0;
             $("#timer").show();
             timer = setInterval(function () {
