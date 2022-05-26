@@ -176,14 +176,14 @@ class TestUploadPresentation:
         with patch('app.api.files.check_auth', return_value=True), \
                 patch('app.api.files.Config.c', new_callable=PropertyMock) as mock_config, \
                 app.test_client() as test_client:
-            mock_config.return_value = Mock(constants=Mock(presentation_file_max_size_in_megabytes='10'))
+            mock_config.return_value = Mock(constants=Mock(presentation_file_max_size_in_megabytes='10'), testing=Mock(active=True))
             response = test_client.post(
                 '/api/files/presentations/',
                 content_length=9 * BYTES_PER_MEGABYTE,
                 data=dict(presentation=(io.BytesIO(b"Definitely not a pdf file! :("), 'test.pdf')),
                 content_type='multipart/form-data',
             )
-            check_json_response(response, {"message":"Presentation file has not allowed extension: pdf (mimetype: text/plain). Presentation name: test.pdf. task_id=None criteria_pack_id=None username=None full_name=None"}, 200)
+            check_json_response(response, {"message":"Presentation file has not allowed extension: pdf (mimetype: text/plain)."}, 200)
 
     def test_upload_presentation(self):
         test_presentations = ('test_data/test_presentation_file_0.pdf', 
