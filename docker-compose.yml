@@ -72,5 +72,7 @@ services:
   db:
     image: "mongo:4.4.1"
     restart: always
+    command:
+      - '--wiredTigerCacheSizeGB=2'
     volumes:
       - ../mongo_data:/data/db
