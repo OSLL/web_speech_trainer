@@ -7,9 +7,9 @@ from app.mongo_models import Criterion
 from app.mongo_odm import CriterionDBManager
 from app.utils import SECONDS_PER_MINUTE
 
-from criteria import (FillersNumberCriterion, FillersRatioCriterion,
+from app.criteria import (FillersNumberCriterion, FillersRatioCriterion,
                       SpeechIsNotInDatabaseCriterion, SpeechPaceCriterion,
-                      StrictSpeechDurationCriterion)
+                      StrictSpeechDurationCriterion, KeywordsComparisonCriterion)
 
 from .utils import DEFAULT_FILLERS
 
@@ -141,6 +141,22 @@ preconfigured_criterions = [
                 'conclusion_along': True,
                 'slide_every_task': 75
             }
+        },
+        dependent_criteria=[],
+    ),
+
+    # KeywordsComparisonCriterion
+    KeywordsComparisonCriterion(
+        name="KeywordsComparisonCriterion",
+        parameters={
+            'tf_level_pres': 0,
+            'kw_pres_count': 9,
+            'kw_slide_count': 5,
+            'coef_for_speech': 2,
+            'min_words_on_slide_count': 5,
+            'min_words_in_speech': 5,
+            'weights': [0.25, 1, 1.75],
+            'skipped_coef': 0.7,
         },
         dependent_criteria=[],
     )
