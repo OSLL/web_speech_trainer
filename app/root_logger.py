@@ -3,6 +3,7 @@ import sys
 from datetime import datetime
 
 from app.mongo_odm import LogsDBManager
+from app.utils import is_testing_active
 
 
 class MongoDBLoggingHandler(logging.StreamHandler):
@@ -12,7 +13,7 @@ class MongoDBLoggingHandler(logging.StreamHandler):
         self.service_name = service_name
 
     def emit(self, record):
-        if not record.msg:
+        if not record.msg or is_testing_active():
             return
         LogsDBManager().add_log(timestamp=datetime.now(),
                                 serviceName=self.service_name,

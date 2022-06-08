@@ -16,10 +16,10 @@ PDF_HEX_START = ['25', '50', '44', '46']
 SECONDS_PER_MINUTE = 60
 BYTES_PER_MEGABYTE = 1024 * 1024
 ALLOWED_MIMETYPES = {
-        'pdf': 'application/pdf',
-        'ppt': 'application/vnd.ms-powerpoint',
-        'odp': 'application/vnd.oasis.opendocument.presentation',
-        'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+        'pdf': ['application/pdf'],
+        'ppt': ['application/vnd.ms-powerpoint'],
+        'odp': ['application/vnd.oasis.opendocument.presentation'],
+        'pptx': ['application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/zip']
     }
 CONVERTIBLE_EXTENSIONS = ('ppt', 'pptx', 'odp')
 ALLOWED_EXTENSIONS = set(ALLOWED_MIMETYPES.keys())
@@ -53,7 +53,7 @@ def check_file_mime(file, expected_ext):
 
     # also we can check, that file_mime is allowed, but not for expected_ext
     # (for example, pptx renamed to ppt) 
-    return file_mime == ALLOWED_MIMETYPES[expected_ext], file_mime
+    return file_mime in ALLOWED_MIMETYPES[expected_ext], file_mime
 
 
 def get_file_mime(file):

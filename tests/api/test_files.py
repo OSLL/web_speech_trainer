@@ -176,7 +176,7 @@ class TestUploadPresentation:
         with patch('app.api.files.check_auth', return_value=True), \
                 patch('app.api.files.Config.c', new_callable=PropertyMock) as mock_config, \
                 app.test_client() as test_client:
-            mock_config.return_value = Mock(constants=Mock(presentation_file_max_size_in_megabytes='10'))
+            mock_config.return_value = Mock(constants=Mock(presentation_file_max_size_in_megabytes='10'), testing=Mock(active=True))
             response = test_client.post(
                 '/api/files/presentations/',
                 content_length=9 * BYTES_PER_MEGABYTE,

@@ -1,7 +1,7 @@
 import logging
 
 from bson import ObjectId
-from flask import Blueprint, make_response, request, send_file
+from flask import Blueprint, make_response, request, send_file, session
 
 from app.check_access import check_access
 from app.config import Config
@@ -152,6 +152,7 @@ def upload_presentation() -> (dict, int):
     passed, filemime = check_file_mime(presentation_file, extension) 
     if not passed:
         msg = 'Presentation file has not allowed extension: {} (mimetype: {}).'.format(extension,filemime)
+        logger.warning(f"{msg} Presentation name: {presentation_file.filename}. task_id={session.get('task_id')} criteria_pack_id={session.get('criteria_pack_id')} username={session.get('session_id')} full_name={session.get('full_name')}")
         return {'message': msg}, 200
 
     nonconverted_file_id = None
@@ -161,6 +162,10 @@ def upload_presentation() -> (dict, int):
         converted_name = 'pdf'.join(presentation_file.filename.rsplit(extension, 1))
         # convert to pdf
         converted_pdf_file = convert_to_pdf(presentation_file)
+        if not converted_pdf_file:
+            msg = f"Cannot convert uploaded presentation file {original_name}."
+            logger.warning(f"{msg} Presentation name: {presentation_file.filename}. task_id={session['task_id']} task_id={session['criteria_pack_id']} username={session.get('session_id')} full_name={session.get('full_name')}")
+            return {'message': msg}, 200
         # swap converted and nonconverted files for further work 
         presentation_file, non_converted_file = converted_pdf_file, presentation_file
         presentation_file.filename = converted_name
