@@ -143,14 +143,17 @@ function buildAllTrainingsTable(trainingsJson, is_Admin=false) {
     const titleRow = buildTitleRow(titles);
     allTrainingsTable.appendChild(titleRow);
 
-    Object.keys(trainingsJson["trainings"]).forEach(trainingId => {
-        const currentTrainingRowElement = buildCurrentTrainingRow(trainingId, trainingsJson["trainings"][trainingId], is_Admin);
+    const arrayTrainings = trainingsJson.trainings; // Array of train from FETCH
+
+    Object.keys(arrayTrainings).forEach(trainingId => {
+        const currentTrainingRowElement = buildCurrentTrainingRow(trainingId, arrayTrainings[trainingId], is_Admin);
         allTrainingsTable.appendChild(currentTrainingRowElement);
     });
 }
 
 function call_get_all_trainings(username, full_name, admin=false) {
-    fetch(`/api/trainings?username=${username}&full_name=${full_name}`)
+    return fetch(`/api/trainings?username=${username}&full_name=${full_name}`)
         .then(response => response.json())
         .then(responseJson => buildAllTrainingsTable(responseJson, admin));
 }
+

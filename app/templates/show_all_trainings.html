@@ -5,10 +5,67 @@
 {% endblock %}
 
 {% block content %}
+
+<button id="btn-left">Предыдущая</button>
+<h1 id="pagination-info">Страница 1 из 1</h1>
+<button id="btn-right">Следующая</button>
+
 <table id="all-trainings-table" class="table center-align-table"></table>
+<script src="{{ url_for('static', filename='js/libraries/jquery.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
 <script src="{{ url_for('static', filename='js/show_all_trainings.js') }}"></script>
 <script type="text/javascript">
-    call_get_all_trainings("{{ username }}", "{{ full_name }}", {{is_admin}});
+    //call_get_all_trainings("{{ username }}", "{{ full_name }}", {{is_admin}});
+    const rowsPerPage = 2;
+    let currentPage = 1;
+    let pageTotal = 0;
+    let rowsTotal = 0;
+
+    function setPaginationInfo(){
+        $("#pagination-info").text(`Страница ${currentPage} из ${pageTotal}`);
+    }
+
+    function blockButtons(){
+        $("#btn-left").prop('disabled', (currentPage == 1));
+        $("#btn-right").prop('disabled', (currentPage == pageTotal));
+    }
+
+    function getRowsIndexes(){
+        let startIndex = (currentPage-1)*rowsPerPage+1;
+        return Array.from(Array(rowsTotal+1).keys()).slice(startIndex, startIndex+rowsPerPage);
+    }
+
+    function changeRows(visibleRowsIndexes){
+        for(let i = 1; i <= rowsTotal; i++){
+            if(visibleRowsIndexes.indexOf(i) === -1)
+                $("#all-trainings-table tr").eq(i).hide();
+            else
+                $("#all-trainings-table tr").eq(i).show();
+        }
+    }
+
+    function updatePagination(pageDirection){
+        currentPage += pageDirection;
+        changeRows(getRowsIndexes());
+        blockButtons();
+        setPaginationInfo();
+    }
+
+    $("#btn-left").click(function() {
+        updatePagination(-1);
+    });
+
+    $("#btn-right").click(function() {
+        updatePagination(1);
+    });
+
+    $(document).ready(async () => {
+        // call_get_all_trainings("{{ username }}", "{{ full_name }}", {{is_admin}});
+        const result = await call_get_all_trainings("", "")
+        rowsTotal = document.querySelectorAll("#all-trainings-table tr").length - 1;
+        pageTotal = Math.ceil(rowsTotal/rowsPerPage);
+        updatePagination(0);
+    });
+
 </script>
 {% endblock %}
