@@ -47,7 +47,7 @@ class SpeechPaceCriterion(BaseCriterion):
             audio_slide_grade = get_proportional_result(
                 audio_slide_pace, minimal_allowed_pace, maximal_allowed_pace,
             )
-            verdict += t('<br>Слайд {}: оценка = {}, слов в минуту = {}, слов сказано {} за {}.').format(
+            verdict += t('<br>Слайд {}: оценка = {}, слов в минуту = {}, слов сказано {} за {}. ').format(
                 i + 1,
                 '{:.2f}'.format(audio_slide_grade),
                 '{:.2f}'.format(
