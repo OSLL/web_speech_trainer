@@ -14,6 +14,6 @@ RUN pip3 install --upgrade setuptools
 RUN apt install -y sudo zip mongodb-clients
 
 # for pptx/odp support
-RUN add-apt-repository ppa:libreoffice/ppa
+RUN add-apt-repository -y ppa:libreoffice/ppa
 RUN apt update
 RUN apt install -y unoconv  
