@@ -6,47 +6,75 @@
 
 {% block content %}
 
-<button id="btn-left">Предыдущая</button>
-<h1 id="pagination-info">Страница 1 из 1</h1>
-<button id="btn-right">Следующая</button>
+<h3 id = "pagination-info"></h3>
+
+<div class = "container-navigation">
+    <button id = "btn-to-start" class = "button_action">1</button>
+    <button id = "btn-left" class = "button_action"><</button>
+    <button id = "btn-right" class = "button_action">></button>
+    <button id = "btn-to-end" class = "button_action"></button>
+
+    <select id = "ref-page-count">
+        <option value = "5">5</option>
+        <option selected value = "10">10</option>
+        <option value = "25">25</option>
+        <option value = "50"> 50</option>
+    </select>
+</div>
 
 <table id="all-trainings-table" class="table center-align-table"></table>
 <script src="{{ url_for('static', filename='js/libraries/jquery.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
 <script src="{{ url_for('static', filename='js/show_all_trainings.js') }}"></script>
 <script type="text/javascript">
-    //call_get_all_trainings("{{ username }}", "{{ full_name }}", {{is_admin}});
-    const rowsPerPage = 2;
-    let currentPage = 1;
+
+    const REF_PAGE_COUNT = document.getElementById('ref-page-count');
+    const REF_BUTTON_TO_START = document.getElementById('btn-to-start');
+    const REF_BUTTON_TO_END   = document.getElementById('btn-to-end');
+
+    let rowsPerPage = REF_PAGE_COUNT.value;
+    let currentPage = 0;
     let pageTotal = 0;
     let rowsTotal = 0;
 
     function setPaginationInfo(){
-        $("#pagination-info").text(`Страница ${currentPage} из ${pageTotal}`);
+        $("#pagination-info").text(`Страница ${currentPage + 1} из ${pageTotal}`);
     }
 
     function blockButtons(){
-        $("#btn-left").prop('disabled', (currentPage == 1));
-        $("#btn-right").prop('disabled', (currentPage == pageTotal));
+        const isEnd = currentPage === pageTotal - 1;
+        const isStart = currentPage === 0;
+
+        $("#btn-left").prop('disabled', isStart);
+        $("#btn-right").prop('disabled', isEnd);
+
+        REF_BUTTON_TO_END.toggleAttribute('disabled', isEnd);
+        REF_BUTTON_TO_START.toggleAttribute('disabled', isStart)
     }
 
-    function getRowsIndexes(){
-        let startIndex = (currentPage-1)*rowsPerPage+1;
-        return Array.from(Array(rowsTotal+1).keys()).slice(startIndex, startIndex+rowsPerPage);
+    /**
+     * @description Remove tr and call call_get_all_trainings
+     * */
+    function changeRows(){
+        /**
+         * @description Searching tr of tables and removing them.
+         */
+        const arrayRow = [...document.querySelectorAll("#all-trainings-table tr")]
+        arrayRow.forEach(refElement => refElement.parentElement.removeChild(refElement))
+
+        call_get_all_trainings({
+            ...getUserData(),
+            page: currentPage,
+            count: rowsPerPage
+        })
+        .catch(err => {
+            console.error(err);
+        })
     }
 
-    function changeRows(visibleRowsIndexes){
-        for(let i = 1; i <= rowsTotal; i++){
-            if(visibleRowsIndexes.indexOf(i) === -1)
-                $("#all-trainings-table tr").eq(i).hide();
-            else
-                $("#all-trainings-table tr").eq(i).show();
-        }
-    }
-
-    function updatePagination(pageDirection){
+    function updatePagination(pageDirection = currentPage * -1){
         currentPage += pageDirection;
-        changeRows(getRowsIndexes());
+        changeRows();
         blockButtons();
         setPaginationInfo();
     }
@@ -59,12 +87,48 @@
         updatePagination(1);
     });
 
+
+    function getUserData() {
+        return {
+            username: "{{username}}",
+            full_name: "{{full_name}}",
+        }
+    }
+
+    async function updateCountPage() {
+        const query = new URLSearchParams({
+            ...getUserData(),
+            count: rowsPerPage
+        });
+        pageTotal = await fetch(`/api/trainings/count-page?${query.toString()}`)
+        .then(a => a.json())
+        .then(data => data.count)
+        REF_BUTTON_TO_END.innerText = pageTotal;
+
+    }
+
     $(document).ready(async () => {
-        // call_get_all_trainings("{{ username }}", "{{ full_name }}", {{is_admin}});
-        const result = await call_get_all_trainings("", "")
         rowsTotal = document.querySelectorAll("#all-trainings-table tr").length - 1;
-        pageTotal = Math.ceil(rowsTotal/rowsPerPage);
-        updatePagination(0);
+
+        REF_BUTTON_TO_START.addEventListener('click', () => {
+            updatePagination()
+        })
+        REF_BUTTON_TO_END.addEventListener('click', () => {
+            /**
+             * Поскольку updatePagination является сдвиговой функцией
+             * Нам необходимо расчитать сдвиг относительно текущего рассположения
+             * */
+            updatePagination(currentPage * -1 + pageTotal -1);
+        })
+
+        REF_PAGE_COUNT.addEventListener('input', async () => {
+            rowsPerPage = REF_PAGE_COUNT.value;
+            await updateCountPage();
+            await updatePagination();
+
+        })
+        await updateCountPage()
+        updatePagination();
     });
 
 </script>

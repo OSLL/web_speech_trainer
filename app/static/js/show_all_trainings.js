@@ -119,9 +119,8 @@ function recheck(trainingId){
 }
 
 function buildAllTrainingsTable(trainingsJson, is_Admin=false) {
-    if (trainingsJson["message"] !== "OK") {
-        return;
-    }
+    if (trainingsJson["message"] !== "OK") return;
+
     const allTrainingsTable = document.getElementById("all-trainings-table");
     let titles = [
         "id тренировки",
@@ -151,8 +150,17 @@ function buildAllTrainingsTable(trainingsJson, is_Admin=false) {
     });
 }
 
-function call_get_all_trainings(username, full_name, admin=false) {
-    return fetch(`/api/trainings?username=${username}&full_name=${full_name}`)
+function call_get_all_trainings({username, full_name, admin=false, page = 0, count}) {
+    const query = new URLSearchParams({
+        username,
+        full_name,
+        count
+    });
+
+    query.append('page', String(page));
+
+
+    return fetch(`/api/trainings?${query.toString()}`)
         .then(response => response.json())
         .then(responseJson => buildAllTrainingsTable(responseJson, admin));
 }
