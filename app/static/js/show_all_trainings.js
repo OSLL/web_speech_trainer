@@ -150,6 +150,84 @@ function buildAllTrainingsTable(trainingsJson, is_Admin=false) {
     });
 }
 
+const REF_PAGE_COUNT = document.getElementById('ref-page-count');
+const REF_BUTTON_TO_START = document.getElementById('btn-to-start');
+const REF_BUTTON_TO_END   = document.getElementById('btn-to-end');
+
+let rowsPerPage = REF_PAGE_COUNT.value;
+let currentPage = 0;
+let pageTotal = 0;
+let rowsTotal = 0;
+
+const state = {username: null, full_name: null}
+function init(a, b) {state.username = a; state.full_name = b;}
+
+function setPaginationInfo(){
+    $("#pagination-info").text(`Страница ${currentPage + 1} из ${pageTotal}`);
+}
+
+function blockButtons(){
+    const isEnd = currentPage === pageTotal - 1;
+    const isStart = currentPage === 0;
+
+    $("#btn-left").prop('disabled', isStart);
+    $("#btn-right").prop('disabled', isEnd);
+
+    REF_BUTTON_TO_END.toggleAttribute('disabled', isEnd);
+    REF_BUTTON_TO_START.toggleAttribute('disabled', isStart)
+}
+
+/**
+ * @description Remove tr and call call_get_all_trainings
+ * */
+function changeRows(){
+    /**
+     * @description Searching tr of tables and removing them.
+     */
+    const arrayRow = [...document.querySelectorAll("#all-trainings-table tr")]
+    arrayRow.forEach(refElement => refElement.parentElement.removeChild(refElement))
+
+    call_get_all_trainings({
+        ...getUserData(),
+        page: currentPage,
+        count: rowsPerPage
+    })
+    .catch(err => {
+        console.error(err);
+    })
+}
+
+function updatePagination(pageDirection = currentPage * -1){
+    currentPage += pageDirection;
+    changeRows();
+    blockButtons();
+    setPaginationInfo();
+}
+
+$("#btn-left").click(function() {
+    updatePagination(-1);
+});
+
+$("#btn-right").click(function() {
+    updatePagination(1);
+});
+
+
+function getUserData() {
+    return state;
+}
+
+async function updateCountPage() {
+    const query = new URLSearchParams({
+        ...getUserData(),
+        count: rowsPerPage
+    });
+    pageTotal = await fetch(`/api/trainings/count-page?${query.toString()}`)
+    .then(a => a.json())
+    .then(data => data.count)
+    REF_BUTTON_TO_END.innerText = pageTotal;
+}
+
 function call_get_all_trainings({username, full_name, admin=false, page = 0, count}) {
     const query = new URLSearchParams({
         username,
@@ -158,7 +236,6 @@ function call_get_all_trainings({username, full_name, admin=false, page = 0, cou
     });
 
     query.append('page', String(page));
-
 
     return fetch(`/api/trainings?${query.toString()}`)
         .then(response => response.json())
