@@ -27,88 +27,9 @@
 <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
 <script src="{{ url_for('static', filename='js/show_all_trainings.js') }}"></script>
 <script type="text/javascript">
-
-    const REF_PAGE_COUNT = document.getElementById('ref-page-count');
-    const REF_BUTTON_TO_START = document.getElementById('btn-to-start');
-    const REF_BUTTON_TO_END   = document.getElementById('btn-to-end');
-
-    let rowsPerPage = REF_PAGE_COUNT.value;
-    let currentPage = 0;
-    let pageTotal = 0;
-    let rowsTotal = 0;
-
-    function setPaginationInfo(){
-        $("#pagination-info").text(`Страница ${currentPage + 1} из ${pageTotal}`);
-    }
-
-    function blockButtons(){
-        const isEnd = currentPage === pageTotal - 1;
-        const isStart = currentPage === 0;
-
-        $("#btn-left").prop('disabled', isStart);
-        $("#btn-right").prop('disabled', isEnd);
-
-        REF_BUTTON_TO_END.toggleAttribute('disabled', isEnd);
-        REF_BUTTON_TO_START.toggleAttribute('disabled', isStart)
-    }
-
-    /**
-     * @description Remove tr and call call_get_all_trainings
-     * */
-    function changeRows(){
-        /**
-         * @description Searching tr of tables and removing them.
-         */
-        const arrayRow = [...document.querySelectorAll("#all-trainings-table tr")]
-        arrayRow.forEach(refElement => refElement.parentElement.removeChild(refElement))
-
-        call_get_all_trainings({
-            ...getUserData(),
-            page: currentPage,
-            count: rowsPerPage
-        })
-        .catch(err => {
-            console.error(err);
-        })
-    }
-
-    function updatePagination(pageDirection = currentPage * -1){
-        currentPage += pageDirection;
-        changeRows();
-        blockButtons();
-        setPaginationInfo();
-    }
-
-    $("#btn-left").click(function() {
-        updatePagination(-1);
-    });
-
-    $("#btn-right").click(function() {
-        updatePagination(1);
-    });
-
-
-    function getUserData() {
-        return {
-            username: "{{username}}",
-            full_name: "{{full_name}}",
-        }
-    }
-
-    async function updateCountPage() {
-        const query = new URLSearchParams({
-            ...getUserData(),
-            count: rowsPerPage
-        });
-        pageTotal = await fetch(`/api/trainings/count-page?${query.toString()}`)
-        .then(a => a.json())
-        .then(data => data.count)
-        REF_BUTTON_TO_END.innerText = pageTotal;
-
-    }
-
     $(document).ready(async () => {
         rowsTotal = document.querySelectorAll("#all-trainings-table tr").length - 1;
+        init("{{ username }}", "{{ full_name }}");
 
         REF_BUTTON_TO_START.addEventListener('click', () => {
             updatePagination()
@@ -130,6 +51,5 @@
         await updateCountPage()
         updatePagination();
     });
-
 </script>
 {% endblock %}
