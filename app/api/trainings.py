@@ -381,6 +381,28 @@ def get_training(training_id) -> (dict, int):
     return get_training_information(training_db)
 
 
+@api_trainings.route('/api/trainings/count-page', methods=['GET'])
+def get_count_page() -> (dict, int):
+    username = request.args.get('username', None)
+    full_name = request.args.get('full_name', None)
+
+    countItems = request.args.get('count')
+    if not countItems:
+        countItems = 10
+    else:
+        countItems = int(countItems)
+
+    authorized = check_auth() is not None
+    if not (check_admin() or (authorized and session.get('session_id') == username)):
+        return {}, 404
+
+    count = TrainingsDBManager().get_count_page(
+        remove_blank_and_none({'username': username, 'full_name': full_name}),
+        countItems
+    )
+    result = {"count": count}
+    return result, 200
+
 @api_trainings.route('/api/trainings/', methods=['GET'])
 def get_all_trainings() -> (dict, int):
     """
@@ -390,14 +412,31 @@ def get_all_trainings() -> (dict, int):
     """
     username = request.args.get('username', None)
     full_name = request.args.get('full_name', None)
+
+    numberPage = request.args.get('page')
+    if not numberPage:
+        numberPage = 0
+    else:
+        numberPage = int(numberPage)
+
+    countItems = request.args.get('count')
+    if not countItems:
+        countItems = 10
+    else:
+        countItems = int(countItems)
+
+
+    print(numberPage, countItems)
     authorized = check_auth() is not None
     if not (check_admin() or (authorized and session.get('session_id') == username)):
         return {}, 404
     trainings = TrainingsDBManager().get_trainings_filtered(
-        remove_blank_and_none({'username': username, 'full_name': full_name})
+        remove_blank_and_none({'username': username, 'full_name': full_name}),
+        numberPage,
+        countItems
     )
     trainings_json = {'trainings': {}}
-    for current_training in trainings:
+    for i, current_training in enumerate(trainings):
         trainings_json['trainings'][str(current_training.pk)] = get_training_information(current_training)
     trainings_json['message'] = 'OK'
     return trainings_json, 200

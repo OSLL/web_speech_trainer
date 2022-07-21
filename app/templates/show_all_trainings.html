@@ -5,10 +5,51 @@
 {% endblock %}
 
 {% block content %}
+
+<h3 id = "pagination-info"></h3>
+
+<div class = "container-navigation">
+    <button id = "btn-to-start" class = "button_action">1</button>
+    <button id = "btn-left" class = "button_action"><</button>
+    <button id = "btn-right" class = "button_action">></button>
+    <button id = "btn-to-end" class = "button_action"></button>
+
+    <select id = "ref-page-count">
+        <option value = "5">5</option>
+        <option selected value = "10">10</option>
+        <option value = "25">25</option>
+        <option value = "50"> 50</option>
+    </select>
+</div>
+
 <table id="all-trainings-table" class="table center-align-table"></table>
+<script src="{{ url_for('static', filename='js/libraries/jquery.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
 <script src="{{ url_for('static', filename='js/show_all_trainings.js') }}"></script>
 <script type="text/javascript">
-    call_get_all_trainings("{{ username }}", "{{ full_name }}", {{is_admin}});
+    $(document).ready(async () => {
+        rowsTotal = document.querySelectorAll("#all-trainings-table tr").length - 1;
+        init("{{ username }}", "{{ full_name }}");
+
+        REF_BUTTON_TO_START.addEventListener('click', () => {
+            updatePagination()
+        })
+        REF_BUTTON_TO_END.addEventListener('click', () => {
+            /**
+             * Поскольку updatePagination является сдвиговой функцией
+             * Нам необходимо расчитать сдвиг относительно текущего рассположения
+             * */
+            updatePagination(currentPage * -1 + pageTotal -1);
+        })
+
+        REF_PAGE_COUNT.addEventListener('input', async () => {
+            rowsPerPage = REF_PAGE_COUNT.value;
+            await updateCountPage();
+            await updatePagination();
+
+        })
+        await updateCountPage()
+        updatePagination();
+    });
 </script>
 {% endblock %}
