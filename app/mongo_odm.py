@@ -4,7 +4,7 @@ import time
 import uuid
 from datetime import datetime
 from typing import Union
-
+import math
 import pymongo
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -121,8 +121,12 @@ class TrainingsDBManager:
     def get_trainings_documents(self):
         return Trainings.objects.model._mongometa.collection.find({})
 
-    def get_trainings_filtered(self, filters):
-        return Trainings.objects.raw(filters)
+    def get_trainings_filtered(self, filters, page = 0, count = 10):
+        return Trainings.objects.raw(filters).skip(page * count).limit(count)
+
+    # Getting count pages for filters and page count chunk
+    def get_count_page(self, filters, count = 10):
+        return math.ceil(Trainings.objects.raw(filters).count() / count * 1.0)
 
     def get_training(self, training_id):
         try:
