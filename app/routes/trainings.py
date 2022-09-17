@@ -1,5 +1,8 @@
+from datetime import datetime
 import logging
 import time
+import os
+import pytz
 
 from bson import ObjectId
 from flask import Blueprint, render_template, request, session
@@ -36,6 +39,7 @@ def view_training_statistics(training_id: str):
         return training_statistics, training_statistics_status_code
     criteria_pack_db = CriterionPackDBManager().get_criterion_pack_by_name(training_statistics['criteria_pack_id'])
     feedback = training_statistics['feedback']
+    
     feedback_evaluator_id = training_statistics['feedback_evaluator_id']
     feedback_evaluator = FeedbackEvaluatorFactory().get_feedback_evaluator(feedback_evaluator_id)(criteria_pack_db.criterion_weights)
     criteria_results = feedback.get('criteria_results', {})
@@ -78,6 +82,7 @@ def view_training_statistics(training_id: str):
         )
     else:
         remaining_processing_time_estimation_str = ''
+    gen_time = ObjectId(training_id).generation_time.astimezone(pytz.timezone("Europe/Moscow")).replace(tzinfo=None)
     return render_template(
         'training/statistics.html',
         title='{}: {}'.format(t("Статистика тренировки с ID"), training_id),
@@ -93,6 +98,7 @@ def view_training_statistics(training_id: str):
         remaining_processing_time_estimation=remaining_processing_time_estimation_str,
         criteria_results=criteria_results_str.replace('\n', '\\n').replace('\'', '').replace('"', ''),
         slides_time=training_statistics['slides_time'],
+        gen_time=gen_time
     ), 200
 
 
