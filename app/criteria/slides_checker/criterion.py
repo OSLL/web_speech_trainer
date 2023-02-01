@@ -29,17 +29,8 @@ class SlidesCheckerCriterion(BaseCriterion):
         task_params=dict.__name__
     )
     """
-    slides_number=bsc
-    detect_additional=False
-    slides_enum=False
-    slides_headers=True
-    goals_slide=True
-    probe_slide=True
-    actual_slide=True
-    conclusion_slide=True
-    conclusion_actual=65
-    conclusion_along=True
-    slide_every_task=75
+    file_type=pres
+    pack=<sl-ch_pack_name>
     """
 
     def __init__(self, parameters, dependent_criteria, name=''):
@@ -79,7 +70,7 @@ class SlidesCheckerCriterion(BaseCriterion):
         if not flag:
             return CriterionResult(result=0, verdict=f"Проблемы с проверкой (на стороне инстурмента): {result}")
         else:
-            return CriterionResult(result=result['score'], verdict=f"С результатом проверки можно ознакомиться по ссылке: {self.parameters['result_url']}{result['check_id']}")
+            return CriterionResult(result=result['score'], verdict=f"С результатом проверки можно ознакомиться по ссылке: {self.parameters['result_url']}{result['_id']}")
 
     def check_alive(self, username):
         try:
@@ -153,21 +144,3 @@ class SlidesCheckerCriterion(BaseCriterion):
             params=params
         )
         return consumer
-
-
-    """
-    {
-        "name": "SlidesCheckerCriterion",
-        "parameters": {
-            "lti_url": "http://slides-checker.moevm.info/lti",
-            "send_url": "http://slides-checker.moevm.info/tasks",
-            "result_url": "http://slides-checker.moevm.info/results/",
-            "check_alive_url": "http://slides-checker.moevm.info/version",
-            "max_tries": 4,
-            "pause": 4,
-            "consumer_key": "544HLHhmWB9BME7dHhwtp3",
-            "consumer_secret": "jq7FygfqcmjEW8yrxyio0zr1BvIZ"
-        }
-    }
-    """
-    
