@@ -107,7 +107,7 @@ class SlidesCheckerCriterion(BaseCriterion):
             return False
 
     def send_file(self, file):
-        res = requests.post(self.parameters['send_url'], files={'presentation': file}, cookies=self.cookies, verify=False)
+        res = requests.post(self.parameters['send_url'], files={'file': file}, cookies=self.cookies, verify=False)
         return res.json().get('task_id')
 
     def try_get_result(self, task_id):
