@@ -74,7 +74,7 @@ class SlidesCheckerCriterion(BaseCriterion):
 
     def check_alive(self, username):
         try:
-            alive = requests.get(self.parameters['check_alive_url']) 
+            alive = requests.get(self.parameters['check_alive_url'], verify=False) 
             logger.debug('check_alive_url ' + str(alive))
             if alive.status_code != 200:
                 return False
