@@ -148,14 +148,14 @@ class PredefenceEightToTenMinutesFeedbackEvaluator(FeedbackEvaluator):
 
 
 FEEDBACK_EVALUATOR_CLASS_BY_ID = {
-    SameWeightFeedbackEvaluator.FEEDBACK_EVALUATOR_ID: SameWeightFeedbackEvaluator,
-    PaceAndDurationFeedbackEvaluator.FEEDBACK_EVALUATOR_ID: PaceAndDurationFeedbackEvaluator,
-    FillersRatioFeedbackEvaluator.FEEDBACK_EVALUATOR_ID: FillersRatioFeedbackEvaluator,
-    SimpleFeedbackEvaluator.FEEDBACK_EVALUATOR_ID: SimpleFeedbackEvaluator,
-    PredefenceEightToTenMinutesFeedbackEvaluator.FEEDBACK_EVALUATOR_ID: PredefenceEightToTenMinutesFeedbackEvaluator,
+    #SameWeightFeedbackEvaluator.FEEDBACK_EVALUATOR_ID: SameWeightFeedbackEvaluator,
+    #PaceAndDurationFeedbackEvaluator.FEEDBACK_EVALUATOR_ID: PaceAndDurationFeedbackEvaluator,
+    #FillersRatioFeedbackEvaluator.FEEDBACK_EVALUATOR_ID: FillersRatioFeedbackEvaluator,
+    #SimpleFeedbackEvaluator.FEEDBACK_EVALUATOR_ID: SimpleFeedbackEvaluator,
+    PredefenceEightToTenMinutesFeedbackEvaluator.FEEDBACK_EVALUATOR_ID: PredefenceEightToTenMinutesFeedbackEvaluator
 }
 
 
 class FeedbackEvaluatorFactory:
     def get_feedback_evaluator(self, feedback_evaluator_id):
-        return FeedbackEvaluator
+        return FEEDBACK_EVALUATOR_CLASS_BY_ID.get(feedback_evaluator_id, FeedbackEvaluator)
