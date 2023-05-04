@@ -122,16 +122,21 @@ class PredefenceEightToTenMinutesFeedbackEvaluator(FeedbackEvaluator):
     def __init__(self, weights=None):
         if weights is None:
             weights = {
-                StrictSpeechDurationCriterion.__name__: 0.6,
-                SpeechPaceCriterion.__name__: 0.2,
-                FillersNumberCriterion.__name__: 0.2,
+                "PredefenceStrictSpeechDurationCriterion": 0.3,
+                "DEFAULT_SPEECH_PACE_CRITERION": 0.3,
+                "DEFAULT_FILLERS_NUMBER_CRITERION": 0.2,
+                "SlidesCheckerCriterionBsc": 0.2,
+                "SlidesCheckerCriterionMsc": 0.2,
             }
 
         super().__init__(name=PredefenceEightToTenMinutesFeedbackEvaluator.CLASS_NAME, weights=weights)
 
     def evaluate_feedback(self, criteria_results):
-        if not criteria_results.get(StrictSpeechDurationCriterion.__name__) or \
-                criteria_results[StrictSpeechDurationCriterion.__name__].result == 0:
+        if not criteria_results.get("PredefenceStrictSpeechDurationCriterion") or \
+                criteria_results["PredefenceStrictSpeechDurationCriterion"].result == 0:
+            return Feedback(0)
+        if not criteria_results.get("DEFAULT_SPEECH_PACE_CRITERION") or \
+                criteria_results["DEFAULT_SPEECH_PACE_CRITERION"].result == 0:
             return Feedback(0)
         return super().evaluate_feedback(criteria_results)
 
