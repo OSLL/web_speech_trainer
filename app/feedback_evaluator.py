@@ -146,13 +146,43 @@ class PredefenceEightToTenMinutesFeedbackEvaluator(FeedbackEvaluator):
             return None
         return super().get_result_as_sum_str(criteria_results)
 
+class PredefenceEightToTenMinutesNoSlideCheckFeedbackEvaluator(FeedbackEvaluator):
+    CLASS_NAME = 'PredefenceEightToTenMinutesNoSlideCheckFeedbackEvaluator'
+    FEEDBACK_EVALUATOR_ID = 6
+
+    def __init__(self, weights=None):
+        if weights is None:
+            weights = {
+                "PredefenceStrictSpeechDurationCriterion": 0.6,
+                "DEFAULT_SPEECH_PACE_CRITERION": 0.2,
+                "DEFAULT_FILLERS_NUMBER_CRITERION": 0.2,
+            }
+
+        super().__init__(name=PredefenceEightToTenMinutesNoSlideCheckFeedbackEvaluator.CLASS_NAME, weights=weights)
+
+    def evaluate_feedback(self, criteria_results):
+        if not criteria_results.get("PredefenceStrictSpeechDurationCriterion") or \
+                criteria_results["PredefenceStrictSpeechDurationCriterion"].result == 0:
+            return Feedback(0)
+        if not criteria_results.get("DEFAULT_SPEECH_PACE_CRITERION") or \
+                criteria_results["DEFAULT_SPEECH_PACE_CRITERION"].result == 0:
+            return Feedback(0)
+        return super().evaluate_feedback(criteria_results)
+
+    def get_result_as_sum_str(self, criteria_results):
+        if criteria_results is None or self.weights is None or \
+                criteria_results.get(StrictSpeechDurationCriterion.__name__, {}).get('result') == 0:
+            return None
+        return super().get_result_as_sum_str(criteria_results)
+    
 
 FEEDBACK_EVALUATOR_CLASS_BY_ID = {
     #SameWeightFeedbackEvaluator.FEEDBACK_EVALUATOR_ID: SameWeightFeedbackEvaluator,
     #PaceAndDurationFeedbackEvaluator.FEEDBACK_EVALUATOR_ID: PaceAndDurationFeedbackEvaluator,
     #FillersRatioFeedbackEvaluator.FEEDBACK_EVALUATOR_ID: FillersRatioFeedbackEvaluator,
     #SimpleFeedbackEvaluator.FEEDBACK_EVALUATOR_ID: SimpleFeedbackEvaluator,
-    PredefenceEightToTenMinutesFeedbackEvaluator.FEEDBACK_EVALUATOR_ID: PredefenceEightToTenMinutesFeedbackEvaluator
+    PredefenceEightToTenMinutesFeedbackEvaluator.FEEDBACK_EVALUATOR_ID: PredefenceEightToTenMinutesFeedbackEvaluator,
+    PredefenceEightToTenMinutesNoSlideCheckFeedbackEvaluator.FEEDBACK_EVALUATOR_ID: PredefenceEightToTenMinutesNoSlideCheckFeedbackEvaluator
 }
 
 
