@@ -12,7 +12,7 @@ function startRecording() {
     $("#alert").hide()
     navigator.mediaDevices.getUserMedia({audio: true, video: false}).then(function (stream) {
         currentTimestamp = Date.now();
-        $("#tutorial")[0].style = "visibility: hidden; font-size: 0";
+        $("#tutorial")[0].style = "visibility: hidden; font-size: 0; margin-bottom: 0";
         var model_time = 3;
         $("#model-time").html(`До начала записи: ${model_time} сек.`);
         $("#model-timer").show();
@@ -90,7 +90,7 @@ function stopRecording() {
     $("#timer").hide();
     gumStream.getAudioTracks()[0].stop();
     $("#record")[0].disabled = false;
-    $("#record-processing")[0].style = "visibility: visible; font-size: 14px";
+    $("#record-processing")[0].style = "visibility: visible; font-size: 36px";
     window.onbeforeunload = function() {
         return false;
     }
