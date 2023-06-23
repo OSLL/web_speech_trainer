@@ -85,6 +85,7 @@ function startRecording() {
 }
 
 function stopRecording() {
+    if(confirm('Завершить тренировку?') === true){
     clearInterval(timer)
     $("#timer").hide();
     gumStream.getAudioTracks()[0].stop();
@@ -94,6 +95,7 @@ function stopRecording() {
         return false;
     }
     recorder.finishRecording();
+}
 }
 
 function callAddPresentationRecord(blob) {
