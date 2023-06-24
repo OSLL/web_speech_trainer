@@ -17,6 +17,10 @@
 #controls{
     margin-bottom: 2%;
 }
+.tutorButtons{
+    width: 80px;
+    height 30px;
+}
 .model {
     display: none;
     position: fixed;
