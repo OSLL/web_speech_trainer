@@ -87,6 +87,7 @@ function buildCurrentTrainingRow(trainingId, trainingJson, is_Admin=false) {
         recordingElement.textContent = "Аудиозапись отсутствует";
     } else {
         const recordingAudio = document.createElement("audio");
+        recordingAudio.preload = "none";
         recordingAudio.controls = true;
         recordingAudio.src = `/api/files/presentation-records/${trainingJson["presentation_record_file_id"]}/`;
         recordingElement.appendChild(recordingAudio);
