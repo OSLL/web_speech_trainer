@@ -1,4 +1,8 @@
-{% extends 'base.html' %} {% block content %}
+{% extends 'base.html' %} 
+{% block header %}
+<link rel="stylesheet" href="/static/css/training_greeting.css">
+{% endblock %}
+{% block content %}
 <div class="base-container">
     <h3>{{ t("Задание для тренировки") }}: {{ task_id }}</h3>
     <h3>{{ t("Описание задания") }}: {{ task_description }}</h3>
@@ -6,8 +10,9 @@
     <h3>{{ t("Номер попытки") }}: {{ attempt_number }}</h3>
     <h3>{{ t("Номер тренировки") }}: {{ training_number }} / {{ attempt_count }}</h3>
     <h3>{{ t("Сумма баллов за предыдущие тренировки") }}: {{ current_points_sum }}</h3>
-    <h3>{{ t("Набор критериев") }}: {{ criteria_pack_id }}</h3>
-    <div id="criteria-pack-description">{{ criteria_pack_description }}</div>
+    <caption>{{ t("Набор критериев") }}: {{ criteria_pack_id }}</caption>
+    
+    <table id="criteria-table" border=""></table>
     <button id="start-training-button" type="button"
         onclick="location.href=
         {% if not training_id %}

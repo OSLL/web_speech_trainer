@@ -1,0 +1,23 @@
+body {
+    margin-left: 10px;
+}
+td {
+    text-align: center;
+    vertical-align: middle;
+}
+th {
+    text-align: center;
+    vertical-align: middle;
+}
+h3 {
+    text-align: center;
+}
+
+table{
+    margin-right: 10px;
+}
+#start-training-button{
+    margin-top: 10px;
+    width: 150px;
+    height: 30px;
+}
