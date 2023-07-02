@@ -19,7 +19,7 @@ def _check_access(filters: dict) -> bool:
         return False
     if user_session.is_admin:
         return True
-    trainings = TrainingsDBManager().get_trainings_filtered(filters=filters)
+    trainings = TrainingsDBManager().get_trainings_filtered_limitted(filters=filters)
     return any(map(lambda current_training: current_training.username == username, trainings))
 
 

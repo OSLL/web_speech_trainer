@@ -126,11 +126,15 @@ def view_all_trainings():
         or an empty dictionary if access was denied.
     """
     username = request.args.get('username', '')
-    full_name = request.args.get('full_name', '')
+
     authorized = check_auth() is not None
     if not (check_admin() or (authorized and session.get('session_id') == username)):
         return {}, 404
-    return render_template('show_all_trainings.html', username=username, full_name=full_name, is_admin="true" if check_admin() else 'false'), 200
+
+    raw_filters = request.args.getlist('f')
+    filters_string = '&'.join(raw_filters)
+
+    return render_template('show_all_trainings.html', username=username, filters=filters_string, is_admin="true" if check_admin() else 'false'), 200
 
 
 @routes_trainings.route('/training_greeting/', methods=['GET'])

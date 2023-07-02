@@ -70,7 +70,7 @@ class ReverseProxied(object):
 
 
 def resubmit_failed_trainings():
-    failed_trainings = TrainingsDBManager().get_trainings_filtered(
+    failed_trainings = TrainingsDBManager().get_trainings_filtered_limitted(
         filters={
             '$or': [
                 {'status': TrainingStatus.PREPARATION_FAILED},

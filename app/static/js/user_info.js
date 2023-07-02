@@ -7,7 +7,7 @@ $(document).ready(function () {
                 return;
             }
             $("#username").html("Login: " + responseJson["username"]);
-            $("#trainings").attr("href", `/show_all_trainings/?username=${responseJson["username"]}&full_name=${responseJson["full_name"]}`);
+            $("#trainings").attr("href", `/show_all_trainings/?username=${responseJson["username"]}&f=username@${responseJson["username"]}&f=full_name@${responseJson["full_name"]}`);
             fetch("/api/task-attempts/")
                 .then(response => response.json())
                 .then(responseJson => {
