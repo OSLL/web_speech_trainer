@@ -53,10 +53,14 @@
 
 <table id="all-trainings-table" class="table center-align-table"></table>
 <script src="{{ url_for('static', filename='js/libraries/jquery.min.js') }}"></script>
+<<<<<<< HEAD
 <script src="{{ url_for('static', filename='js/libraries/jquery-ui.min.js') }}"></script>
 
 <script src="{{ url_for('static', filename='js/changeURL.js') }}"></script>
 <script src="{{ url_for('static', filename='js/event_observer.js') }}"></script>
+=======
+<script src="{{ url_for('static', filename='js/changeURL.js') }}"></script>
+>>>>>>> 359-сохранение-параметров-поиска-в-url
 <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
 <script src="{{ url_for('static', filename='js/show_all_trainings_filters.js') }}"></script>
 <script src="{{ url_for('static', filename='js/show_all_trainings.js') }}"></script>
@@ -67,8 +71,13 @@
 
         rowsTotal = document.querySelectorAll("#all-trainings-table tr").length - 1;
 
+        initPagination("{{ page }}", "{{ count }}")
+
+        console.log("Current 1: " + currentPage)
+
         REF_BUTTON_TO_START.addEventListener('click', () => {
             updatePagination()
+            changeURLByParam("page", currentPage.toString())
         })
         REF_BUTTON_TO_END.addEventListener('click', () => {
             /**
@@ -76,13 +85,16 @@
              * Нам необходимо рассчитать сдвиг относительно текущего расположения
              * */
             updatePagination(currentPage * -1 + pageTotal -1);
+            changeURLByParam("page", currentPage.toString())
         })
 
         REF_PAGE_COUNT.addEventListener('input', async () => {
             rowsPerPage = REF_PAGE_COUNT.value;
+            changeURLByParam("count", rowsPerPage.toString())
             await updateCountPage();
             await updatePagination();
 
+            changeURLByParam("page", currentPage.toString())
         })
 
         applyObserver.subscribe(async () => {
@@ -91,7 +103,7 @@
         })
 
         await updateCountPage()
-        updatePagination();
+        updatePagination(currentPage, false);
     });
 </script>
 {% endblock %}
