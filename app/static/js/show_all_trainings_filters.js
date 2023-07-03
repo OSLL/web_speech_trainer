@@ -133,6 +133,11 @@ function checkIfFiltersChanged() {
         return
     }
 
+    if (Object.keys(originalFilters).length === 0) {
+        setFiltersChanged(false);
+        return;
+    }
+
     for (const [key, value] of Object.entries(originalFilters)) {
         if (!currentFilters.hasOwnProperty(key)) {
             setFiltersChanged(true)
@@ -152,15 +157,17 @@ function checkIfFiltersChanged() {
                     return
                 }
             }
-            setFiltersChanged(false)
-            return
         } else {
-            setFiltersChanged(value !== currentFilters[key])
-            return
+            if (value !== currentFilters[key]) {
+                setFiltersChanged(true)
+                return
+            }
         }
     }
 
     setFiltersChanged(false)
+
+
 }
 
 /**
