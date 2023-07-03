@@ -91,7 +91,7 @@ class StuckAudioResender:
 
     def _resend_stuck_audio(self):
         try:
-            trainings_db = TrainingsDBManager().get_trainings_filtered({'audio_status': AudioStatus.RECOGNIZING})
+            trainings_db = TrainingsDBManager().get_trainings_filtered_limitted({'audio_status': AudioStatus.RECOGNIZING})
             for training_db in trainings_db:
                 if not self._is_stuck_predicate(training_db):
                     logger.info('Training with training_id = {} has audio_status = RECOGNIZING and it\'s fresh enough.'

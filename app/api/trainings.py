@@ -1,5 +1,6 @@
 import logging
 import time
+import json
 from datetime import datetime
 
 from bson import ObjectId
@@ -10,6 +11,7 @@ from app.check_access import check_access
 from app.lti_session_passback.auth_checkers import is_admin, check_auth, check_admin
 from app.mongo_models import Trainings
 from app.mongo_odm import TrainingsDBManager, TaskAttemptsDBManager, TasksDBManager, DBManager
+from app.filters import GetAllTrainingsFilterManager
 from app.status import TrainingStatus, AudioStatus, PassBackStatus, PresentationStatus
 from app.training_manager import TrainingManager
 from app.utils import remove_blank_and_none, check_arguments_are_convertible_to_object_id
@@ -37,7 +39,8 @@ def append_slide_switch_timestamp(training_id: str) -> (dict, int):
             return {}, 404
     timestamp = request.args.get('timestamp', time.time(), float)
     TrainingsDBManager().append_timestamp(training_id, timestamp)
-    logger.debug('Slide switch: training_id = {}, timestamp = {}, time.time() = {}.'.format(training_id, timestamp, time.time()))
+    logger.debug(
+        'Slide switch: training_id = {}, timestamp = {}, time.time() = {}.'.format(training_id, timestamp, time.time()))
     return {'message': 'OK'}, 200
 
 
@@ -109,13 +112,13 @@ def get_remaining_processing_time_by_training_id(training_id: str) -> (dict, int
         return {'processing_time_remaining': 0, 'message': 'OK'}, 200
     time_estimation = 0
     trainings_with_recognizing_audio_status = \
-        TrainingsDBManager().get_trainings_filtered({'audio_status': AudioStatus.RECOGNIZING})
+        TrainingsDBManager().get_trainings_filtered_limitted({'audio_status': AudioStatus.RECOGNIZING})
     for training in trainings_with_recognizing_audio_status:
         time_since_audio_status_last_update = datetime.now().timestamp() - training.audio_status_last_update.time
         estimated_remaining_recognition_time = \
             training.presentation_record_duration / 2 - time_since_audio_status_last_update
-        message = 'Audio status is RECOGNIZING, training_id = {}, status last update = {}, {} seconds ago, '\
-                  'presentation record duration = {}.\nEstimated remaining recognition time = {}.'\
+        message = 'Audio status is RECOGNIZING, training_id = {}, status last update = {}, {} seconds ago, ' \
+                  'presentation record duration = {}.\nEstimated remaining recognition time = {}.' \
             .format(training.pk, training.audio_status_last_update, time_since_audio_status_last_update,
                     training.presentation_record_duration, estimated_remaining_recognition_time)
         if estimated_remaining_recognition_time < 0:
@@ -126,7 +129,7 @@ def get_remaining_processing_time_by_training_id(training_id: str) -> (dict, int
     current_presentation_record_file_generation_time = current_presentation_record_file_id.generation_time if current_presentation_record_file_id else None
     if current_presentation_record_file_generation_time:
         # if training doesn't have presentation_record_file_id -> skip this
-        trainings_with_audio_status_before_recognizing = TrainingsDBManager().get_trainings_filtered(
+        trainings_with_audio_status_before_recognizing = TrainingsDBManager().get_trainings_filtered_limitted(
             filters={'$or': [{'audio_status': {'$in': [AudioStatus.NEW, AudioStatus.SENT_FOR_RECOGNITION]}}]},
         )
         for training in trainings_with_audio_status_before_recognizing:
@@ -153,13 +156,14 @@ def get_remaining_processing_time_by_training_id(training_id: str) -> (dict, int
                 )
             )
             time_estimation += time_estimation_add
-    trainings_with_sent_for_processing_or_processing_status = TrainingsDBManager().get_trainings_filtered(
+    trainings_with_sent_for_processing_or_processing_status = TrainingsDBManager().get_trainings_filtered_limitted(
         filters={'$or': [{'status': {'$in': [
             TrainingStatus.PREPARED, TrainingStatus.SENT_FOR_PROCESSING, TrainingStatus.PROCESSING
         ]}}]},
     )
     if current_training_status not in \
-            [TrainingStatus.NEW, TrainingStatus.IN_PROGRESS, TrainingStatus.SENT_FOR_PREPARATION, TrainingStatus.PREPARING]:
+            [TrainingStatus.NEW, TrainingStatus.IN_PROGRESS, TrainingStatus.SENT_FOR_PREPARATION,
+             TrainingStatus.PREPARING]:
         current_recognized_audio_generation_time = current_training_db.recognized_audio_id.generation_time
     else:
         current_recognized_audio_generation_time = None
@@ -178,13 +182,14 @@ def get_remaining_processing_time_by_training_id(training_id: str) -> (dict, int
 
 
 def proccess_training_slides_info(audio):
-    current_time = 3.0 
+    current_time = 3.0
     slides_time = []
-    
+
     for slide in audio.audio_slides:
         slides_time.append(current_time)
         current_time += slide.audio_slide_stats['slide_duration']
     return slides_time
+
 
 @check_arguments_are_convertible_to_object_id
 @api_trainings.route('/api/trainings/statistics/<training_id>/', methods=['GET'])
@@ -265,7 +270,7 @@ def add_presentation_record(training_id: str) -> (dict, int):
         if training_db.presentation_record_file_id is not None:
             return {}, 404
     TrainingsDBManager().change_training_status_by_training_id(training_id,
-                                                                TrainingStatus.SENT_FOR_PREPARATION)
+                                                               TrainingStatus.SENT_FOR_PREPARATION)
     presentation_record_file_id = DBManager().add_file(presentation_record_file)
     TrainingsDBManager().add_presentation_record(
         training_id, presentation_record_file_id, presentation_record_duration,
@@ -290,7 +295,8 @@ def start_training_processing(training_id: str) -> (dict, int):
     if not is_admin():
         training_db = TrainingsDBManager().get_training(training_id)
         if training_db.status != TrainingStatus.SENT_FOR_PREPARATION:
-            logger.info(f"start_training_processing. user not admin AND training_db.status != TrainingStatus.IN_PROGRESS (it's {training_db.status})")
+            logger.info(
+                f"start_training_processing. user not admin AND training_db.status != TrainingStatus.IN_PROGRESS (it's {training_db.status})")
             return {}, 404
     TrainingManager().add_training(training_id)
     return {'message': 'OK'}, 200
@@ -331,15 +337,18 @@ def get_training_information(current_training: Trainings) -> dict:
         processing_finish_timestamp = None
         if TrainingStatus.is_terminal(current_training.status):
             processing_finish_timestamp = datetime.fromtimestamp(current_training.status_last_update.time)
+
         task_attempt = TaskAttemptsDBManager().get_task_attempt(current_training.task_attempt_id)
         if task_attempt is None:
             pass_back_status = None
         else:
             pass_back_status = task_attempt.is_passed_back.get(str(_id), None)
+
         task_attempt_id = current_training.task_attempt_id
         task_attempt = TaskAttemptsDBManager().get_task_attempt(task_attempt_id)
         presentation_file_id = current_training.presentation_file_id
         presentation_record_file_id = current_training.presentation_record_file_id
+
         return {
             'message': 'OK',
             'task_attempt_id': str(task_attempt_id),
@@ -384,7 +393,6 @@ def get_training(training_id) -> (dict, int):
 @api_trainings.route('/api/trainings/count-page', methods=['GET'])
 def get_count_page() -> (dict, int):
     username = request.args.get('username', None)
-    full_name = request.args.get('full_name', None)
 
     countItems = request.args.get('count')
     if not countItems:
@@ -396,12 +404,12 @@ def get_count_page() -> (dict, int):
     if not (check_admin() or (authorized and session.get('session_id') == username)):
         return {}, 404
 
-    count = TrainingsDBManager().get_count_page(
-        remove_blank_and_none({'username': username, 'full_name': full_name}),
-        countItems
-    )
+    filters = json.loads(request.args.get('filters', "{}"))
+
+    count = GetAllTrainingsFilterManager().count_page_with_filters(filters, countItems)
     result = {"count": count}
     return result, 200
+
 
 @api_trainings.route('/api/trainings/', methods=['GET'])
 def get_all_trainings() -> (dict, int):
@@ -410,33 +418,34 @@ def get_all_trainings() -> (dict, int):
     :return: Dictionary with information about all trainings and 'OK' message, or
         an empty dictionary with 404 HTTP code if access was denied.
     """
+
     username = request.args.get('username', None)
-    full_name = request.args.get('full_name', None)
 
-    numberPage = request.args.get('page')
-    if not numberPage:
-        numberPage = 0
+    number_page = request.args.get('page')
+    if not number_page:
+        number_page = 0
     else:
-        numberPage = int(numberPage)
+        number_page = int(number_page)
 
-    countItems = request.args.get('count')
-    if not countItems:
-        countItems = 10
+    count_items = request.args.get('count')
+    if not count_items:
+        count_items = 10
     else:
-        countItems = int(countItems)
+        count_items = int(count_items)
 
+    print(number_page, count_items)
 
-    print(numberPage, countItems)
     authorized = check_auth() is not None
     if not (check_admin() or (authorized and session.get('session_id') == username)):
         return {}, 404
-    trainings = TrainingsDBManager().get_trainings_filtered(
-        remove_blank_and_none({'username': username, 'full_name': full_name}),
-        numberPage,
-        countItems
-    )
+
+    filters = json.loads(request.args.get('filters', "{}"))
+
+    trainings = GetAllTrainingsFilterManager().query_with_filters(filters, number_page, count_items)
+
     trainings_json = {'trainings': {}}
-    for i, current_training in enumerate(trainings):
+    for current_training in trainings:
         trainings_json['trainings'][str(current_training.pk)] = get_training_information(current_training)
     trainings_json['message'] = 'OK'
+
     return trainings_json, 200

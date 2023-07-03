@@ -121,12 +121,15 @@ class TrainingsDBManager:
     def get_trainings_documents(self):
         return Trainings.objects.model._mongometa.collection.find({})
 
-    def get_trainings_filtered(self, filters, page = 0, count = 10):
-        return Trainings.objects.raw(filters).skip(page * count).limit(count)
+    def get_trainings_filtered_limitted(self, filters, count=10):
+        return Trainings.objects.raw(filters).limit(count)
+
+    def get_trainings_filtered_all(self, filters):
+        return Trainings.objects.raw(filters)
 
     # Getting count pages for filters and page count chunk
-    def get_count_page(self, filters, count = 10):
-        return math.ceil(Trainings.objects.raw(filters).count() / count * 1.0)
+    # def get_count_page(self, filters, count = 10):
+    #     return math.ceil(Trainings.objects.raw(filters).count() / count * 1.0)
 
     def get_training(self, training_id):
         try:
@@ -829,7 +832,7 @@ class CriterionDBManager:
         except Criterion.DoesNotExist as e:
             logger.warning('No criterion w/name = {}.'.format(name))
             return None
-    
+
     def get_all_criterions(self):
         return Criterion.objects.all().order_by([("name", pymongo.ASCENDING)])
 
@@ -848,7 +851,7 @@ class CriterionPackDBManager:
             pack = CriterionPack(name=name)
         pack.criterions = criterion_ids
         if weights: pack.criterion_weights = weights
-        if feedback: pack.feedback = feedback 
+        if feedback: pack.feedback = feedback
         pack.save()
         return pack
 
@@ -870,6 +873,6 @@ class CriterionPackDBManager:
         except CriterionPack.DoesNotExist as e:
             logger.warning('No criterion pack w/name = {}.'.format(name))
             return None
-    
+
     def get_all_criterion_packs(self):
         return CriterionPack.objects.all().order_by([("name", pymongo.ASCENDING)])

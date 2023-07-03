@@ -27,7 +27,7 @@ function buildCurrentTrainingRow(trainingId, trainingJson, is_Admin=false) {
 
     const trainingUsernameElement = document.createElement("td");
     const trainingUsernameLink = document.createElement("a");
-    trainingUsernameLink.href = `/show_all_trainings/?username=${trainingJson["username"]}&full_name=${trainingJson["full_name"]}`;
+    trainingUsernameLink.href = `/show_all_trainings/?username=${trainingJson["username"]}&f=username${KEY_VALUE_DELIMITER}${trainingJson["username"]}&f=full_name${KEY_VALUE_DELIMITER}${trainingJson["full_name"]}`;
     trainingUsernameLink.textContent = trainingJson["username"];
     trainingUsernameElement.appendChild(trainingUsernameLink);
     currentTrainingRowElement.appendChild(trainingUsernameElement);
@@ -160,8 +160,27 @@ let currentPage = 0;
 let pageTotal = 0;
 let rowsTotal = 0;
 
-const state = {username: null, full_name: null}
-function init(a, b) {state.username = a; state.full_name = b;}
+function initPagination(pageString, countString) {
+    currentPage = parseInt(pageString);
+    rowsPerPage = parseInt(countString);
+
+    changeURLByParam("page", currentPage.toString())
+    changeURLByParam("count", rowsPerPage.toString())
+
+    let found = false
+    for (const element of REF_PAGE_COUNT.getElementsByTagName('option')) {
+        if (rowsPerPage === parseInt(element.value)) {
+            found = true
+            break
+        }
+    }
+
+    if (!found) {
+        rowsPerPage = REF_PAGE_COUNT.value
+    }
+
+    REF_PAGE_COUNT.value = rowsPerPage
+}
 
 function setPaginationInfo(){
     $("#pagination-info").text(`Страница ${currentPage + 1} из ${pageTotal}`);
@@ -189,7 +208,7 @@ function changeRows(){
     arrayRow.forEach(refElement => refElement.parentElement.removeChild(refElement))
 
     call_get_all_trainings({
-        ...getUserData(),
+        filters: getFiltersJSON(),
         page: currentPage,
         count: rowsPerPage
     })
@@ -198,8 +217,15 @@ function changeRows(){
     })
 }
 
-function updatePagination(pageDirection = currentPage * -1){
-    currentPage += pageDirection;
+function updatePagination(pageDirection = currentPage * -1, updatePagePointer = true){
+    if (updatePagePointer)
+        currentPage += pageDirection;
+    
+    if (currentPage >= pageTotal){
+        currentPage = 0
+        changeURLByParam("page", currentPage.toString())
+    }
+    
     changeRows();
     blockButtons();
     setPaginationInfo();
@@ -207,20 +233,18 @@ function updatePagination(pageDirection = currentPage * -1){
 
 $("#btn-left").click(function() {
     updatePagination(-1);
+    changeURLByParam("page", currentPage.toString())
 });
 
 $("#btn-right").click(function() {
     updatePagination(1);
+    changeURLByParam("page", currentPage.toString())
 });
 
 
-function getUserData() {
-    return state;
-}
-
 async function updateCountPage() {
     const query = new URLSearchParams({
-        ...getUserData(),
+        filters: getFiltersJSON(),
         count: rowsPerPage
     });
     pageTotal = await fetch(`/api/trainings/count-page?${query.toString()}`)
@@ -229,10 +253,9 @@ async function updateCountPage() {
     REF_BUTTON_TO_END.innerText = pageTotal;
 }
 
-function call_get_all_trainings({username, full_name, admin=false, page = 0, count}) {
+function call_get_all_trainings({filters, admin=false, page = 0, count}) {
     const query = new URLSearchParams({
-        username,
-        full_name,
+        filters,
         count
     });
 
@@ -242,4 +265,3 @@ function call_get_all_trainings({username, full_name, admin=false, page = 0, cou
         .then(response => response.json())
         .then(responseJson => buildAllTrainingsTable(responseJson, admin));
 }
-

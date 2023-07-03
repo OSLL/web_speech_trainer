@@ -2,9 +2,38 @@
 
 {% block header %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/show_all_trainings.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/libraries/jquery-ui/jquery-ui.min.css') }}">
 {% endblock %}
 
 {% block content %}
+
+<div class="container-filter">
+    <div class="control-buttons">
+        <div id="filters-hidden">
+            <button id="btn-show-filters">{{ t("Настроить Фильтры") }}</button>
+            <div id="filters-applied-count-text"></div>
+        </div>
+        <div id="filters-shown">
+            <div class="action_buttons">
+                <button id="btn-apply-filters">{{ t("Применить") }}</button>
+                <button id="btn-cancel-filters">{{ t("Отмена") }}</button>
+            </div>
+            <select id="filters-to-choose-select">
+            </select>
+        </div>
+    </div>
+    <div id="filters-list">
+        <div id="no-filters-text">{{ t("Активные фильтры отсутствуют") }}</div>
+        <div id="filter-validation-error">{{ t("Некоторые фильтры (выделенные красным) установлены неправильным образом. Прочитайте описание фильтра, наведясь на его подчеркнутое название, и проверьте введеные данные.") }}</div>
+        <div class="content-wrapper">
+
+        </div>
+
+
+
+    </div>
+</div>
 
 <h3 id = "pagination-info"></h3>
 
@@ -24,32 +53,53 @@
 
 <table id="all-trainings-table" class="table center-align-table"></table>
 <script src="{{ url_for('static', filename='js/libraries/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/libraries/jquery-ui.min.js') }}"></script>
+
+<script src="{{ url_for('static', filename='js/changeURL.js') }}"></script>
+<script src="{{ url_for('static', filename='js/event_observer.js') }}"></script>
 <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+<script src="{{ url_for('static', filename='js/show_all_trainings_filters.js') }}"></script>
 <script src="{{ url_for('static', filename='js/show_all_trainings.js') }}"></script>
 <script type="text/javascript">
     $(document).ready(async () => {
+
+        initFilters("{{ filters }}");
+
         rowsTotal = document.querySelectorAll("#all-trainings-table tr").length - 1;
-        init("{{ username }}", "{{ full_name }}");
+
+        initPagination("{{ page }}", "{{ count }}")
+
+        console.log("Current 1: " + currentPage)
 
         REF_BUTTON_TO_START.addEventListener('click', () => {
             updatePagination()
+            changeURLByParam("page", currentPage.toString())
         })
         REF_BUTTON_TO_END.addEventListener('click', () => {
             /**
              * Поскольку updatePagination является сдвиговой функцией
-             * Нам необходимо расчитать сдвиг относительно текущего рассположения
+             * Нам необходимо рассчитать сдвиг относительно текущего расположения
              * */
             updatePagination(currentPage * -1 + pageTotal -1);
+            changeURLByParam("page", currentPage.toString())
         })
 
         REF_PAGE_COUNT.addEventListener('input', async () => {
             rowsPerPage = REF_PAGE_COUNT.value;
+            changeURLByParam("count", rowsPerPage.toString())
             await updateCountPage();
             await updatePagination();
 
+            changeURLByParam("page", currentPage.toString())
         })
+
+        applyObserver.subscribe(async () => {
+            await updateCountPage();
+            await updatePagination();
+        })
+
         await updateCountPage()
-        updatePagination();
+        updatePagination(currentPage, false);
     });
 </script>
 {% endblock %}

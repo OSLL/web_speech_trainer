@@ -1,0 +1,191 @@
+
+.container-filter {
+    margin-bottom: 40px;
+}
+
+#filters-hidden {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+#filters-shown {
+    display: flex;
+    justify-content: space-between;
+
+    margin-right: 5px;
+}
+
+#filters-list {
+    margin-top: 20px;
+}
+
+#filters-list .content-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+#filter-validation-error {
+    color: red;
+    font-size: 20px;
+    margin: 0 20px 20px 20px;
+    text-align: center;
+}
+
+.filter-row-not-valid {
+    border-color: red !important;
+}
+
+.filter-row {
+    min-width: calc(399px - 20px - 4px);
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    border: 2px solid #000000;
+    border-radius: 25px;
+
+    padding: 10px;
+}
+
+.filter-name {
+    flex: 0 0 calc(30% - 20px);
+    width: calc(30% - 20px);
+    min-width: 100px;
+    max-width: 200px;
+}
+
+.filter-input {
+    flex: 1;
+    margin-right: 17px;
+    margin-left: 10px;
+    min-width: 220px;
+}
+
+.filter-remove {
+    flex: 0 0 30px;
+    width: 30px;
+}
+
+.remove-btn {
+    border-radius: 500px !important;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+#no-filters-text {
+    text-align: center;
+    font-size: 20px;
+}
+
+#filters-to-choose-select-button {
+    border-radius: 500px;
+    padding: 0;
+    width: 35px !important;
+    height: 35px;
+    font-weight: 900;
+    font-size: 30px;
+    text-align: center;
+}
+
+.plus-text {
+    height: 35px;
+}
+
+.action_buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.filter-name {
+    text-align: -webkit-center;
+}
+
+.tooltip-text {
+    width: fit-content;
+    border-bottom: 1px dotted black;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.choice-accordion-title-h3 {
+    display: flex !important;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.ui-selectmenu-button.ui-button {
+    width: auto !important;
+}
+
+.ui-widget.ui-state-disabled {
+    opacity: 1 !important;
+}
+
+.button_action.ui-selectmenu-disabled {
+    background-color: #7f7f7f;
+    cursor: default;
+}
+
+/*############ SPECIFIC FILTER TYPES ############*/
+
+.text-type .filter-input input {
+    width: calc(100% - 8px);
+}
+
+.range-type .filter-input {
+    display: flex;
+    flex-direction: row;
+    gap: 13px;
+    align-items: center;
+}
+
+.range-type .filter-input .start-input {
+    flex: 0 0 33px;
+    width: 33px;
+}
+
+.range-type .filter-input .range-input {
+    flex: 1;
+    margin-right: 2px;
+}
+
+.range-type .filter-input .end-input {
+    flex: 0 0 33px;
+    width: 33px;
+}
+
+.date-type .filter-input {
+    display: flex;
+    gap: 10px;
+}
+
+.date-type .filter-input>div {
+    flex: 1;
+    display: flex;
+    gap: 5px;
+}
+
+.date-type .filter-input input {
+    flex: 1;
+}
+
+.date-type input {
+    width: 70px;
+}
+
+.choice-type .ui-accordion .ui-accordion-header {
+    padding: .2em .5em .2em .7em;
+    margin: 0;
+}
+
+.choice-type .ui-accordion .ui-accordion-content {
+    padding: 10px 10px;
+}

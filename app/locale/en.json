@@ -46,7 +46,7 @@
 	"Новая тренировка": "New training",
 	"В процессе": "In progress",
 	"Отправлена на распознавание": "Sent for recognition",
-	"Идёт распознавание": "Recoginition in progress",
+	"Идёт распознавание": "Recognition in progress",
 	"Распознавание завершено": "Recognition finished",
 	"Ошибка распознавания": "Recognition error",
 	"Отправлена на обработку": "Sent for processing",
@@ -100,6 +100,11 @@
 	"оценка: 1, если выполнен, (p / {}), если темп p слишком медленный, ({} / p), если темп p слишком быстрый.\n": "score: 1 if met, (p / {}) if p is too slow, ({} / p) if p is too fast.\n",
 	"описание: проверяет, что в речи нет слов-паразитов, используются слова из списка {},\n": "description: checks that there are no parasitic words in speech, words are used from the list {},\n",
 	"оценка: (1 - доля слов-паразитов).\n": "rating: (1 - share of words-parasites).\n",
-	"оценка: 1, если слов-паразитов не больше {}, иначе 0.\n": "score: 1, if there are no more than {} words, otherwise 0.\n"
+	"оценка: 1, если слов-паразитов не больше {}, иначе 0.\n": "score: 1, if there are no more than {} words, otherwise 0.\n",
+	"Настроить Фильтры": "Setup Filters",
+	"Применить": "Apply",
+	"Отмена": "Cancel",
+	"Активные фильтры отсутствуют": "There are no active filters",
+	"Некоторые фильтры (выделенные красным) установлены неправильным образом. Прочитайте описание фильтра, наведясь на его подчеркнутое название, и проверьте введенные данные.": "Some filters (highlighted in red) are set incorrectly. Read the description of the filter by hovering over its underlined name and check the entered data.",
 
 }
