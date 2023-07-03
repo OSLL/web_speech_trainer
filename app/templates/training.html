@@ -11,18 +11,20 @@
 <p id="error-text"></p>
 </div>
 
+<div id="tutorial">
+  {{ t("Для начала тренировки нажмите кнопку ")}}<b>"Record"</b>. <br>
+  {{ t("Для перехода на следующий слайд нажмите кнопку ")}}<b>"Next"</b>. <br>
+  {{ t("Для окончания тренировки нажмите кнопку ")}}<b>"Done"</b>.
+</div>
+
 <div id="controls">
-  <button id="record">Record</button>
-  <button id="next" disabled>Next</button>
-  <button id="done" disabled>Done</button>
+  <button id="record" class="tutorButtons">Record</button>
+  <button id="next" class="tutorButtons" disabled>Next</button>
+  <button id="done" class="tutorButtons" disabled>Done</button>
   &nbsp; &nbsp;
   <span>Page: <span id="page_num"></span> / <span id="page_count"></span></span>
 </div>
-<div id="tutorial">
-  {{ t("Для начала тренировки нажмите кнопку \"Record\".") }}
-  {{ t("Для перехода на следующий слайд нажмите кнопку \"Next\".") }}
-  {{ t("Для окончания тренировки нажмите кнопку \"Done\".") }}
-</div>
+
 <div id="model-timer" class="model">
         <div class="model-content">
             <p>{{ t("Соблюдайте тишину! Калибровка уровня шума!") }}</p>
