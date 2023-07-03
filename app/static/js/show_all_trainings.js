@@ -162,6 +162,28 @@ let rowsTotal = 0;
 const state = {username: null, full_name: null}
 function init(a, b) {state.username = a; state.full_name = b;}
 
+function initPagination(pageString, countString) {
+    currentPage = parseInt(pageString);
+    rowsPerPage = parseInt(countString);
+
+    changeURLByParam("page", currentPage.toString())
+    changeURLByParam("count", rowsPerPage.toString())
+
+    let found = false
+    for (const element of REF_PAGE_COUNT.getElementsByTagName('option')) {
+        if (rowsPerPage === parseInt(element.value)) {
+            found = true
+            break
+        }
+    }
+
+    if (!found) {
+        rowsPerPage = REF_PAGE_COUNT.value
+    }
+
+    REF_PAGE_COUNT.value = rowsPerPage
+}
+
 function setPaginationInfo(){
     $("#pagination-info").text(`Страница ${currentPage + 1} из ${pageTotal}`);
 }
@@ -197,8 +219,15 @@ function changeRows(){
     })
 }
 
-function updatePagination(pageDirection = currentPage * -1){
-    currentPage += pageDirection;
+function updatePagination(pageDirection = currentPage * -1, updatePagePointer = true){
+    if (updatePagePointer)
+        currentPage += pageDirection;
+    
+    if (currentPage >= pageTotal){
+        currentPage = 0
+        changeURLByParam("page", currentPage.toString())
+    }
+    
     changeRows();
     blockButtons();
     setPaginationInfo();
@@ -206,10 +235,12 @@ function updatePagination(pageDirection = currentPage * -1){
 
 $("#btn-left").click(function() {
     updatePagination(-1);
+    changeURLByParam("page", currentPage.toString())
 });
 
 $("#btn-right").click(function() {
     updatePagination(1);
+    changeURLByParam("page", currentPage.toString())
 });
 
 
