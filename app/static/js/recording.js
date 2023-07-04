@@ -10,7 +10,7 @@ function startRecording() {
     console.log(navigator)
     console.log(navigator.mediaDevices)
     $("#alert").hide()
-    navigator.mediaDevices.getUserMedia({audio: true, video: false}).then(function (stream) {
+    navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(function (stream) {
         currentTimestamp = Date.now();
         $("#tutorial")[0].style = "visibility: hidden; font-size: 0; margin-bottom: 0";
         var model_time = 3;
@@ -70,13 +70,13 @@ function startRecording() {
         recorder.setOptions({
             timeLimit: 3600,
             encodeAfterRecord: encodeAfterRecord,
-            mp3: {bitRate: 160}
+            mp3: { bitRate: 160 }
         });
         recorder.startRecording();
         $("#next")[0].disabled = false;
         $("#record")[0].disabled = true;
         $("#done")[0].disabled = false;
-    }).catch( err => {
+    }).catch(err => {
         console.log('Error on calling avigator.mediaDevices.getUserMedia')
         console.log(err)
         $("#alert").show();
@@ -85,36 +85,36 @@ function startRecording() {
 }
 
 function stopRecording() {
-    if(confirm('Завершить тренировку?') === true){
-    clearInterval(timer)
-    $("#timer").hide();
-    gumStream.getAudioTracks()[0].stop();
-    $("#record")[0].disabled = false;
-    $("#record-processing")[0].style = "visibility: visible; font-size: 36px";
-    window.onbeforeunload = function() {
-        return false;
+    if (confirm('Завершить тренировку?') === true) {
+        clearInterval(timer)
+        $("#timer").hide();
+        gumStream.getAudioTracks()[0].stop();
+        $("#record")[0].disabled = false;
+        $("#record-processing")[0].style = "visibility: visible; font-size: 36px";
+        window.onbeforeunload = function () {
+            return false;
+       }
+        recorder.finishRecording();
     }
-    recorder.finishRecording();
-}
 }
 
 function callAddPresentationRecord(blob) {
     let fd = new FormData();
     fd.append("presentationRecord", blob);
     fd.append("presentationRecordDuration", ((Date.now() - currentTimestamp) / 1000).toString());
-    fetch(`/api/trainings/presentation-records/${trainingId}/`, {method: "POST", body: fd})
-    .then(response => response.json())
-    .then(responseJson => {
-        if (responseJson["message"] === "OK") {
-            fetch(`/api/trainings/${trainingId}/`, {method: "POST"})
-                .then(response => response.json())
-                .then(innerResponseJson => {
-                    if (innerResponseJson["message"] === "OK") {
-                        location.href = `/trainings/statistics/${trainingId}/`;
-                    }
-                });
-        }
-    });
+    fetch(`/api/trainings/presentation-records/${trainingId}/`, { method: "POST", body: fd })
+        .then(response => response.json())
+        .then(responseJson => {
+            if (responseJson["message"] === "OK") {
+                fetch(`/api/trainings/${trainingId}/`, { method: "POST" })
+                    .then(response => response.json())
+                    .then(innerResponseJson => {
+                        if (innerResponseJson["message"] === "OK") {
+                            location.href = `/trainings/statistics/${trainingId}/`;
+                        }
+                    });
+            }
+        });
 }
 
 $(document).ready(function () {
@@ -123,5 +123,7 @@ $(document).ready(function () {
     $("#record").click(startRecording);
     $("#done").click(stopRecording);
     $("#record-processing")[0].style = "visibility: hidden; font-size: 0";
-    window.onbeforeunload = null;
+    $(window).on("beforeunload", function() { 
+    return "Do you really want to close?"; 
+})
 });
