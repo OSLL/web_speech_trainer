@@ -49,8 +49,7 @@ class SlidesCheckerCriterion(BaseCriterion):
                 "Оценка":"",
                 "Вес":""
             }
-        #return (t('Критерий: {0},\n').format(self.name) +
-        #        t('описание: проверяет соответствие презентации критериям.\n'))
+
 
     def apply(self, audio, presentation, training_id, criteria_results):
         training = TrainingsDBManager().get_training(training_id)
