@@ -78,10 +78,7 @@ class StrictSpeechDurationCriterion(BaseCriterion):
                 "Оценка":t("оценка: 1, если выполнен, {}\n" + "{}").format(evaluation,strict_boundaries),
                 "Вес":""
             }
-       # return (t('Критерий: {},\n') +
-        #        t('описание: проверяет, что продолжительность речи {},\n') +
-        #        t('оценка: 1, если выполнен, {}\n') +
-        #        '{}\n').format(self.name, boundaries, evaluation, strict_boundaries)
+
 
     def apply(self, audio, presentation, training_id, criteria_results):
         minimal_allowed_duration = self.parameters.get(
