@@ -29,9 +29,7 @@ class FillersRatioCriterion(BaseCriterion):
         'Оценка':t('(1 - доля слов-паразитов)'),
         'Вес':''
         } 
-        #return (t('Критерий: {},\n') +
-       #         t('описание: проверяет, что в речи нет слов-паразитов, используются слова из списка {},\n') +
-          #      t('оценка: (1 - доля слов-паразитов).\n')).format(self.name, self.parameters['fillers'])
+
 
     def apply(self, audio, presentation, training_id, criteria_results):
         total_words = audio.audio_stats['total_words']
