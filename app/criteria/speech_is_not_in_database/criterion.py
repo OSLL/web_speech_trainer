@@ -94,9 +94,7 @@ class SpeechIsNotInDatabaseCriterion(BaseCriterion):
                 "Оценка":t("0, если не выполнен, 1, если выполнен"),
                 "Вес":""
             }
-       # return (t('Критерий: {},\n') +
-        #        t('описание: проверяет, не является ли аудиофайл нечеткой копией одного из имеющихся в базе от этого пользователя,\n') +
-        #        t('оценка: 0, если не выполнен, 1, если выполнен.\n')).format(self.name)
+
 
     def apply(self, audio, presentation, training_id, criteria_results):
         current_audio_id = TrainingsDBManager().get__raining(
