@@ -29,11 +29,17 @@ class SpeechPaceCriterion(BaseCriterion):
 
     @property
     def description(self) -> str:
-        return (t('Критерий: {},\n') +
-                t('описание: проверяет, что скорость речи находится в пределах от {} до {} слов в минуту,\n') +
-                t('оценка: 1, если выполнен, (p / {}), если темп p слишком медленный, ({} / p), если темп p слишком быстрый.\n')) \
-            .format(self.name, self.parameters['minimal_allowed_pace'], self.parameters['maximal_allowed_pace'],
-                    self.parameters['minimal_allowed_pace'], self.parameters['maximal_allowed_pace'])
+        return {
+                "Критерий":t(self.name),
+                "Описание":t("проверяет, что скорость речи находится в пределах от {} до {} слов в минуту").format(self.parameters['minimal_allowed_pace'], self.parameters['maximal_allowed_pace']), 
+                "Оценка":t("оценка: 1, если выполнен, (p / {}), если темп p слишком медленный, ({} / p), если темп p слишком быстрый").format(self.parameters['minimal_allowed_pace'], self.parameters['maximal_allowed_pace']),
+                "Вес":""
+            }
+       # return (t('Критерий: {},\n') +
+       #         t('описание: проверяет, что скорость речи находится в пределах от {} до {} слов в минуту,\n') +
+       #         t('оценка: 1, если выполнен, (p / {}), если темп p слишком медленный, ({} / p), если темп p слишком быстрый.\n')) \
+       #     .format(self.name, self.parameters['minimal_allowed_pace'], self.parameters['maximal_allowed_pace'],
+       #             self.parameters['minimal_allowed_pace'], self.parameters['maximal_allowed_pace'])
 
     def apply(self, audio: Audio, presentation: Presentation, training_id: ObjectId, criteria_results: dict) \
             -> CriterionResult:

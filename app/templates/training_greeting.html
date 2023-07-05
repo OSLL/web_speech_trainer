@@ -11,7 +11,6 @@
     <h3>{{ t("Номер тренировки") }}: {{ training_number }} / {{ attempt_count }}</h3>
     <h3>{{ t("Сумма баллов за предыдущие тренировки") }}: {{ current_points_sum }}</h3>
     <caption>{{ t("Набор критериев") }}: {{ criteria_pack_id }}</caption>
-    
     <table id="criteria-table" border=""></table>
     <button id="start-training-button" type="button"
         onclick="location.href=
@@ -39,6 +38,6 @@
 </div>
 <script src="{{ url_for('static', filename='js/training_greeting.js') }}"></script>
 <script type="text/javascript">
-    setCriteriaPackDescription("{{ criteria_pack_description }}");
+    setCriteriaPackDescription({{criteria_pack_description|tojson}});
 </script>
 {% endblock %}

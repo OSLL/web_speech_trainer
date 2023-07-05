@@ -72,10 +72,16 @@ class StrictSpeechDurationCriterion(BaseCriterion):
         if strict_boundaries:
             strict_boundaries += t(
                 ', то оценка за этот критерий и за всю тренировку равна 0.')
-        return (t('Критерий: {},\n') +
-                t('описание: проверяет, что продолжительность речи {},\n') +
-                t('оценка: 1, если выполнен, {}\n') +
-                '{}\n').format(self.name, boundaries, evaluation, strict_boundaries)
+        return {
+                "Критерий":t(self.name),
+                "Описание":t("проверяет, что продолжительность речи {}").format(boundaries), 
+                "Оценка":t("оценка: 1, если выполнен, {}\n" + "{}").format(evaluation,strict_boundaries),
+                "Вес":""
+            }
+       # return (t('Критерий: {},\n') +
+        #        t('описание: проверяет, что продолжительность речи {},\n') +
+        #        t('оценка: 1, если выполнен, {}\n') +
+        #        '{}\n').format(self.name, boundaries, evaluation, strict_boundaries)
 
     def apply(self, audio, presentation, training_id, criteria_results):
         minimal_allowed_duration = self.parameters.get(

@@ -43,8 +43,14 @@ class SlidesCheckerCriterion(BaseCriterion):
     @property
     def description(self):
         # TODO: включить критерии?
-        return (t('Критерий: {0},\n').format(self.name) +
-                t('описание: проверяет соответствие презентации критериям.\n'))
+        return {
+                "Критерий":t(self.name),
+                "Описание":t("проверяет соответствие презентации критериям."), 
+                "Оценка":"",
+                "Вес":""
+            }
+        #return (t('Критерий: {0},\n').format(self.name) +
+        #        t('описание: проверяет соответствие презентации критериям.\n'))
 
     def apply(self, audio, presentation, training_id, criteria_results):
         training = TrainingsDBManager().get_training(training_id)
