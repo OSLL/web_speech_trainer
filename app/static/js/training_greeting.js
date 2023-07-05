@@ -1,5 +1,4 @@
 function setCriteriaPackDescription(s) {
-   // document.getElementById('criteria-pack-description').innerText = `${s}`;
    const criteriaTable = document.getElementById("criteria-table");
    let criteriaRow = document.createElement("tr");
    let HeadData = ["Критерий","Описание","Оценка","Вес критерия"];
