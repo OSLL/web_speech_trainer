@@ -26,13 +26,7 @@ class FillersNumberCriterion(BaseCriterion):
         'Оценка':t('1, если слов-паразитов не больше {}, иначе 0').format(self.parameters['maximum_fillers_number']),
         'Вес':''
         } 
-        #return (t('Критерий: {},\n') +
-         #       t('описание: проверяет, что в речи нет слов-паразитов, используются слова из списка {},\n') +
-          #      t('оценка: 1, если слов-паразитов не больше {}, иначе 0.\n')).format(
-           #         self.name,
-            #        self.parameters['fillers'],
-             #       self.parameters['maximum_fillers_number'],
-        #)
+
 
     def apply(self, audio, presentation, training_id, criteria_results):
         total_words = audio.audio_stats['total_words']
