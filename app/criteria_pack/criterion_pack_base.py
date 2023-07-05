@@ -47,19 +47,11 @@ class BaseCriterionPack:
             if weights and criterion.name in weights:
                 criteria_tmp["Вес"] = "{:.3f}".format(weights[criterion.name])
                 description["Критерии"].append(criteria_tmp)
-              #  description += '{},\n{} = {:.3f}.\n'.format(
-               #     criterion.description[:-2],
-               #     t("вес критерия"),
-               #     weights[criterion.name],
-             #   )
+
             else:
                 criteria_tmp["Вес"]  = "1 / {}".format(len(self.criteria))
                 description["Критерии"].append(criteria_tmp)
-              #  description += '{},\n{} = 1 / {}.\n'.format(
-              #      criterion.description[:-2],
-              #      t("вес критерия"),
-              #      len(self.criteria),
-              #  )
+
         return description
 
     @property
