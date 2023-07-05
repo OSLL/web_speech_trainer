@@ -47,9 +47,7 @@ class NumberSlidesCriterion(BaseCriterion):
                 "Оценка":t("1, если выполнен, {}").format(evaluation),
                 "Вес":""
             }
-       # return (t('Критерий: {},\n') +
-       #         t('описание: проверяет, что количество рассказанных слайдов {},\n') +
-        #        t('оценка: 1, если выполнен, {}\n')).format(self.name, boundaries, evaluation)
+
 
     def apply(self, audio, presentation, training_id, criteria_results):
         slides_number = len(presentation.slides)
