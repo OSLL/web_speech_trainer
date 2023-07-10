@@ -44,8 +44,7 @@ class NumberSlidesCriterion(BaseCriterion):
         return {
                 "Критерий":t(self.name),
                 "Описание":t("проверяет, что количество рассказанных слайдов {}").format(boundaries), 
-                "Оценка":t("1, если выполнен, {}").format(evaluation),
-                "Вес":""
+                "Оценка":t("1, если выполнен, {}").format(evaluation)
             }
 
 
