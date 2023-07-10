@@ -27,7 +27,6 @@ class FillersRatioCriterion(BaseCriterion):
         "Критерий": t(self.name),
         'Описание':t('проверяет, что в речи нет слов-паразитов, используются слова из списка {}').format(self.parameters['fillers']),
         'Оценка':t('(1 - доля слов-паразитов)'),
-        'Вес':''
         } 
 
 
