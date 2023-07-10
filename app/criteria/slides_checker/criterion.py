@@ -46,7 +46,7 @@ class SlidesCheckerCriterion(BaseCriterion):
         return {
                 "Критерий":t(self.name),
                 "Описание":t("проверяет соответствие презентации критериям."), 
-                "Оценка":"",
+                "Оценка":""
             }
 
 
