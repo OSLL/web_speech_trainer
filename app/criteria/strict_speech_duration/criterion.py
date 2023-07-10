@@ -75,8 +75,7 @@ class StrictSpeechDurationCriterion(BaseCriterion):
         return {
                 "Критерий":t(self.name),
                 "Описание":t("проверяет, что продолжительность речи {}").format(boundaries), 
-                "Оценка":t("оценка: 1, если выполнен, {}\n" + "{}").format(evaluation,strict_boundaries),
-                "Вес":""
+                "Оценка":t("оценка: 1, если выполнен, {}\n" + "{}").format(evaluation,strict_boundaries)
             }
 
 
