@@ -10,8 +10,8 @@ function startRecording() {
     console.log(navigator)
     console.log(navigator.mediaDevices)
     $("#alert").hide()
-        $("#record-contain").show();
-        navigator.mediaDevices.getUserMedia({audio: true, video: false}).then(function (stream) {
+    $("#record-contain").show();
+    navigator.mediaDevices.getUserMedia({audio: true, video: false}).then(function (stream) {
 
         currentTimestamp = Date.now();
         $("#tutorial")[0].style = "visibility: hidden; font-size: 0; margin-bottom: 0";
