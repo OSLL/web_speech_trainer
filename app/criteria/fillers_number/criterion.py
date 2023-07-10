@@ -23,7 +23,7 @@ class FillersNumberCriterion(BaseCriterion):
         return {
         "Критерий": t(self.name),
         'Описание':t('проверяет, что в речи нет слов-паразитов, используются слова из списка {}').format(self.parameters['fillers']),
-        'Оценка':t('1, если слов-паразитов не больше {}, иначе 0').format(self.parameters['maximum_fillers_number']),
+        'Оценка':t('1, если слов-паразитов не больше {}, иначе 0').format(self.parameters['maximum_fillers_number'])
         } 
 
 
