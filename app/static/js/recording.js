@@ -107,7 +107,7 @@ function callAddPresentationRecord(blob) {
     .then(response => response.json())
     .then(responseJson => {
         if (responseJson["message"] === "OK") {
-            fetch(`/api/trainings/${trainingId}/`, { method: "POST" })
+            fetch(`/api/trainings/${trainingId}/`, {method: "POST"})
                 .then(response => response.json())
                 .then(innerResponseJson => {
                     if (innerResponseJson["message"] === "OK") {
