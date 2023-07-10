@@ -32,8 +32,7 @@ class SpeechPaceCriterion(BaseCriterion):
         return {
                 "Критерий":t(self.name),
                 "Описание":t("проверяет, что скорость речи находится в пределах от {} до {} слов в минуту").format(self.parameters['minimal_allowed_pace'], self.parameters['maximal_allowed_pace']), 
-                "Оценка":t("оценка: 1, если выполнен, (p / {}), если темп p слишком медленный, ({} / p), если темп p слишком быстрый").format(self.parameters['minimal_allowed_pace'], self.parameters['maximal_allowed_pace']),
-                "Вес":""
+                "Оценка":t("оценка: 1, если выполнен, (p / {}), если темп p слишком медленный, ({} / p), если темп p слишком быстрый").format(self.parameters['minimal_allowed_pace'], self.parameters['maximal_allowed_pace'])
             }
 
 
