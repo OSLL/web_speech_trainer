@@ -50,8 +50,7 @@ class SpeechDurationCriterion(BaseCriterion):
         return {
                 "Критерий":t(self.name),
                 "Описание":t("проверяет, что продолжительность речи {}").format(boundaries), 
-                "Оценка":t("оценка: 1, если выполнен, {}").format(evaluation),
-                "Вес":""
+                "Оценка":t("оценка: 1, если выполнен, {}").format(evaluation)
             }
 
 
