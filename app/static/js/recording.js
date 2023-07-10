@@ -71,13 +71,13 @@ function startRecording() {
         recorder.setOptions({
             timeLimit: 3600,
             encodeAfterRecord: encodeAfterRecord,
-            mp3: { bitRate: 160 }
+            mp3: {bitRate: 160}
         });
         recorder.startRecording();
         $("#next")[0].disabled = false;
         $("#record")[0].disabled = true;
         $("#done")[0].disabled = false;
-    }).catch(err => {
+    }).catch( err => {
         console.log('Error on calling avigator.mediaDevices.getUserMedia')
         console.log(err)
         $("#alert").show();
@@ -103,19 +103,19 @@ function callAddPresentationRecord(blob) {
     let fd = new FormData();
     fd.append("presentationRecord", blob);
     fd.append("presentationRecordDuration", ((Date.now() - currentTimestamp) / 1000).toString());
-    fetch(`/api/trainings/presentation-records/${trainingId}/`, { method: "POST", body: fd })
-        .then(response => response.json())
-        .then(responseJson => {
-            if (responseJson["message"] === "OK") {
-                fetch(`/api/trainings/${trainingId}/`, { method: "POST" })
-                    .then(response => response.json())
-                    .then(innerResponseJson => {
-                        if (innerResponseJson["message"] === "OK") {
-                            location.href = `/trainings/statistics/${trainingId}/`;
-                        }
-                    });
-            }
-        });
+    fetch(`/api/trainings/presentation-records/${trainingId}/`, {method: "POST", body: fd})
+    .then(response => response.json())
+    .then(responseJson => {
+        if (responseJson["message"] === "OK") {
+            fetch(`/api/trainings/${trainingId}/`, { method: "POST" })
+                .then(response => response.json())
+                .then(innerResponseJson => {
+                    if (innerResponseJson["message"] === "OK") {
+                        location.href = `/trainings/statistics/${trainingId}/`;
+                    }
+                });
+        }
+    });
 }
 
 $(document).ready(function () {
