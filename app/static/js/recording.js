@@ -12,7 +12,6 @@ function startRecording() {
     $("#alert").hide()
     $("#record-contain").show();
     navigator.mediaDevices.getUserMedia({audio: true, video: false}).then(function (stream) {
-
         currentTimestamp = Date.now();
         $("#tutorial")[0].style = "visibility: hidden; font-size: 0; margin-bottom: 0";
         var model_time = 3;
