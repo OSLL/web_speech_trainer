@@ -39,12 +39,11 @@ function buildCurrentTrainingRow(trainingId, trainingJson, is_Admin=false) {
     const presentationRecordDurationElement = document.createElement("td");
     presentationRecordDurationElement.textContent = trainingJson["presentation_record_duration"];
     currentTrainingRowElement.appendChild(presentationRecordDurationElement);
-    //
+   
     const trainingStartTimestampElement = document.createElement("td");
     start_timestap = Date.parse(trainingJson["training_start_timestamp"]);
     trainingStartTimestampElement.textContent = get_time_string(start_timestap);
     currentTrainingRowElement.appendChild(trainingStartTimestampElement);
-    ///
 
     const trainingProcessingStartTimestampElement = document.createElement("td");
     timestamp_start = Date.parse(trainingJson["processing_start_timestamp"]);
