@@ -893,6 +893,14 @@ let filtersData = {
             return recordDurationStringToSeconds(string)
         },
     },
+    "training_start_timestamp":{
+        type: filterType.DATE,
+        name: "Начало тренировки",
+        description: "Проверяется, что начало тренировки производилось в установленный период. \n\nОсобые требования отсутствуют.",
+        validator: (value) => {
+            return true
+        },
+    },
     "processing_start_timestamp": {
         type: filterType.DATE,
         name: "Начало обработки",
