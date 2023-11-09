@@ -76,3 +76,9 @@ services:
       - '--wiredTigerCacheSizeGB=2'
     volumes:
       - ../mongo_data:/data/db
+
+  whisper:
+    image: "onerahmet/openai-whisper-asr-webservice:v1.2.1"
+    restart: always
+    ports:
+      - 9000:9000
