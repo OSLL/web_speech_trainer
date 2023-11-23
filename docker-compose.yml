@@ -79,6 +79,9 @@ services:
 
   whisper:
     image: "onerahmet/openai-whisper-asr-webservice:v1.2.1"
+    environment:
+      - ASR_MODEL=base
+      - ASR_ENGINE=openai_whisper
     restart: always
     ports:
       - 9000:9000
