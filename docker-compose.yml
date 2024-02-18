@@ -78,10 +78,10 @@ services:
       - ../mongo_data:/data/db
 
   whisper:
-    image: "onerahmet/openai-whisper-asr-webservice:v1.2.1"
+    image: "onerahmet/openai-whisper-asr-webservice:latest"
     environment:
-      - ASR_MODEL=base
+      - ASR_MODEL=medium
       - ASR_ENGINE=openai_whisper
     restart: always
     ports:
-      - 9000:9000
+      - "127.0.0.1:9000:9000"
