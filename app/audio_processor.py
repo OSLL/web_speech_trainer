@@ -118,7 +118,7 @@ class StuckAudioResender:
 
 if __name__ == "__main__":
     Config.init_config(sys.argv[1])
-    audio_recognizer = VoskAudioRecognizer(host=Config.c.vosk.url)
+    audio_recognizer = VoskAudioRecognizer()
     audio_processor = AudioProcessor(audio_recognizer)
     audio_processor.run()
     stuck_audio_resender = StuckAudioResender()

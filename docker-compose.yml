@@ -13,11 +13,11 @@ services:
     volumes:
       - ../database-dump:/app/dump/database-dump/
   
-  vosk:
-    image: "osll/vosk:v0.1"
-    restart: always
-    ports:
-      - 2700:2700
+#  vosk:
+#    image: "osll/vosk:v0.1"
+#    restart: always
+#    ports:
+#      - 2700:2700
 
   audio_processor:
     image: base_image
@@ -25,7 +25,7 @@ services:
     restart: always
     depends_on:
       - db
-      - vosk
+      - whisper
       - presentation_processor
 
   recognized_audio_processor:
