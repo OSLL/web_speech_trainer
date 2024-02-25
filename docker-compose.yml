@@ -12,12 +12,6 @@ services:
       - training_processor
     volumes:
       - ../database-dump:/app/dump/database-dump/
-  
-#  vosk:
-#    image: "osll/vosk:v0.1"
-#    restart: always
-#    ports:
-#      - 2700:2700
 
   audio_processor:
     image: base_image

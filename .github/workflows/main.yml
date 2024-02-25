@@ -14,9 +14,6 @@ jobs:
         # build base image
         docker build -f Dockerfile_base -t osll/wst_base .
 
-        # build vosk
-        docker build -f "Dockerfile.kaldi-ru" -t osll/vosk .
-
     - name: Build docker-compose
       run: |
         docker-compose build

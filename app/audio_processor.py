@@ -3,7 +3,7 @@ from datetime import datetime
 
 from bson import ObjectId
 
-from app.audio_recognizer import AudioRecognizer, VoskAudioRecognizer
+from app.audio_recognizer import AudioRecognizer, WhisperAudioRecognizer
 from app.config import Config
 from app.mongo_models import Trainings
 from app.mongo_odm import DBManager, AudioToRecognizeDBManager, TrainingsDBManager, RecognizedAudioToProcessDBManager
@@ -118,7 +118,7 @@ class StuckAudioResender:
 
 if __name__ == "__main__":
     Config.init_config(sys.argv[1])
-    audio_recognizer = VoskAudioRecognizer()
+    audio_recognizer = WhisperAudioRecognizer()
     audio_processor = AudioProcessor(audio_recognizer)
     audio_processor.run()
     stuck_audio_resender = StuckAudioResender()

@@ -25,7 +25,7 @@ class SimpleAudioRecognizer(AudioRecognizer):
         return RecognizedAudio(recognized_words)
 
 
-class VoskAudioRecognizer(AudioRecognizer):
+class WhisperAudioRecognizer(AudioRecognizer):
     def parse_recognizer_result(self, recognizer_result):
         return RecognizedWord(
             word=Word(recognizer_result['word']),
@@ -35,7 +35,7 @@ class VoskAudioRecognizer(AudioRecognizer):
         )
 
     def recognize_wav(self, audio):
-        recognizer_results = self.send_audio_to_recognizer_whisper(audio.name)
+        recognizer_results = self.send_audio_to_recognizer(audio.name)
         recognized_words = list(map(self.parse_recognizer_result, recognizer_results))
         return RecognizedAudio(recognized_words)
 
@@ -44,7 +44,7 @@ class VoskAudioRecognizer(AudioRecognizer):
         Denoiser.process_wav_to_wav(temp_wav_file, temp_wav_file, noise_length=3)
         return self.recognize_wav(temp_wav_file)
 
-    def send_audio_to_recognizer_whisper(self, file_name):
+    def send_audio_to_recognizer(self, file_name):
         url = "http://whisper:9000/asr"
         params = {
             'task': 'transcribe',
