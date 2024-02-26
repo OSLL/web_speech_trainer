@@ -44,11 +44,11 @@ class WhisperAudioRecognizer(AudioRecognizer):
         Denoiser.process_wav_to_wav(temp_wav_file, temp_wav_file, noise_length=3)
         return self.recognize_wav(temp_wav_file)
 
-    def send_audio_to_recognizer(self, file_name):
-        url = "http://whisper:9000/asr"
+    def send_audio_to_recognizer(self, file_name, language='ru'):
+        url = 'http://whisper:9000/asr'
         params = {
             'task': 'transcribe',
-            'language': 'ru',
+            'language': language,
             'word_timestamps': 'true',
             'output': 'json'
         }
