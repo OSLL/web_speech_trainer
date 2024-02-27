@@ -14,7 +14,7 @@ def test_whisper(file):
     print(f"Processing file \"{file}\"")
     files = {'audio_file': (file, open(file, 'rb'), 'audio/mpeg')}
 
-    audio_length = librosa.get_duration(path=file)
+    audio_length = librosa.get_duration(filename=file)
 
     start_time = time.time()
     response = requests.post(url, params=params, headers=headers, files=files)

@@ -1,6 +1,8 @@
 import sys
+import time
 from datetime import datetime
 
+import librosa
 from bson import ObjectId
 
 from app.audio_recognizer import AudioRecognizer, WhisperAudioRecognizer
@@ -52,7 +54,16 @@ class AudioProcessor:
                 self._hangle_error(training_id, verdict)
                 return
             try:
+                audio_length = librosa.get_duration(filename=presentation_record_file)
+                logger.info(f'audio record length: {audio_length} s')
+
+                start_time = time.time()
+
                 recognized_audio = self._audio_recognizer.recognize(presentation_record_file)
+
+                end_time = time.time()
+                processing_time = end_time - start_time
+                logger.info(f'audio processing time: {processing_time} s')
             except Exception as e:
                 verdict = 'Recognition of a presentation record file with presentation_record_file_id = {} ' \
                           'has failed.\n{}'.format(presentation_record_file_id, e)
