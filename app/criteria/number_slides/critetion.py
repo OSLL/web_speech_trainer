@@ -41,9 +41,12 @@ class NumberSlidesCriterion(BaseCriterion):
             evaluation += t('({} / n), если количество рассказанных слайдов больше максимума.').format(
                 self.parameters['maximal_allowed_slide_number']
             )
-        return (t('Критерий: {},\n') +
-                t('описание: проверяет, что количество рассказанных слайдов {},\n') +
-                t('оценка: 1, если выполнен, {}\n')).format(self.name, boundaries, evaluation)
+        return {
+                "Критерий":t(self.name),
+                "Описание":t("проверяет, что количество рассказанных слайдов {}").format(boundaries), 
+                "Оценка":t("1, если выполнен, {}").format(evaluation)
+            }
+
 
     def apply(self, audio, presentation, training_id, criteria_results):
         slides_number = len(presentation.slides)

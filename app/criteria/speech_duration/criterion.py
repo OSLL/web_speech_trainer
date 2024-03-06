@@ -47,9 +47,12 @@ class SpeechDurationCriterion(BaseCriterion):
             evaluation += t('({} / p), если продолжительность речи в секундах t слишком длинная.').format(
                 self.parameters['maximal_allowed_duration']
             )
-        return (t('Критерий: {},\n') +
-                t('описание: проверяет, что продолжительность речи {},\n') +
-                t('оценка: 1, если выполнен, {}\n')).format(self.name, boundaries, evaluation)
+        return {
+                "Критерий":t(self.name),
+                "Описание":t("проверяет, что продолжительность речи {}").format(boundaries), 
+                "Оценка":t("оценка: 1, если выполнен, {}").format(evaluation)
+            }
+
 
     def apply(self, audio, presentation, training_id, criteria_results):
         maximal_allowed_duration = self.parameters.get(

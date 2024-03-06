@@ -40,21 +40,18 @@ class BaseCriterionPack:
         return None
 
     # TODO move to feedback evaluator
-    def get_criteria_pack_weights_description(self, weights: dict) -> str:
-        description = ''
+    def get_criteria_pack_weights_description(self, weights: dict) -> any:
+        description = {"Критерии":[]}
         for criterion in self.criteria:
+            criteria_tmp = criterion.description
             if weights and criterion.name in weights:
-                description += '{},\n{} = {:.3f}.\n'.format(
-                    criterion.description[:-2],
-                    t("вес критерия"),
-                    weights[criterion.name],
-                )
+                criteria_tmp["Вес"] = "{:.3f}".format(weights[criterion.name])
+                description["Критерии"].append(criteria_tmp)
+
             else:
-                description += '{},\n{} = 1 / {}.\n'.format(
-                    criterion.description[:-2],
-                    t("вес критерия"),
-                    len(self.criteria),
-                )
+                criteria_tmp["Вес"]  = "1 / {}".format(len(self.criteria))
+                description["Критерии"].append(criteria_tmp)
+
         return description
 
     @property
