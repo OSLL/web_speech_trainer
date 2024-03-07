@@ -3,6 +3,7 @@ from time import sleep
 
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.alert import Alert 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
@@ -20,10 +21,11 @@ def test_basic_training():
     chrome_options.add_argument("--disable-user-media-security")
     chrome_options.add_argument("--use-fake-ui-for-media-stream")
     chrome_options.add_argument("--use-fake-device-for-media-stream")
+    chrome_options.add_argument("--use-fake-ui-for-media-stream")
     chrome_options.add_argument('--use-file-for-fake-audio-capture={}/simple_phrases_russian.wav'.format(os.getcwd()))
     chrome_options.add_experimental_option('detach', True)
     driver = Chrome(options=chrome_options)
-    response = driver.request('POST', 'http://127.0.0.1:5000/lti', data={
+    driver.request('POST', 'http://127.0.0.1:5000/lti', data={
         'lis_person_name_full': Config.c.testing.lis_person_name_full,
         'ext_user_username': Config.c.testing.session_id,
         'custom_task_id': Config.c.testing.custom_task_id,
@@ -37,33 +39,32 @@ def test_basic_training():
         'oauth_consumer_key': Config.c.testing.oauth_consumer_key,
     })
     driver.get('http://127.0.0.1:5000/upload_presentation/')
-    driver.find_element_by_id('upload-presentation-form')
-    data = open('test_data/test_presentation_file_0.pdf', 'rb')
-    response = driver.request('POST', 'http://127.0.0.1:5000/handle_presentation_upload/',
-                              files=dict(presentation=data))
-    pos = response.text.find("setupPresentationViewer(\"")
-    assert pos != -1
-    training_id = response.text[pos + 25: pos + 49]
-    driver.get('http://127.0.0.1:5000/trainings/{}/'.format(training_id))
-    driver.find_element_by_id('record').click()
-    step = 3
-    sleep(2 * step)
-    driver.find_element_by_id('next').click()
-    sleep(step)
-    driver.find_element_by_id('done').click()
-    sleep(step)
-    total_wait_time = 60
-    wait_time = 0
-    while wait_time < total_wait_time:
-        driver.get('http://127.0.0.1:5000/trainings/statistics/{}/'.format(training_id))
+    file_input = WebDriverWait(driver, 20).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "input[type=file]")))
+    file_input.send_keys(f'{os.getcwd()}/test_data/test_presentation_file_0.pdf')
+    WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.ID, "button-submit"))).click()
+    WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, "record"))).click()
+    WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "model-timer")))
+    WebDriverWait(driver, 10).until(EC.invisibility_of_element((By.ID, "model-timer")))
+    WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.ID, "next")))
+    sleep(5)
+    WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, "next"))).click()
+    sleep(5)
+    WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.ID, "done"))).click()
+    alert = Alert(driver) 
+    alert.accept() 
+
+    feedback_flag = False
+    step_count = 10
+    step = 10
+    for _ in range(step_count):
+        driver.navigate().refresh()
         try:
             feedback_element = WebDriverWait(driver, step).until(EC.presence_of_element_located((By.ID, 'feedback')))
             if feedback_element.text.startswith('Оценка за тренировку'):
+                feedback_flag = True
                 break
-            else:
-                wait_time += step
-                sleep(step)
-        except TimeoutException:
-            wait_time += step
+            sleep(step)
+        except:
+            sleep(step)
     driver.close()
-    assert wait_time < total_wait_time
+    assert feedback_flag, f"Проверка тренировки заняла более {step_count*step} секунд"
