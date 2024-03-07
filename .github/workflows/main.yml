@@ -14,6 +14,12 @@ jobs:
         # build base image
         docker build -f Dockerfile_base -t osll/wst_base .
 
+    - name: Decreasing whisper model for tests
+      run: |
+        cp docker-compose.yml docker-compose-tmp.yml
+        sed -e "s/ASR_MODEL=medium/ASR_MODEL=tiny/" docker-compose-tmp.yml > docker-compose.yml
+        rm docker-compose-tmp.yml
+
     - name: Build docker-compose
       run: |
         docker-compose build
