@@ -57,7 +57,7 @@ def test_basic_training():
     step_count = 10
     step = 10
     for _ in range(step_count):
-        driver.navigate().refresh()
+        driver.refresh()
         try:
             feedback_element = WebDriverWait(driver, step).until(EC.presence_of_element_located((By.ID, 'feedback')))
             if feedback_element.text.startswith('Оценка за тренировку'):
