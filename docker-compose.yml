@@ -77,5 +77,3 @@ services:
       - ASR_MODEL=medium
       - ASR_ENGINE=openai_whisper
     restart: always
-    ports:
-      - "127.0.0.1:9000:9000"
