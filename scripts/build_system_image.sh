@@ -5,4 +5,4 @@ set -e
 tag=${1:-'v0.2'}
 
 # build base image
-./scripts/build_image.sh Dockerfile_base dvivanov/wst-base:$tag
+docker build -f Dockerfile_base -t dvivanov/wst-base:$tag --no-cache .
