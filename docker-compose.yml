@@ -74,7 +74,7 @@ services:
   whisper:
     image: "onerahmet/openai-whisper-asr-webservice:latest"
     environment:
-      - ASR_MODEL=tiny
+      - ASR_MODEL=medium
       - ASR_ENGINE=openai_whisper
     restart: always
     ports:
