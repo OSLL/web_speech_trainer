@@ -6,8 +6,7 @@ LABEL project="wst"
 WORKDIR /project
 
 COPY requirements.txt requirements.txt
-
-RUN pip3 install --ignore-installed -r requirements.txt
+RUN pip3 install --ignore-installed --no-cache-dir -r requirements.txt
 
 COPY . .
 RUN rm -rf /project/tests/selenium
