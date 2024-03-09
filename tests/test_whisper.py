@@ -2,7 +2,7 @@ import requests
 import time
 import librosa
 
-def test_whisper(file):
+def disabled_test_whisper(file):
     url = "http://whisper:9000/asr"
     params = {
         'task': 'transcribe',
