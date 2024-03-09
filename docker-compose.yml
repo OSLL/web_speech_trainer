@@ -2,7 +2,7 @@ version: '2'
 
 services:
   web:
-    image: wst_image:v0.2
+    image: wst-image:v0.2
     command: bash -c "python3 ./db_versioning/db_versioning.py --mongo mongodb://db:27017 && python3 -m web_speech_trainer $APP_CONF" 
     restart: always
     ports:
@@ -14,7 +14,7 @@ services:
       - ../database-dump:/app/dump/database-dump/
 
   audio_processor:
-    image: wst_image:v0.2
+    image: wst-image:v0.2
     command: python3 -m audio_processor $APP_CONF
     restart: always
     depends_on:
@@ -23,7 +23,7 @@ services:
       - presentation_processor
 
   recognized_audio_processor:
-    image: wst_image:v0.2
+    image: wst-image:v0.2
     command: python3 -m recognized_audio_processor $APP_CONF
     restart: always
     depends_on:
@@ -32,7 +32,7 @@ services:
       - presentation_processor
 
   presentation_processor:
-    image: wst_image:v0.2
+    image: wst-image:v0.2
     build: .
     command: python3 -m presentation_processor $APP_CONF
     restart: always
@@ -40,7 +40,7 @@ services:
       - db
 
   recognized_presentation_processor:
-    image: wst_image:v0.2
+    image: wst-image:v0.2
     command: python3 -m recognized_presentation_processor $APP_CONF
     restart: always
     depends_on:
@@ -48,7 +48,7 @@ services:
       - presentation_processor
 
   training_processor:
-    image: wst_image:v0.2
+    image: wst-image:v0.2
     command: python3 -m training_processor $APP_CONF
     restart: always
     depends_on:
@@ -57,7 +57,7 @@ services:
       - recognized_presentation_processor
 
   task_attempt_to_pass_back_processor:
-    image: wst_image:v0.2
+    image: wst-image:v0.2
     command: python3 -m task_attempt_to_pass_back_processor $APP_CONF
     restart: always
     depends_on:

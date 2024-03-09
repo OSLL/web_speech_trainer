@@ -1,4 +1,4 @@
-FROM dvivanov/wst_base:v0.2
+FROM dvivanov/wst-base:v0.2
 
 LABEL version="0.2"
 LABEL project="wst"
