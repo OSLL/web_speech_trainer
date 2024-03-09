@@ -12,7 +12,7 @@ jobs:
     - name: Build system images (non-pulling)
       run: |
         # build base image
-        docker build -f Dockerfile_base -t osll/wst-base .
+        docker build -f Dockerfile_base -t osll/wst-base:v0.2 .
 
     - name: Decreasing whisper model for tests
       run: |
