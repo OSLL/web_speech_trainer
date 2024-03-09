@@ -1,32 +1,30 @@
-fitz
-flask
 Flask-Reuploaded
-fuzzywuzzy         == 0.18.0
+PyMuPDF                 #==1.16.1
+flask                   ==3.0.2   
+fuzzywuzzy              #==0.18.0
+librosa                 #==0.9.2
 lti
 nltk
-numpy              == 1.19.2
+noisereduce             #==1.1.0
+numpy                   #==1.22
 oauthlib
+odfpy                   #==1.4.1
 preview-generator
 pydub
-pymongo
 pymodm
-pymorphy2          ==     0.9.1
-pymorphy2-dicts    ==    2.4.393442.3710985
-pymorphy2-dicts-ru ==    2.4.417127.4579844
-PyMuPDF            ==    1.16.1
-pytest
-scipy
-selenium
-selenium-requests
-vext
-vext.gi
-websockets
-wheel
-librosa            == 0.9.2
-noisereduce		   ==  1.1.0
-python_speech_features
+pymongo
+pymorphy2               #==0.9.1
+pymorphy2-dicts         #==2.4.393442.3710985
+pymorphy2-dicts-ru      #==2.4.417127.4579844
 pysndfx
+pytest                  ==8.0.2
 python-i18n
-python-pptx        ==0.6.19
-odfpy              ==1.4.1
-requests           ==2.27.1
+python-pptx             ==0.6.19
+python_speech_features
+pytz
+requests                ==2.27.1
+scipy
+torch
+ua-parser               ==0.18
+vext
+wheel

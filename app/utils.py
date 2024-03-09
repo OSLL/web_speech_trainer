@@ -75,12 +75,11 @@ def convert_to_pdf(presentation_file):
     temp_file.close()
     presentation_file.seek(0)
     
-    cmd_timeout = 20
     converted_file = None
-    convert_cmd = "unoconv --timeout {} -f pdf {}".format(cmd_timeout, temp_file.name)
+    convert_cmd = f"soffice --headless --convert-to pdf --outdir {os.path.dirname(temp_file.name)} {temp_file.name}"
     if run_process(convert_cmd).returncode == 0:
         # success conversion
-        new_filename = "{}.pdf".format(temp_file.name)
+        new_filename = "{}.pdf".format(temp_file.name.rsplit('.', 1)[0])
         converted_file = open(new_filename, 'rb')
         os.remove(new_filename)
 
@@ -106,10 +105,10 @@ def get_presentation_file_preview(presentation_file):
     temp_file.close()
     pdf_doc = fitz.open(temp_file.name)
     os.remove(temp_file.name)
-    start_page = pdf_doc.loadPage(0)
-    pixmap = start_page.getPixmap()
+    start_page = pdf_doc.load_page(0)
+    pixmap = start_page.get_pixmap()
     output_temp_file = tempfile.NamedTemporaryFile(delete=False)
-    pixmap.writePNG(output_temp_file.name)
+    pixmap.save(output_temp_file.name, 'png')
     return output_temp_file
 
 
