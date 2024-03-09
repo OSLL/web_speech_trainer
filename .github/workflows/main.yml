@@ -4,7 +4,7 @@ on: pull_request
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     steps:
     - uses: actions/checkout@v2
@@ -32,4 +32,4 @@ jobs:
       run: |
         docker ps -a
         docker-compose logs
-        docker exec web_speech_trainer_web_1 bash -c 'cd /app/tests && pytest .'
+        docker-compose exec web bash -c 'cd /project/tests && pytest .'
