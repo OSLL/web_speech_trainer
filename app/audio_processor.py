@@ -54,7 +54,7 @@ class AudioProcessor:
                 self._hangle_error(training_id, verdict)
                 return
             try:
-                audio_length = librosa.get_duration(filename=presentation_record_file)
+                audio_length = librosa.get_duration(path=presentation_record_file)
                 logger.info(f'audio record length: {audio_length} s')
 
                 start_time = time.time()

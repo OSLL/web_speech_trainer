@@ -1,7 +1,7 @@
 import pytest
 from pydub import AudioSegment
 
-from playground.noise_reduction.denoiser import Denoiser, TooShortAudioToDenoise
+from denoiser import Denoiser, TooShortAudioToDenoise
 
 
 def test_empty_one_second_presentation_record_file():
