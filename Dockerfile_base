@@ -1,19 +1,17 @@
-FROM ubuntu:18.04
+FROM ubuntu:22.04
 ENV LANG C.UTF-8
-RUN apt-get update && apt-get install -y software-properties-common
-RUN apt-get install -y  libgconf2-4 libnss3 libxss1 python3-pip vim ffmpeg exiftool inkscape mupdf mupdf-tools wget unzip
-WORKDIR /usr/local/bin
-RUN wget https://chromedriver.storage.googleapis.com/90.0.4430.24/chromedriver_linux64.zip
-RUN unzip chromedriver_linux64.zip
-RUN wget https://mirror.kraski.tv/soft/google_chrome/linux/90.0.4430.72/google-chrome-stable_90.0.4430.72-1_amd64.deb
-RUN apt-get install -y ./google-chrome-stable_90.0.4430.72-1_amd64.deb
-RUN pip3 install --upgrade pip==21.3.1
-RUN pip3 install --upgrade setuptools
 
-# for DB dumps
-RUN apt install -y sudo zip mongodb-clients
+LABEL version="0.2"
+LABEL project="wst"
 
-# for pptx/odp support
-RUN add-apt-repository ppa:libreoffice/ppa
 RUN apt update
-RUN apt install -y unoconv  
+RUN apt install -y software-properties-common
+RUN add-apt-repository ppa:libreoffice/ppa && apt update
+
+RUN apt install -y libgconf-2-4 libnss3 libxss1 libmagic1 python3-pip ffmpeg exiftool inkscape mupdf mupdf-tools libmagic1 \
+    nano libreoffice-impress default-jre
+
+RUN pip3 install --upgrade pip
+
+COPY requirements.txt requirements.txt
+RUN pip3 install --ignore-installed -r requirements.txt
