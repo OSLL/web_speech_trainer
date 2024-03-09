@@ -2,7 +2,7 @@
 
 set -e
 
-tag=${1:-'v0.1'}
+tag=${1:-'v0.2'}
 
 # build base image
-./scripts/build_image.sh Dockerfile_base osll/wst_base:$tag
+./scripts/build_image.sh Dockerfile_base dvivanov/wst_base:$tag
