@@ -3,3 +3,4 @@ venv
 ssl
 __pycache__
 /VERSION.json
+.env
