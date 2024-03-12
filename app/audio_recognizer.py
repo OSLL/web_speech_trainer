@@ -9,8 +9,10 @@ from app import utils
 from app.recognized_audio import RecognizedAudio
 from app.recognized_word import RecognizedWord
 from app.word import Word
+from app.root_logger import get_root_logger
 from playground.noise_reduction.denoiser import Denoiser
 
+logger = get_root_logger(service_name='audio_processor')
 
 class AudioRecognizer:
     def recognize(self, audio):
@@ -61,8 +63,13 @@ class WhisperAudioRecognizer(AudioRecognizer):
         audio_to_recognize_buffer = audio_to_recognize.read()
         audio_to_recognize.close()
 
-        files = {'audio_file': (file_name, audio_to_recognize_buffer, 'audio/mpeg')}
-        response = requests.post(self._url, params=params, headers=headers, files=files)
+        try:
+            files = {'audio_file': (file_name, audio_to_recognize_buffer, 'audio/mpeg')}
+            response = requests.post(self._url, params=params, headers=headers, files=files)
+            response.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            logger.info(f"Recognition error occurred while processing audio file: {e}")
+            return []
 
         data = response.json()
 
