@@ -8,12 +8,12 @@ import re
 from app.localisation import *
 from ..criterion_base import BaseCriterion
 from ..criterion_result import CriterionResult
-from ...audio import Audio
-from ...presentation import Presentation
+from app.audio import Audio
+from app.presentation import Presentation
 
 
 # Функция нормализации текста
-def normalize_text(text: list[str]) -> list[str]:
+def normalize_text(text: list) -> list:
     # Получение списка стоп-слов на русском языке
     nltk.download('stopwords')
     russian_stop_words = stopwords.words('russian')
