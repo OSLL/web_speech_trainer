@@ -4,3 +4,4 @@ ssl
 __pycache__
 /VERSION.json
 .env
+/whisper_asr_model_cache
