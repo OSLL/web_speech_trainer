@@ -9,7 +9,7 @@ from app.utils import SECONDS_PER_MINUTE
 
 from criteria import (FillersNumberCriterion, FillersRatioCriterion,
                       SpeechIsNotInDatabaseCriterion, SpeechPaceCriterion,
-                      StrictSpeechDurationCriterion)
+                      StrictSpeechDurationCriterion, ComparisonSpeechSlidesCriterion)
 
 from .utils import DEFAULT_FILLERS
 
@@ -143,7 +143,16 @@ preconfigured_criterions = [
             }
         },
         dependent_criteria=[],
+    ),
+
+    # WIP Criterion
+    ComparisonSpeechSlidesCriterion(
+        name="ComparisonSpeechSlidesCriterion",
+        parameters={},
+        dependent_criteria=[],
     )
+
+
 ]
 
 
