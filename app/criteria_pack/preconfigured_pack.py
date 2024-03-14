@@ -32,7 +32,9 @@ pack_configuration = {
          ['DEFAULT_FILLERS_RATIO_CRITERION', 0.33]],
     'SlidesCheckerPack':
         [['SimpleNumberSlidesCriterion', 0.05],
-         ['SlidesCheckerCriterion', 0.95]]
+         ['SlidesCheckerCriterion', 0.95]],
+    'ComparisonPack':
+    [['ComparisonSpeechSlidesCriterion', 1]]
 }
 
 

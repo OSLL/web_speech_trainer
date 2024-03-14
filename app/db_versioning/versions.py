@@ -52,7 +52,8 @@ class Version20(Version):
             6: 'FifteenMinutesTrainingPack',
             7: 'TwentyMinutesTrainingPack',
             8: 'PredefenceEightToTenMinutesPack',
-            9: 'PrimitivePack'
+            9: 'PrimitivePack',
+            10: 'ComparisonPack'
         }
 
         if prev_version in cls.SUPPORTED_PREV_VERSIONS:
