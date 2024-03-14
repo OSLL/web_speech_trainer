@@ -35,7 +35,7 @@ def normalize_text(text: list[str]) -> list[str]:
 
 
 # Критерий, оценивающий, насколько текст слайда перекликается с речью студента на этом слайде
-class ComparisonSpeechSlides(BaseCriterion):
+class ComparisonSpeechSlidesCriterion(BaseCriterion):
     PARAMETERS = dict()
 
     def __init__(self, parameters, dependent_criteria, name=''):
