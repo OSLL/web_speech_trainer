@@ -66,7 +66,7 @@ def parse_pdf(pdf_path, extract_dir):
     slide_dict = []
 
     for page in pdf_doc:
-        text = page.getText("text")
+        text = page.get_text("text")
         slide_dict.append(text)
         l_text = text_processor(text, mode="pdf")
 

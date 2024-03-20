@@ -6,6 +6,7 @@ from app.config import Config
 from app.lti_session_passback.auth_checkers import check_auth
 from app.utils import DEFAULT_EXTENSION
 from packaging import version as version_util
+from ua_parser.user_agent_parser import Parse as user_agent_parse
 
 api_sessions = Blueprint('api_sessions', __name__)
 logger = logging.getLogger('root_logger')
@@ -36,26 +37,30 @@ def get_user_agent():
     """
     if not check_auth():
         return {}, 404
+    
+    user_info = user_agent_parse(request.user_agent.string)
+    user_info['os']['family'] = user_info['os']['family'].lower() 
+    user_info['user_agent']['family'] = user_info['user_agent']['family'].lower() 
     response = {
-        'platform': request.user_agent.platform,
-        'browser': request.user_agent.browser,
-        'version': request.user_agent.version,
+        'platform': user_info['os']['family'],
+        'browser': user_info['user_agent']['family'],
+        'version': user_info['user_agent']['major'],
         'message': 'OK',
         'outdated': False,
         'supportedPlatforms': list(Config.c.user_agent_platform.__dict__.keys()),
         'supportedBrowsers': Config.c.user_agent_browser.__dict__,
     }
-    if request.user_agent.platform not in Config.c.user_agent_platform.__dict__:
+    if user_info['os']['family'] not in Config.c.user_agent_platform.__dict__:
         response['outdated'] = True
-    browser_found = False
-    for (browser, version) in Config.c.user_agent_browser.__dict__.items():
-        if request.user_agent.browser == browser:
-            browser_found = True
-            if version_util.parse(request.user_agent.version) < version_util.parse(version):
+    
+    user_browser_name = user_info['user_agent']['family']
+    if user_browser_name in Config.c.user_agent_browser.__dict__:
+        version = Config.c.user_agent_browser.__dict__[user_browser_name]
+        if version_util.parse(user_info['user_agent']['major']) < version_util.parse(version):
                 response['outdated'] = True
-                break
-    if not browser_found:
+    else:
         response['outdated'] = True
+    
     return response, 200
 
 

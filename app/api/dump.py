@@ -84,7 +84,7 @@ def download_dump(backup_name: str) -> (dict, int):
     if backup_name not in backup_filenames or not os.path.isfile(filepath):
         return {'message': "No such backup file: {}".format(backup_name)}, 404
 
-    return send_file(filepath, as_attachment=True, attachment_filename=backup_name)
+    return send_file(filepath, as_attachment=True, download_name=backup_name)
 
 
 def create_db_dump(name):

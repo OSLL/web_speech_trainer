@@ -3,4 +3,5 @@ venv
 .idea
 .ssl
 __pycache__
-
+Dockerfile*
+app/playground
