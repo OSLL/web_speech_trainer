@@ -78,6 +78,11 @@ services:
       - ASR_ENGINE=${WHISPER_ASR_ENGINE:-openai_whisper}
     restart: always
     cpuset: ${WHISPER_CPU:-0,1}
-    mem_limit: 5g
+    mem_limit: ${WHISPER_MEM_LIMIT:-5g}
     volumes:
-      - ./whisper_asr_model_cache:/root/.cache/whisper
+      - whisper_models:/root/.cache/whisper
+    ports:
+      - "9000:9000"
+
+volumes:
+  whisper_models:
