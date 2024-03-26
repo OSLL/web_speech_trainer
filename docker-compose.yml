@@ -81,8 +81,6 @@ services:
     mem_limit: ${WHISPER_MEM_LIMIT:-5g}
     volumes:
       - whisper_models:/root/.cache/whisper
-    ports:
-      - "9000:9000"
 
 volumes:
   whisper_models:
