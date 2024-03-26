@@ -5,7 +5,7 @@ RUN apt-get install -y  libgconf2-4 libnss3 libxss1 python3-pip vim ffmpeg exift
 WORKDIR /usr/local/bin
 RUN wget https://chromedriver.storage.googleapis.com/90.0.4430.24/chromedriver_linux64.zip
 RUN unzip chromedriver_linux64.zip
-RUN wget http://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_90.0.4430.72-1_amd64.deb
+RUN wget https://mirror.kraski.tv/soft/google_chrome/linux/90.0.4430.72/google-chrome-stable_90.0.4430.72-1_amd64.deb
 RUN apt-get install -y ./google-chrome-stable_90.0.4430.72-1_amd64.deb
 RUN pip3 install --upgrade pip==21.3.1
 RUN pip3 install --upgrade setuptools

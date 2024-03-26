@@ -12,12 +12,6 @@ services:
       - training_processor
     volumes:
       - ../database-dump:/app/dump/database-dump/
-  
-  vosk:
-    image: "osll/vosk:v0.1"
-    restart: always
-    ports:
-      - 2700:2700
 
   audio_processor:
     image: base_image
@@ -25,7 +19,7 @@ services:
     restart: always
     depends_on:
       - db
-      - vosk
+      - whisper
       - presentation_processor
 
   recognized_audio_processor:
@@ -76,3 +70,17 @@ services:
       - '--wiredTigerCacheSizeGB=2'
     volumes:
       - ../mongo_data:/data/db
+
+  whisper:
+    image: "onerahmet/openai-whisper-asr-webservice:v1.3.0"
+    environment:
+      - ASR_MODEL=${WHISPER_ASR_MODEL:-tiny}
+      - ASR_ENGINE=${WHISPER_ASR_ENGINE:-openai_whisper}
+    restart: always
+    cpuset: ${WHISPER_CPU:-0,1}
+    mem_limit: ${WHISPER_MEM_LIMIT:-5g}
+    volumes:
+      - whisper_models:/root/.cache/whisper
+
+volumes:
+  whisper_models:
