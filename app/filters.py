@@ -1,7 +1,7 @@
 import logging
 import math
 import re
-
+import pytz
 from datetime import datetime
 
 from bson import ObjectId, Timestamp
@@ -18,7 +18,7 @@ class GetAllTrainingsFilterManager():
                       "presentation_record_duration", "score", "processing_start_timestamp",
                       "processing_finish_timestamp", "training_status", "audio_status", "presentation_status"]
 
-    complex_filters = ["pass_back_status"]
+    complex_filters = ["pass_back_status","training_start_timestamp"]
 
     def __new__(cls):
         if not hasattr(cls, 'init_done'):
@@ -145,6 +145,19 @@ class GetAllTrainingsFilterManager():
                         break
                 if not found:
                     return False
+            elif key == "training_start_timestamp":
+                start_training = ObjectId(str(training.pk)).generation_time.astimezone(pytz.timezone("Europe/Moscow")).replace(tzinfo=None)
+                start_date_string = values[0][:-5] + "Z"
+                start_range = datetime.strptime(start_date_string, "%Y-%m-%dT%H:%M:%SZ")
+    
+
+                end_date_string = values[1][:-5] + "Z"
+                end_range = datetime.strptime(end_date_string, "%Y-%m-%dT%H:%M:%SZ")
+                if start_training >= start_range and start_training <= end_range:
+                    return True
+                else:
+                    return False
+
 
         return True
 

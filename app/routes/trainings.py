@@ -208,7 +208,7 @@ def view_training_greeting():
         training_number=training_number,
         attempt_count=attempt_count,
         criteria_pack_id=criteria_pack_id,
-        criteria_pack_description=criteria_pack_description.replace('\n', '\\n').replace('\'', ''),
+        criteria_pack_description=criteria_pack_description,
         training_id=training_id,
         presentation_id=presentation_id
     )

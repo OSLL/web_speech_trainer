@@ -1,6 +1,8 @@
 import logging
 import time
 import json
+import os
+import pytz
 from datetime import datetime
 
 from bson import ObjectId
@@ -354,6 +356,7 @@ def get_training_information(current_training: Trainings) -> dict:
             'task_attempt_id': str(task_attempt_id),
             'task_id': str(task_attempt.task_id),
             'params_for_passback': task_attempt.params_for_passback,
+            "training_start_timestamp": ObjectId(str(_id)).generation_time.astimezone(pytz.timezone("Europe/Moscow")).replace(tzinfo=None),
             'processing_start_timestamp': processing_start_timestamp,
             'processing_finish_timestamp': processing_finish_timestamp,
             'score': current_training.feedback.get('score', None),
