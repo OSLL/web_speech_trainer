@@ -54,7 +54,7 @@ def test_basic_training():
     alert.accept() 
 
     feedback_flag = False
-    step_count = 10
+    step_count = 20
     step = 10
     for _ in range(step_count):
         driver.refresh()
