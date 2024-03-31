@@ -86,17 +86,15 @@ function startRecording() {
 }
 
 function stopRecording() {
-    if(confirm('Завершить тренировку?') === true){
-    clearInterval(timer)
-    $("#timer").hide();
-    gumStream.getAudioTracks()[0].stop();
-    $("#record")[0].disabled = false;
-    $("#record-processing")[0].style = "visibility: visible; font-size: 36px";
-    window.onbeforeunload = function() {
-        return false;
+    if (confirm('Завершить тренировку?') === true) {
+        window.onbeforeunload = null;
+        clearInterval(timer)
+        $("#timer").hide();
+        gumStream.getAudioTracks()[0].stop();
+        $("#record")[0].disabled = false;
+        $("#record-processing")[0].style = "visibility: visible; font-size: 36px";
+        recorder.finishRecording();
     }
-    recorder.finishRecording();
-}
 }
 
 function callAddPresentationRecord(blob) {
@@ -124,5 +122,7 @@ $(document).ready(function () {
     $("#record").click(startRecording);
     $("#done").click(stopRecording);
     $("#record-processing")[0].style = "visibility: hidden; font-size: 0";
-    window.onbeforeunload = null;
+    window.onbeforeunload = function(){
+        return "Do you really want to close?";
+    };
 });

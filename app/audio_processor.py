@@ -63,7 +63,7 @@ class AudioProcessor:
 
                 end_time = time.time()
                 processing_time = end_time - start_time
-                logger.info(f'audio processing time: {processing_time} s')
+                logger.info(f'audio processing time: {processing_time} s\naudio record length: {audio_length} s')
             except Exception as e:
                 verdict = 'Recognition of a presentation record file with presentation_record_file_id = {} ' \
                           'has failed.\n{}'.format(presentation_record_file_id, e)
@@ -96,7 +96,7 @@ class StuckAudioResender:
     Class to resend stuck raw audio files.
     """
 
-    def __init__(self, resend_stuck_audio_timeout_seconds=30, is_stuck_predicate=default_is_stuck_predicate):
+    def __init__(self, resend_stuck_audio_timeout_seconds=300, is_stuck_predicate=default_is_stuck_predicate):
         self._resend_stuck_audio_timeout_seconds = resend_stuck_audio_timeout_seconds
         self._is_stuck_predicate = is_stuck_predicate
 

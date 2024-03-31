@@ -40,17 +40,12 @@ class WhisperAudioRecognizer(AudioRecognizer):
             probability=recognizer_result['probability'],
         )
 
-    def recognize_wav(self, audio):
-        recognizer_results = self.send_audio_to_recognizer(audio.name)
+    def recognize(self, audio):
+        recognizer_results = self.send_audio_to_recognizer(audio)
         recognized_words = list(map(self.parse_recognizer_result, recognizer_results))
         return RecognizedAudio(recognized_words)
 
-    def recognize(self, audio):
-        temp_wav_file = utils.convert_from_mp3_to_wav(audio)
-        Denoiser.process_wav_to_wav(temp_wav_file, temp_wav_file, noise_length=3)
-        return self.recognize_wav(temp_wav_file)
-
-    def send_audio_to_recognizer(self, file_name, language='ru'):
+    def send_audio_to_recognizer(self, audio, language='ru'):
         params = {
             'task': 'transcribe',
             'language': language,
@@ -59,12 +54,11 @@ class WhisperAudioRecognizer(AudioRecognizer):
         }
         headers = {'accept': 'application/json'}
 
-        audio_to_recognize = open(file_name, 'rb')
-        audio_to_recognize_buffer = audio_to_recognize.read()
-        audio_to_recognize.close()
+        audio_to_recognize_buffer = audio.read()
+        audio.close()
 
         try:
-            files = {'audio_file': (file_name, audio_to_recognize_buffer, 'audio/mpeg')}
+            files = {'audio_file': ("student_speech", audio_to_recognize_buffer, 'audio/mpeg')}
             response = requests.post(self._url, params=params, headers=headers, files=files)
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
