@@ -4,7 +4,7 @@ on: pull_request
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     steps:
     - uses: actions/checkout@v2
@@ -12,7 +12,7 @@ jobs:
     - name: Build system images (non-pulling)
       run: |
         # build base image
-        docker build -f Dockerfile_base -t osll/wst_base .
+        docker build -f Dockerfile_base -t dvivanov/wst-base:v0.2 .
 
     - name: Decreasing whisper model for tests
       run: |
@@ -32,4 +32,4 @@ jobs:
       run: |
         docker ps -a
         docker-compose logs
-        docker exec web_speech_trainer_web_1 bash -c 'cd /app/tests && pytest .'
+        docker exec web_speech_trainer_web_1 bash -c 'cd /project/tests && pytest .'

@@ -3,14 +3,13 @@ import json
 import wave
 
 import requests
-import websockets
 
 from app import utils
 from app.recognized_audio import RecognizedAudio
 from app.recognized_word import RecognizedWord
-from app.word import Word
 from app.root_logger import get_root_logger
-from playground.noise_reduction.denoiser import Denoiser
+from app.word import Word
+from denoiser import Denoiser
 
 logger = get_root_logger(service_name='audio_processor')
 
@@ -101,6 +100,7 @@ class VoskAudioRecognizer(AudioRecognizer):
 
     async def send_audio_to_recognizer(self, file_name):
         recognizer_results = []
+        import websockets
         async with websockets.connect(self._host) as websocket:
             wf = wave.open(file_name, "rb")
             await websocket.send('''{"config" : { "sample_rate" : 8000.0 }}''')

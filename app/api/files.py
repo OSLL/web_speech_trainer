@@ -40,7 +40,7 @@ def get_presentation_record_file(presentation_record_file_id: str):
 
     response = make_response(send_file(
         presentation_record_file,
-        attachment_filename='{}.mp3'.format(presentation_record_file_id),
+        download_name='{}.mp3'.format(presentation_record_file_id),
         as_attachment=as_attachment,
     ))
     
