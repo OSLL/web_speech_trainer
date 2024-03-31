@@ -3,7 +3,6 @@ import json
 import wave
 
 import requests
-import websockets
 
 from app import utils
 from app.recognized_audio import RecognizedAudio
@@ -101,6 +100,7 @@ class VoskAudioRecognizer(AudioRecognizer):
 
     async def send_audio_to_recognizer(self, file_name):
         recognizer_results = []
+        import websockets
         async with websockets.connect(self._host) as websocket:
             wf = wave.open(file_name, "rb")
             await websocket.send('''{"config" : { "sample_rate" : 8000.0 }}''')
