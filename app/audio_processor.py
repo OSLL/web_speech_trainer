@@ -55,7 +55,6 @@ class AudioProcessor:
                 return
             try:
                 audio_length = librosa.get_duration(path=presentation_record_file)
-                logger.info(f'audio record length: {audio_length} s')
 
                 start_time = time.time()
 
