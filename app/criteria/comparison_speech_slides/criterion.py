@@ -1,9 +1,15 @@
 from bson import ObjectId
 import pymorphy2
 import nltk
-import string
 from nltk.corpus import stopwords
+import string
 import re
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+from gensim.models import Word2Vec
+from nltk.tokenize import word_tokenize
+from nltk.util import ngrams
+from collections import Counter
 
 from app.localisation import *
 from ..criterion_base import BaseCriterion
@@ -58,15 +64,86 @@ class ComparisonSpeechSlidesCriterion(BaseCriterion):
 
     def apply(self, audio: Audio, presentation: Presentation, training_id: ObjectId,
               criteria_results: dict) -> CriterionResult:
+        tf_idf = []
+        word2vec = []
+        n_grams = []
+
         for current_slide_index in range(len(audio.audio_slides)):
+            print(f"Слайд №{current_slide_index + 1}")
             # Список слов, сказанных студентом на данном слайде -- список из RecognizedWord
             current_slide_speech = audio.audio_slides[current_slide_index].recognized_words
             # Удаление time_stamp-ов и probability, ибо работа будет вестись только со словами
             current_slide_speech = list(map(lambda x: x.word.value, current_slide_speech))
             # Нормализация текста выступления
             current_slide_speech = normalize_text(current_slide_speech)
+            print(current_slide_speech)
 
             # Список слов со слайда презентации
             current_slide_text = presentation.slides[current_slide_index].words
             # Нормализация текста слайда
-            current_slide_text = normalize_text(current_slide_text)
+            current_slide_text = normalize_text(current_slide_text.split())
+            print(current_slide_text)
+
+            # TF-IDF
+            corpus = [" ".join(current_slide_speech), " ".join(current_slide_text)]
+            vectorizer = TfidfVectorizer()
+            X = vectorizer.fit_transform(corpus)
+            cosine_sim = cosine_similarity(X[0], X[1])
+            similarity = cosine_sim[0][0]
+            tf_idf.append(round(similarity, 3))
+
+            # word2vec
+            tokens_speech = word_tokenize(" ".join(current_slide_speech))
+            tokens_slide = word_tokenize(" ".join(current_slide_text))
+            sentences = [tokens_speech, tokens_slide]
+
+            model = Word2Vec(sentences, min_count=1)
+            if len(tokens_speech) == 0 or len(tokens_slide) == 0:
+                word2vec.append(0.000)
+                continue
+            similarity = model.wv.n_similarity(tokens_speech, tokens_slide)
+            word2vec.append(round(similarity, 3))
+
+            # n-grams
+            def get_ngrams(text, n):
+                tokens = nltk.word_tokenize(text.lower())
+                n_grams = ngrams(tokens, n)
+                return [' '.join(gram) for gram in n_grams]
+
+            def calculate_similarity(text1, text2, n_values, weights=None):
+                similarities = []
+                for n in n_values:
+                    ngrams_text1 = get_ngrams(text1, n)
+                    ngrams_text2 = get_ngrams(text2, n)
+
+                    counter_text1 = Counter(ngrams_text1)
+                    counter_text2 = Counter(ngrams_text2)
+
+                    intersection = set(ngrams_text1) & set(ngrams_text2)
+
+                    similarity = sum(min(counter_text1[ngram], counter_text2[ngram]) for ngram in intersection) / max(
+                        len(ngrams_text1), len(ngrams_text2))
+                    similarities.append(similarity)
+
+                if weights:
+                    combined_similarity = sum(weight * similarity for weight, similarity in zip(weights, similarities))
+                else:
+                    combined_similarity = sum(similarities) / len(similarities)
+
+                return combined_similarity
+
+            n_values = [2, 3, 4]  # Список значений n для анализа
+            weights = [0.34, 0.33, 0.33]  # Веса для каждой метрики (если нужно)
+            combined_similarity = calculate_similarity(
+                " ".join(current_slide_speech),
+                " ".join(current_slide_text),
+                n_values,
+                weights
+            )
+            n_grams.append(round(combined_similarity, 3))
+
+        print(tf_idf)
+        print(word2vec)
+        print(n_grams)
+
+        return CriterionResult(1.0, "Отлично")
