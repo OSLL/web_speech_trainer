@@ -1,12 +1,13 @@
 from bson import ObjectId
 import pymorphy2
 import nltk
+nltk.download('punkt')
 from nltk.corpus import stopwords
 import string
 import re
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from gensim.models import Word2Vec
+#from gensim.models import Word2Vec
 from nltk.tokenize import word_tokenize
 from nltk.util import ngrams
 from collections import Counter
@@ -93,16 +94,16 @@ class ComparisonSpeechSlidesCriterion(BaseCriterion):
             tf_idf.append(round(similarity, 3))
 
             # word2vec
-            tokens_speech = word_tokenize(" ".join(current_slide_speech))
-            tokens_slide = word_tokenize(" ".join(current_slide_text))
-            sentences = [tokens_speech, tokens_slide]
-
-            model = Word2Vec(sentences, min_count=1)
-            if len(tokens_speech) == 0 or len(tokens_slide) == 0:
-                word2vec.append(0.000)
-                continue
-            similarity = model.wv.n_similarity(tokens_speech, tokens_slide)
-            word2vec.append(round(similarity, 3))
+            # tokens_speech = word_tokenize(" ".join(current_slide_speech))
+            # tokens_slide = word_tokenize(" ".join(current_slide_text))
+            # sentences = [tokens_speech, tokens_slide]
+            #
+            # model = Word2Vec(sentences, min_count=1)
+            # if len(tokens_speech) == 0 or len(tokens_slide) == 0:
+            #     word2vec.append(0.000)
+            #     continue
+            # similarity = model.wv.n_similarity(tokens_speech, tokens_slide)
+            # word2vec.append(round(similarity, 3))
 
             # n-grams
             def get_ngrams(text, n):
