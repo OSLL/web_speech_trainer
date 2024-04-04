@@ -2,7 +2,7 @@ version: '2'
 
 services:
   web:
-    image: base_image
+    image: wst-image:v0.2
     command: bash -c "python3 ./db_versioning/db_versioning.py --mongo mongodb://db:27017 && python3 -m web_speech_trainer $APP_CONF" 
     restart: always
     ports:
@@ -12,24 +12,18 @@ services:
       - training_processor
     volumes:
       - ../database-dump:/app/dump/database-dump/
-  
-  vosk:
-    image: "osll/vosk:v0.1"
-    restart: always
-    ports:
-      - 2700:2700
 
   audio_processor:
-    image: base_image
+    image: wst-image:v0.2
     command: python3 -m audio_processor $APP_CONF
     restart: always
     depends_on:
       - db
-      - vosk
+      - whisper
       - presentation_processor
 
   recognized_audio_processor:
-    image: base_image
+    image: wst-image:v0.2
     command: python3 -m recognized_audio_processor $APP_CONF
     restart: always
     depends_on:
@@ -38,7 +32,7 @@ services:
       - presentation_processor
 
   presentation_processor:
-    image: base_image
+    image: wst-image:v0.2
     build: .
     command: python3 -m presentation_processor $APP_CONF
     restart: always
@@ -46,7 +40,7 @@ services:
       - db
 
   recognized_presentation_processor:
-    image: base_image
+    image: wst-image:v0.2
     command: python3 -m recognized_presentation_processor $APP_CONF
     restart: always
     depends_on:
@@ -54,7 +48,7 @@ services:
       - presentation_processor
 
   training_processor:
-    image: base_image
+    image: wst-image:v0.2
     command: python3 -m training_processor $APP_CONF
     restart: always
     depends_on:
@@ -63,7 +57,7 @@ services:
       - recognized_presentation_processor
 
   task_attempt_to_pass_back_processor:
-    image: base_image
+    image: wst-image:v0.2
     command: python3 -m task_attempt_to_pass_back_processor $APP_CONF
     restart: always
     depends_on:
@@ -76,3 +70,17 @@ services:
       - '--wiredTigerCacheSizeGB=2'
     volumes:
       - ../mongo_data:/data/db
+
+  whisper:
+    image: "onerahmet/openai-whisper-asr-webservice:v1.3.0"
+    environment:
+      - ASR_MODEL=${WHISPER_ASR_MODEL:-tiny}
+      - ASR_ENGINE=${WHISPER_ASR_ENGINE:-openai_whisper}
+    restart: always
+    cpuset: ${WHISPER_CPU:-0,1}
+    mem_limit: ${WHISPER_MEM_LIMIT:-5g}
+    volumes:
+      - whisper_models:/root/.cache/whisper
+
+volumes:
+  whisper_models:

@@ -142,7 +142,8 @@ class PredefenceEightToTenMinutesFeedbackEvaluator(FeedbackEvaluator):
 
     def get_result_as_sum_str(self, criteria_results):
         if criteria_results is None or self.weights is None or \
-                criteria_results.get(StrictSpeechDurationCriterion.__name__, {}).get('result') == 0:
+                criteria_results.get("PredefenceStrictSpeechDurationCriterion", {}).get('result', 0) == 0 or \
+                criteria_results.get("DEFAULT_SPEECH_PACE_CRITERION", {}).get('result', 0) == 0:
             return None
         return super().get_result_as_sum_str(criteria_results)
 
@@ -171,7 +172,8 @@ class PredefenceEightToTenMinutesNoSlideCheckFeedbackEvaluator(FeedbackEvaluator
 
     def get_result_as_sum_str(self, criteria_results):
         if criteria_results is None or self.weights is None or \
-                criteria_results.get(StrictSpeechDurationCriterion.__name__, {}).get('result') == 0:
+                criteria_results.get("PredefenceStrictSpeechDurationCriterion", {}).get('result', 0) == 0 or \
+                criteria_results.get("DEFAULT_SPEECH_PACE_CRITERION", {}).get('result', 0) == 0:
             return None
         return super().get_result_as_sum_str(criteria_results)
     
