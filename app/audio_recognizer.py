@@ -2,14 +2,16 @@ import asyncio
 import json
 import wave
 
-import websockets
+import requests
 
 from app import utils
 from app.recognized_audio import RecognizedAudio
 from app.recognized_word import RecognizedWord
+from app.root_logger import get_root_logger
 from app.word import Word
-from playground.noise_reduction.denoiser import Denoiser
+from denoiser import Denoiser
 
+logger = get_root_logger(service_name='audio_processor')
 
 class AudioRecognizer:
     def recognize(self, audio):
@@ -23,6 +25,52 @@ class SimpleAudioRecognizer(AudioRecognizer):
             RecognizedWord(Word('world'), 457, 500, 0.95),
         ]
         return RecognizedAudio(recognized_words)
+
+
+class WhisperAudioRecognizer(AudioRecognizer):
+    def __init__(self, url):
+        self._url = url
+
+    def parse_recognizer_result(self, recognizer_result):
+        return RecognizedWord(
+            word=Word(recognizer_result['word']),
+            begin_timestamp=recognizer_result['start'],
+            end_timestamp=recognizer_result['end'],
+            probability=recognizer_result['probability'],
+        )
+
+    def recognize(self, audio):
+        recognizer_results = self.send_audio_to_recognizer(audio)
+        recognized_words = list(map(self.parse_recognizer_result, recognizer_results))
+        return RecognizedAudio(recognized_words)
+
+    def send_audio_to_recognizer(self, audio, language='ru'):
+        params = {
+            'task': 'transcribe',
+            'language': language,
+            'word_timestamps': 'true',
+            'output': 'json'
+        }
+        headers = {'accept': 'application/json'}
+
+        audio_to_recognize_buffer = audio.read()
+        audio.close()
+
+        try:
+            files = {'audio_file': ("student_speech", audio_to_recognize_buffer, 'audio/mpeg')}
+            response = requests.post(self._url, params=params, headers=headers, files=files)
+            response.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            logger.info(f"Recognition error occurred while processing audio file: {e}")
+            return []
+
+        data = response.json()
+
+        recognizer_results = []
+        for segment in data["segments"]:
+            for recognized_word in segment["words"]:
+                recognizer_results.append(recognized_word)
+        return recognizer_results
 
 
 class VoskAudioRecognizer(AudioRecognizer):
@@ -52,6 +100,7 @@ class VoskAudioRecognizer(AudioRecognizer):
 
     async def send_audio_to_recognizer(self, file_name):
         recognizer_results = []
+        import websockets
         async with websockets.connect(self._host) as websocket:
             wf = wave.open(file_name, "rb")
             await websocket.send('''{"config" : { "sample_rate" : 8000.0 }}''')

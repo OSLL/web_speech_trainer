@@ -41,7 +41,7 @@ def update_db_version():
     version_doc = DBCollections().db_version.find_one()
 
     if not version_doc:
-        version_doc_id = add_version(VERSIONS['1.0'])    # if no version == 1.0
+        version_doc_id = add_version(VERSIONS[LAST_VERSION])  # if no version == LAST_VERSION
         version_doc = DBCollections().db_version.find_one({
             '_id': version_doc_id})
     version_doc_id = version_doc['_id']

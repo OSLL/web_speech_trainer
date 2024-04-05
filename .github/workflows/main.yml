@@ -4,7 +4,7 @@ on: pull_request
 
 jobs:
   build:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
 
     steps:
     - uses: actions/checkout@v2
@@ -12,10 +12,13 @@ jobs:
     - name: Build system images (non-pulling)
       run: |
         # build base image
-        docker build -f Dockerfile_base -t osll/wst_base .
+        docker build -f Dockerfile_base -t dvivanov/wst-base:v0.2 .
 
-        # build vosk
-        docker build -f "Dockerfile.kaldi-ru" -t osll/vosk .
+    - name: Decreasing whisper model for tests
+      run: |
+        cp docker-compose.yml docker-compose-tmp.yml
+        sed -e "s/ASR_MODEL=medium/ASR_MODEL=tiny/" docker-compose-tmp.yml > docker-compose.yml
+        rm docker-compose-tmp.yml
 
     - name: Build docker-compose
       run: |
@@ -29,4 +32,4 @@ jobs:
       run: |
         docker ps -a
         docker-compose logs
-        docker exec web_speech_trainer_web_1 bash -c 'cd /app/tests && pytest .'
+        docker exec web_speech_trainer_web_1 bash -c 'cd /project/tests && pytest .'

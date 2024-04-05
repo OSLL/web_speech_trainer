@@ -1,9 +1,11 @@
 import sys
+import time
 from datetime import datetime
 
+import librosa
 from bson import ObjectId
 
-from app.audio_recognizer import AudioRecognizer, VoskAudioRecognizer
+from app.audio_recognizer import AudioRecognizer, WhisperAudioRecognizer
 from app.config import Config
 from app.mongo_models import Trainings
 from app.mongo_odm import DBManager, AudioToRecognizeDBManager, TrainingsDBManager, RecognizedAudioToProcessDBManager
@@ -52,7 +54,15 @@ class AudioProcessor:
                 self._hangle_error(training_id, verdict)
                 return
             try:
+                audio_length = librosa.get_duration(path=presentation_record_file)
+
+                start_time = time.time()
+
                 recognized_audio = self._audio_recognizer.recognize(presentation_record_file)
+
+                end_time = time.time()
+                processing_time = end_time - start_time
+                logger.info(f'audio processing time: {processing_time} s\naudio record length: {audio_length} s')
             except Exception as e:
                 verdict = 'Recognition of a presentation record file with presentation_record_file_id = {} ' \
                           'has failed.\n{}'.format(presentation_record_file_id, e)
@@ -85,7 +95,7 @@ class StuckAudioResender:
     Class to resend stuck raw audio files.
     """
 
-    def __init__(self, resend_stuck_audio_timeout_seconds=30, is_stuck_predicate=default_is_stuck_predicate):
+    def __init__(self, resend_stuck_audio_timeout_seconds=300, is_stuck_predicate=default_is_stuck_predicate):
         self._resend_stuck_audio_timeout_seconds = resend_stuck_audio_timeout_seconds
         self._is_stuck_predicate = is_stuck_predicate
 
@@ -118,7 +128,7 @@ class StuckAudioResender:
 
 if __name__ == "__main__":
     Config.init_config(sys.argv[1])
-    audio_recognizer = VoskAudioRecognizer(host=Config.c.vosk.url)
+    audio_recognizer = WhisperAudioRecognizer(url=Config.c.whisper.url)
     audio_processor = AudioProcessor(audio_recognizer)
     audio_processor.run()
     stuck_audio_resender = StuckAudioResender()

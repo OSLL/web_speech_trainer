@@ -1,17 +1,15 @@
-FROM osll/wst_base:v0.1
+FROM dvivanov/wst-base:v0.2
 
-RUN apt update
+LABEL version="0.2"
+LABEL project="wst"
 
-# The installation of `fitz` library is really tricky.
-# The library uses `frontend` internal package that can be obtained
-# via installation of `PyMuPDF` package but `PyMuPDF` itself requires `fitz`.
-# That's why `fitz` is installed separately.
-RUN pip3 install fitz==0.0.1.dev2
+WORKDIR /project
 
-WORKDIR /app
+COPY requirements.txt requirements.txt
+RUN pip3 install --ignore-installed --no-cache-dir -r requirements.txt
+
 COPY . .
+RUN rm -rf /project/tests/selenium
 
-RUN pip3 install -r requirements.txt
-ENV PYTHONPATH='/app/:/app/app/'
-WORKDIR /app/app
-CMD /bin/bash
+ENV PYTHONPATH='/project/:/project/app/'
+WORKDIR /project/app
