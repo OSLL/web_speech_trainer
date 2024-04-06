@@ -1,30 +1,31 @@
 from bson import ObjectId
 import pymorphy2
 import nltk
-nltk.download('punkt')
 from nltk.corpus import stopwords
 import string
 import re
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-#from gensim.models import Word2Vec
+from gensim.models import Word2Vec
 from nltk.tokenize import word_tokenize
 from nltk.util import ngrams
 from collections import Counter
 
+from app.root_logger import get_root_logger
 from app.localisation import *
 from ..criterion_base import BaseCriterion
 from ..criterion_result import CriterionResult
 from app.audio import Audio
 from app.presentation import Presentation
 
+logger = get_root_logger('web')
+nltk.download('punkt')
+nltk.download('stopwords')
+russian_stop_words = stopwords.words('russian')
+
 
 # Функция нормализации текста
 def normalize_text(text: list) -> list:
-    # Получение списка стоп-слов на русском языке
-    nltk.download('stopwords')
-    russian_stop_words = stopwords.words('russian')
-
     table = str.maketrans("", "", string.punctuation)
     morph = pymorphy2.MorphAnalyzer()
 
@@ -70,40 +71,43 @@ class ComparisonSpeechSlidesCriterion(BaseCriterion):
         n_grams = []
 
         for current_slide_index in range(len(audio.audio_slides)):
-            print(f"Слайд №{current_slide_index + 1}")
+            logger.info(f"Слайд №{current_slide_index + 1}")
             # Список слов, сказанных студентом на данном слайде -- список из RecognizedWord
             current_slide_speech = audio.audio_slides[current_slide_index].recognized_words
             # Удаление time_stamp-ов и probability, ибо работа будет вестись только со словами
             current_slide_speech = list(map(lambda x: x.word.value, current_slide_speech))
             # Нормализация текста выступления
             current_slide_speech = normalize_text(current_slide_speech)
-            print(current_slide_speech)
+            logger.info(current_slide_speech)
 
             # Список слов со слайда презентации
             current_slide_text = presentation.slides[current_slide_index].words
             # Нормализация текста слайда
             current_slide_text = normalize_text(current_slide_text.split())
-            print(current_slide_text)
+            logger.info(current_slide_text)
 
             # TF-IDF
-            corpus = [" ".join(current_slide_speech), " ".join(current_slide_text)]
-            vectorizer = TfidfVectorizer()
-            X = vectorizer.fit_transform(corpus)
-            cosine_sim = cosine_similarity(X[0], X[1])
-            similarity = cosine_sim[0][0]
-            tf_idf.append(round(similarity, 3))
+            if len(current_slide_text) == 0 or len(current_slide_speech) == 0:
+                tf_idf.append(0.000)
+            else:
+                corpus = [" ".join(current_slide_speech), " ".join(current_slide_text)]
+                vectorizer = TfidfVectorizer()
+                X = vectorizer.fit_transform(corpus)
+                cosine_sim = cosine_similarity(X[0], X[1])
+                similarity = cosine_sim[0][0]
+                tf_idf.append(round(similarity, 3))
 
             # word2vec
-            # tokens_speech = word_tokenize(" ".join(current_slide_speech))
-            # tokens_slide = word_tokenize(" ".join(current_slide_text))
-            # sentences = [tokens_speech, tokens_slide]
-            #
-            # model = Word2Vec(sentences, min_count=1)
-            # if len(tokens_speech) == 0 or len(tokens_slide) == 0:
-            #     word2vec.append(0.000)
-            #     continue
-            # similarity = model.wv.n_similarity(tokens_speech, tokens_slide)
-            # word2vec.append(round(similarity, 3))
+            tokens_speech = word_tokenize(" ".join(current_slide_speech))
+            tokens_slide = word_tokenize(" ".join(current_slide_text))
+
+            if len(current_slide_speech) == 0 or len(current_slide_text) == 0:
+                word2vec.append(0.000)
+            else:
+                sentences = [tokens_speech, tokens_slide]
+                model = Word2Vec(sentences, min_count=1)
+                similarity = model.wv.n_similarity(tokens_speech, tokens_slide)
+                word2vec.append(round(similarity, 3))
 
             # n-grams
             def get_ngrams(text, n):
@@ -122,9 +126,12 @@ class ComparisonSpeechSlidesCriterion(BaseCriterion):
 
                     intersection = set(ngrams_text1) & set(ngrams_text2)
 
-                    similarity = sum(min(counter_text1[ngram], counter_text2[ngram]) for ngram in intersection) / max(
+                    if len(ngrams_text1) == 0 or len(ngrams_text2) == 0:
+                        similarities.append(0.000)
+                    else:
+                        similarity = sum(min(counter_text1[ngram], counter_text2[ngram]) for ngram in intersection) / max(
                         len(ngrams_text1), len(ngrams_text2))
-                    similarities.append(similarity)
+                        similarities.append(similarity)
 
                 if weights:
                     combined_similarity = sum(weight * similarity for weight, similarity in zip(weights, similarities))
@@ -143,8 +150,8 @@ class ComparisonSpeechSlidesCriterion(BaseCriterion):
             )
             n_grams.append(round(combined_similarity, 3))
 
-        print(tf_idf)
-        print(word2vec)
-        print(n_grams)
+        logger.info(f"TF-IDF: {tf_idf}\n")
+        logger.info(f"Word2Vec: {word2vec}\n")
+        logger.info(f"N-grams: {n_grams}\n")
 
         return CriterionResult(1.0, "Отлично")
