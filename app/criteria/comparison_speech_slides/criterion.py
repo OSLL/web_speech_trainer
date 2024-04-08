@@ -71,20 +71,17 @@ class ComparisonSpeechSlidesCriterion(BaseCriterion):
         n_grams = []
 
         for current_slide_index in range(len(audio.audio_slides)):
-            logger.info(f"Слайд №{current_slide_index + 1}")
             # Список слов, сказанных студентом на данном слайде -- список из RecognizedWord
             current_slide_speech = audio.audio_slides[current_slide_index].recognized_words
             # Удаление time_stamp-ов и probability, ибо работа будет вестись только со словами
             current_slide_speech = list(map(lambda x: x.word.value, current_slide_speech))
             # Нормализация текста выступления
             current_slide_speech = normalize_text(current_slide_speech)
-            logger.info(current_slide_speech)
 
             # Список слов со слайда презентации
             current_slide_text = presentation.slides[current_slide_index].words
             # Нормализация текста слайда
             current_slide_text = normalize_text(current_slide_text.split())
-            logger.info(current_slide_text)
 
             # TF-IDF
             if len(current_slide_text) == 0 or len(current_slide_speech) == 0:
