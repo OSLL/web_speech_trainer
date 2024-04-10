@@ -83,11 +83,12 @@ class WhisperAudioRecognizer(AudioRecognizer):
                 return []
 
             data = response.json()
-
-        recognizer_results = []
-        for segment in data["segments"]:
-            for recognized_word in segment["words"]:
-                recognizer_results.append(recognized_word)
+            logger.info(f"Recognition result: {data}")
+            for result_segment in data["segments"]:
+                for recognized_word in result_segment["words"]:
+                    recognized_word["start"] += segment_start_time
+                    recognized_word["end"] += segment_start_time
+                    recognizer_results.append(recognized_word)
         return recognizer_results
 
 
