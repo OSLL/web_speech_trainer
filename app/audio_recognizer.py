@@ -15,6 +15,7 @@ from denoiser import Denoiser
 
 logger = get_root_logger(service_name='audio_processor')
 
+
 class AudioRecognizer:
     def recognize(self, audio):
         pass
@@ -46,20 +47,35 @@ class WhisperAudioRecognizer(AudioRecognizer):
         recognized_words = list(map(self.parse_recognizer_result, recognizer_results))
         return RecognizedAudio(recognized_words)
 
-    def send_audio_to_recognizer(self, audio_file, language='ru'):
+    def split_audio_into_segments(self, audio_file, delta=30, n=None):
         audio_data = audio_file.read()
         audio_file.close()
 
         audio = AudioSegment.from_file(BytesIO(audio_data), format="mp3")
         duration_seconds = audio.duration_seconds
-
-        segments = []
         start_time = 0
-        while start_time < duration_seconds:
-            end_time = min(start_time + 10, duration_seconds)
-            segment = audio[start_time * 1000: end_time * 1000]
-            segments.append((segment, start_time))
-            start_time = end_time
+        segments = []
+
+        if n is not None:
+            segment_length = duration_seconds / n
+            while start_time < duration_seconds:
+                end_time = min(start_time + segment_length, duration_seconds)
+                segment = audio[start_time * 1000: end_time * 1000]
+                segments.append((segment, start_time))
+                start_time = end_time
+
+        else:
+            while start_time < duration_seconds:
+                end_time = min(start_time + delta, duration_seconds)
+                segment = audio[start_time * 1000: end_time * 1000]
+                segments.append((segment, start_time))
+                start_time = end_time
+
+        return segments
+
+    def send_audio_to_recognizer(self, audio_file, language='ru'):
+        # Получение сегментов аудио
+        segments = self.split_audio_into_segments(audio_file, n=3)
 
         # Параметры запроса
         params = {

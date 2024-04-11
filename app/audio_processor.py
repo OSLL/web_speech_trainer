@@ -95,7 +95,7 @@ class StuckAudioResender:
     Class to resend stuck raw audio files.
     """
 
-    def __init__(self, resend_stuck_audio_timeout_seconds=30, is_stuck_predicate=default_is_stuck_predicate):
+    def __init__(self, resend_stuck_audio_timeout_seconds=300, is_stuck_predicate=default_is_stuck_predicate):
         self._resend_stuck_audio_timeout_seconds = resend_stuck_audio_timeout_seconds
         self._is_stuck_predicate = is_stuck_predicate
 
