@@ -7,8 +7,11 @@ import fitz
 from bson import ObjectId
 from flask import json
 import magic
+import nltk
+from nltk.corpus import stopwords
 from pydub import AudioSegment
 import subprocess
+
 
 from app.config import Config
 
@@ -210,3 +213,20 @@ class RepeatedTimer:
     def stop(self):
         self._timer.cancel()
         self.is_running = False
+
+
+class Singleton(type):
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+        return cls._instances[cls]
+
+
+class RussianStopwords(metaclass=Singleton):
+
+    def __init__(self):
+        nltk.download('punkt')
+        nltk.download('stopwords')
+        self.words = stopwords.words('russian')

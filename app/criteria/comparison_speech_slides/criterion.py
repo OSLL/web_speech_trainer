@@ -1,7 +1,5 @@
 from bson import ObjectId
 import pymorphy2
-import nltk
-from nltk.corpus import stopwords
 import string
 import re
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -17,12 +15,9 @@ from ..criterion_base import BaseCriterion
 from ..criterion_result import CriterionResult
 from app.audio import Audio
 from app.presentation import Presentation
+from app.utils import RussianStopwords
 
 logger = get_root_logger('web')
-nltk.download('punkt')
-nltk.download('stopwords')
-russian_stop_words = stopwords.words('russian')
-
 
 # Функция нормализации текста
 def normalize_text(text: list) -> list:
@@ -38,7 +33,7 @@ def normalize_text(text: list) -> list:
     # Приведение слов к нормальной форме
     text = list(map(lambda x: morph.normal_forms(x)[0], text))
     # Очистка от стоп-слов
-    text = list(filter(lambda x: x not in russian_stop_words, text))
+    text = list(filter(lambda x: x not in RussianStopwords().words, text))
     return text
 
 
@@ -108,7 +103,7 @@ class ComparisonSpeechSlidesCriterion(BaseCriterion):
 
             # n-grams
             def get_ngrams(text, n):
-                tokens = nltk.word_tokenize(text.lower())
+                tokens = word_tokenize(text.lower())
                 n_grams = ngrams(tokens, n)
                 return [' '.join(gram) for gram in n_grams]
 
