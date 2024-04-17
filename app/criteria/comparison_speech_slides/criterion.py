@@ -19,6 +19,7 @@ from app.utils import RussianStopwords
 
 logger = get_root_logger('web')
 
+
 # Функция нормализации текста
 def normalize_text(text: list) -> list:
     table = str.maketrans("", "", string.punctuation)
@@ -37,9 +38,15 @@ def normalize_text(text: list) -> list:
     return text
 
 
+def delete_punctuation(text: str) -> str:
+    return text.translate(str.maketrans('', '', string.punctuation + "\t\n\r\v\f"))
+
+
 # Критерий, оценивающий, насколько текст слайда перекликается с речью студента на этом слайде
 class ComparisonSpeechSlidesCriterion(BaseCriterion):
-    PARAMETERS = dict()
+    PARAMETERS = dict(
+        skip_slides=list.__name__
+    )
 
     def __init__(self, parameters, dependent_criteria, name=''):
         super().__init__(
@@ -75,6 +82,17 @@ class ComparisonSpeechSlidesCriterion(BaseCriterion):
 
             # Список слов со слайда презентации
             current_slide_text = presentation.slides[current_slide_index].words
+            # Проверяем, входит ли рассматриваемый слайд в список нерасмматриваемых
+            skip = False
+            for skip_slide in self.parameters['skip_slides']:
+                if skip_slide.lower() in delete_punctuation(current_slide_text).lower():
+                    logger.info(f"Слайд №{current_slide_index + 1} пропущен")
+                    skip = True
+                    break
+            if skip:
+                continue
+
+
             # Нормализация текста слайда
             current_slide_text = normalize_text(current_slide_text.split())
 
@@ -121,8 +139,9 @@ class ComparisonSpeechSlidesCriterion(BaseCriterion):
                     if len(ngrams_text1) == 0 or len(ngrams_text2) == 0:
                         similarities.append(0.000)
                     else:
-                        similarity = sum(min(counter_text1[ngram], counter_text2[ngram]) for ngram in intersection) / max(
-                        len(ngrams_text1), len(ngrams_text2))
+                        similarity = sum(
+                            min(counter_text1[ngram], counter_text2[ngram]) for ngram in intersection) / max(
+                            len(ngrams_text1), len(ngrams_text2))
                         similarities.append(similarity)
 
                 if weights:

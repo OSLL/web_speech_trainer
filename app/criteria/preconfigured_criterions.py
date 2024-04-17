@@ -12,7 +12,7 @@ from criteria import (FillersNumberCriterion, FillersRatioCriterion,
                       StrictSpeechDurationCriterion, ComparisonSpeechSlidesCriterion)
 
 from .utils import DEFAULT_FILLERS
-
+from .utils import DEFAULT_SKIP_SLIDES
 
 preconfigured_criterions = [
     # SpeechDurationCriterion
@@ -148,10 +148,9 @@ preconfigured_criterions = [
     # WIP Criterion
     ComparisonSpeechSlidesCriterion(
         name="ComparisonSpeechSlidesCriterion",
-        parameters={},
+        parameters={"skip_slides": DEFAULT_SKIP_SLIDES},
         dependent_criteria=[],
     )
-
 
 ]
 

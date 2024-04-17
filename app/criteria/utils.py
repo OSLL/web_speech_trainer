@@ -3,7 +3,6 @@ import math
 import traceback
 from typing import Optional, Callable
 
-
 from app.audio import Audio
 from app.utils import get_types
 
@@ -82,6 +81,11 @@ def get_fillers(fillers: list, audio: Audio) -> list:
 def get_fillers_number(fillers: list, audio: Audio) -> int:
     return sum(map(len, get_fillers(fillers, audio)))
 
+
+DEFAULT_SKIP_SLIDES = [
+    "Цель и задачи",
+    "Спасибо за внимание"
+]
 
 DEFAULT_FILLERS = [
     'короче',
