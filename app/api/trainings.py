@@ -1,4 +1,4 @@
-import logging
+from app.root_logger import get_root_logger
 import time
 import json
 import os
@@ -20,7 +20,8 @@ from app.utils import remove_blank_and_none, check_arguments_are_convertible_to_
 from app.localisation import *
 
 api_trainings = Blueprint('api_trainings', __name__)
-logger = logging.getLogger('root_logger')
+logger = get_root_logger()
+
 
 
 @check_arguments_are_convertible_to_object_id

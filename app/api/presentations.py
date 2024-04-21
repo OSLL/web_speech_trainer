@@ -1,4 +1,4 @@
-import logging
+from app.root_logger import get_root_logger
 
 from flask import Blueprint
 
@@ -8,7 +8,8 @@ from app.mongo_odm import PresentationFilesDBManager
 from app.utils import check_arguments_are_convertible_to_object_id
 
 api_presentations = Blueprint('api_presentations', __name__)
-logger = logging.getLogger('root_logger')
+logger = get_root_logger()
+
 
 
 def get_presentation_information(current_presentation_file: PresentationFiles) -> dict:

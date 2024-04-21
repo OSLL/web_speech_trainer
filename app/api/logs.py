@@ -1,5 +1,5 @@
 from  datetime import datetime
-import logging
+from app.root_logger import get_root_logger
 from ast import literal_eval
 
 from flask import Blueprint, request
@@ -8,7 +8,8 @@ from app.lti_session_passback.auth_checkers import check_admin
 from app.mongo_odm import LogsDBManager
 
 api_logs = Blueprint('api_logs', __name__)
-logger = logging.getLogger('root_logger')
+logger = get_root_logger()
+
 
 
 @api_logs.route('/api/logs/', methods=['GET'])

@@ -1,4 +1,4 @@
-import logging
+from app.root_logger import get_root_logger
 import os
 import time
 import uuid
@@ -28,7 +28,8 @@ from app.status import (AudioStatus, PassBackStatus, PresentationStatus,
                         TrainingStatus)
 from app.utils import remove_blank_and_none
 
-logger = logging.getLogger('root_logger')
+logger = get_root_logger()
+
 
 
 class DBManager:

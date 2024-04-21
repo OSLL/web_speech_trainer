@@ -1,4 +1,4 @@
-import logging
+from app.root_logger import get_root_logger
 
 from bson import ObjectId
 from flask import session, request, Blueprint
@@ -9,7 +9,8 @@ from app.mongo_odm import TaskAttemptsDBManager, TasksDBManager
 from app.utils import check_arguments_are_convertible_to_object_id, check_argument_is_convertible_to_object_id
 
 api_task_attempts = Blueprint('api_task_attempts', __name__)
-logger = logging.getLogger('root_logger')
+logger = get_root_logger()
+
 
 
 @check_arguments_are_convertible_to_object_id

@@ -1,4 +1,4 @@
-import logging
+from app.root_logger import get_root_logger
 
 from flask import Blueprint, request, session
 
@@ -9,7 +9,8 @@ from packaging import version as version_util
 from ua_parser.user_agent_parser import Parse as user_agent_parse
 
 api_sessions = Blueprint('api_sessions', __name__)
-logger = logging.getLogger('root_logger')
+logger = get_root_logger()
+
 
 
 @api_sessions.route('/api/sessions/info/', methods=['GET'])
