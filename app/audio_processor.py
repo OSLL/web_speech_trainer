@@ -79,9 +79,9 @@ class AudioProcessor:
         RepeatedTimer(self._extract_audio_to_recognize_timeout_seconds, self._try_extract_and_process)
 
 
-def default_is_stuck_predicate(training_db: Trainings) -> bool:
+def default_is_stuck_predicate(training_db: Trainings, length_koef=4) -> bool:
     logger.info('Called default_is_stuck_predicate, training_id = {}.'.format(training_db.pk))
-    threshold = training_db.audio_status_last_update.time + training_db.presentation_record_duration * 2
+    threshold = training_db.audio_status_last_update.time + training_db.presentation_record_duration * length_koef
     logger.info('training_db.audio_status_last_update.time = {}, training_db.presentation_record_duration = {}, '
                 'datetime.now().timestamp() = {}, threshold = {}.'
                 .format(training_db.audio_status_last_update.time, training_db.presentation_record_duration,
