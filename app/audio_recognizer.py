@@ -94,12 +94,13 @@ class WhisperAudioRecognizer(AudioRecognizer):
                 files = {'audio_file': ("student_speech", audio_to_recognize_buffer, 'audio/mpeg')}
                 response = requests.post(self._url, params=params, headers=headers, files=files)
                 response.raise_for_status()
-            except requests.exceptions.RequestException as e:
-                logger.info(f"Recognition error occurred while processing audio file: {e}")
+                data = response.json()
+            except Exception as exc:
+                logger.error("Recognition error occurred while processing audio file: %s", exc)
                 return []
 
-            data = response.json()
-            logger.info(f"Recognition result: {data}")
+            # logger.info(f"Recognition result: %s", data)    # too big
+            logger.debug("Recognition result for segment %s-... recevied", segment_start_time)
             for result_segment in data["segments"]:
                 for recognized_word in result_segment["words"]:
                     recognized_word["start"] += segment_start_time
