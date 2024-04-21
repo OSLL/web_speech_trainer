@@ -1,7 +1,7 @@
 COMMIT=$(git rev-parse HEAD)
 BRANCH=$(git symbolic-ref HEAD | sed 's!refs\/heads\/!!')
 DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-VERSION=$(git tag | tail -1)
+VERSION=$(git describe --tags --abbrev=0)
 
 [ ${#VERSION} == 0 ] && VERSION="no version"
 echo "{
