@@ -75,7 +75,7 @@ class WhisperAudioRecognizer(AudioRecognizer):
 
     def send_audio_to_recognizer(self, audio_file, language='ru'):
         # Получение сегментов аудио
-        segments = self.split_audio_into_segments(audio_file, n=3)
+        segments = self.split_audio_into_segments(audio_file)
 
         # Параметры запроса
         params = {
