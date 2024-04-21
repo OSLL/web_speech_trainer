@@ -57,12 +57,11 @@ class AudioProcessor:
                 audio_length = librosa.get_duration(path=presentation_record_file)
 
                 start_time = time.time()
-
                 recognized_audio = self._audio_recognizer.recognize(presentation_record_file)
-
                 end_time = time.time()
+                
                 processing_time = end_time - start_time
-                logger.info(f'audio processing time: {processing_time} s\naudio record length: {audio_length} s')
+                logger.info('audio of training_id: %s\n processing time: %s s\nrecord length: %s s', training_id, processing_time, audio_length)
             except Exception as e:
                 verdict = 'Recognition of a presentation record file with presentation_record_file_id = {} ' \
                           'has failed.\n{}'.format(presentation_record_file_id, e)
