@@ -227,6 +227,4 @@ class Singleton(type):
 class RussianStopwords(metaclass=Singleton):
 
     def __init__(self):
-        nltk.download('punkt')
-        nltk.download('stopwords')
         self.words = stopwords.words('russian')
