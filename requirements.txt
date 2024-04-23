@@ -26,5 +26,5 @@ requests                ==2.27.1
 scipy                   ==1.12.0
 ua-parser               ==0.18
 vext                    ==0.7.6
-scikit-learn
-gensim
+scikit-learn            ==1.4.2
+gensim                  ==4.3.2

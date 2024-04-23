@@ -83,8 +83,7 @@ def get_fillers_number(fillers: list, audio: Audio) -> int:
 
 
 DEFAULT_SKIP_SLIDES = [
-    "Цель и задачи",
-    "Спасибо за внимание"
+    "Спасибо за внимание",
 ]
 
 DEFAULT_FILLERS = [

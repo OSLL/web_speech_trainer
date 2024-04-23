@@ -148,7 +148,7 @@ preconfigured_criterions = [
     # WIP Criterion
     ComparisonSpeechSlidesCriterion(
         name="ComparisonSpeechSlidesCriterion",
-        parameters={"skip_slides": DEFAULT_SKIP_SLIDES},
+        parameters={"skip_slides": DEFAULT_SKIP_SLIDES, "n_values": [2, 3, 4], "weights": [0.34, 0.33, 0.33]},
         dependent_criteria=[],
     )
 
