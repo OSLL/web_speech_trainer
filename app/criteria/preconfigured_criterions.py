@@ -9,10 +9,11 @@ from app.utils import SECONDS_PER_MINUTE
 
 from criteria import (FillersNumberCriterion, FillersRatioCriterion,
                       SpeechIsNotInDatabaseCriterion, SpeechPaceCriterion,
-                      StrictSpeechDurationCriterion)
+                      StrictSpeechDurationCriterion, ComparisonSpeechSlidesCriterion,
+                      ComparisonWholeSpeechCriterion)
 
 from .utils import DEFAULT_FILLERS
-
+from .utils import DEFAULT_SKIP_SLIDES
 
 preconfigured_criterions = [
     # SpeechDurationCriterion
@@ -143,7 +144,27 @@ preconfigured_criterions = [
             }
         },
         dependent_criteria=[],
+    ),
+
+    ComparisonSpeechSlidesCriterion(
+        name="ComparisonSpeechSlidesCriterion",
+        parameters={"skip_slides": DEFAULT_SKIP_SLIDES},
+        dependent_criteria=[],
+    ),
+
+    ComparisonWholeSpeechCriterion(
+        name="ComparisonWholeSpeechCriterion",
+        parameters={
+            "vector_size": 200,
+            "window": 5,
+            "min_count": 3,
+            "workers": 4,
+            "epochs": 40,
+            "dm": 0
+        },
+        dependent_criteria=[],
     )
+
 ]
 
 

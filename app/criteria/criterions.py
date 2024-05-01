@@ -8,3 +8,5 @@ from .speech_duration.criterion import SpeechDurationCriterion
 from .speech_is_not_in_database.criterion import SpeechIsNotInDatabaseCriterion
 from .speech_pace.criterion import SpeechPaceCriterion
 from .strict_speech_duration.criterion import StrictSpeechDurationCriterion
+from .comparison_speech_slides.criterion import ComparisonSpeechSlidesCriterion
+from .comparison_whole_speech.criterion import ComparisonWholeSpeechCriterion

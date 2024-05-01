@@ -38,6 +38,8 @@ services:
     restart: always
     depends_on:
       - db
+    volumes:
+      - nltk_data:/root/nltk_data
 
   recognized_presentation_processor:
     image: wst-image:v0.2
@@ -55,6 +57,8 @@ services:
       - db
       - recognized_audio_processor
       - recognized_presentation_processor
+    volumes:
+      - nltk_data:/root/nltk_data
 
   task_attempt_to_pass_back_processor:
     image: wst-image:v0.2
@@ -84,3 +88,4 @@ services:
 
 volumes:
   whisper_models:
+  nltk_data:
