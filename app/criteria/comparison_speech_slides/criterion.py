@@ -16,8 +16,6 @@ logger = get_root_logger('web')
 class ComparisonSpeechSlidesCriterion(BaseCriterion):
     PARAMETERS = dict(
         skip_slides=list.__name__,
-        n_values=list.__name__,
-        weights=list.__name__,
     )
 
     def __init__(self, parameters, dependent_criteria, name=''):
