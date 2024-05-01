@@ -204,11 +204,6 @@ def normalize_text(text: list) -> list:
     return text
 
 
-# Функция нормализации для списка текстов
-def normalize_list(text: list) -> list:
-    return list(map(lambda x: " ".join(x), map(lambda x: normalize_text(x.split()), text)))
-
-
 # Удаление пунктуации из текста
 def delete_punctuation(text: str) -> str:
     return text.translate(str.maketrans('', '', string.punctuation + "\t\n\r\v\f"))
