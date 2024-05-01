@@ -9,7 +9,6 @@ COPY requirements.txt requirements.txt
 RUN pip3 install --ignore-installed --no-cache-dir -r requirements.txt
 
 COPY . .
-RUN rm -rf /project/tests/selenium
 
 ENV PYTHONPATH='/project/:/project/app/'
 WORKDIR /project/app

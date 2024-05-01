@@ -1,9 +1,10 @@
 from app.criteria import CRITERIONS
-import logging
+from app.root_logger import get_root_logger
 from app.localisation import *
 from app.mongo_odm import CriterionDBManager, TrainingsDBManager
 
-logger = logging.getLogger('root_logger')
+logger = get_root_logger()
+
 
 
 class BaseCriterionPack:

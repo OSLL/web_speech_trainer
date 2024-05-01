@@ -1,4 +1,4 @@
-import logging
+from app.root_logger import get_root_logger
 import math
 import traceback
 from typing import Optional, Callable
@@ -6,6 +6,7 @@ from typing import Optional, Callable
 from app.audio import Audio
 from app.utils import get_types
 
+logger = get_root_logger()
 
 def check_criterions(criterions):
     try:
@@ -17,7 +18,7 @@ def check_criterions(criterions):
             criterion, msg = create_empty_criterion_by_structure(
                 criterion_class, structure)
             if not criterion:
-                logging.error(
+                logger.error(
                     f"Can't create instance of {criterion_name} with structure {structure}. Error message: {msg}")
                 all_ok = False
                 continue

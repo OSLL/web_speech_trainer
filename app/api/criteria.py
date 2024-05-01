@@ -1,6 +1,5 @@
 from bson import ObjectId
 from flask import Blueprint, request
-import logging
 from json import dumps
 
 from app.check_access import check_access

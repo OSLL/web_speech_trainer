@@ -1,4 +1,4 @@
-import logging
+from app.root_logger import get_root_logger
 from app.criteria_pack import CriteriaPackFactory
 from bson.objectid import ObjectId
 
@@ -10,7 +10,8 @@ from app.mongo_odm import ConsumersDBManager, PresentationFilesDBManager, Sessio
 from app.utils import ALLOWED_EXTENSIONS, DEFAULT_EXTENSION, check_argument_is_convertible_to_object_id
 
 routes_lti = Blueprint('routes_lti', __name__)
-logger = logging.getLogger('root_logger')
+logger = get_root_logger()
+
 
 
 @routes_lti.route('/lti', methods=['POST'])

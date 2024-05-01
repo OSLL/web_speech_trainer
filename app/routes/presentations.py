@@ -1,4 +1,4 @@
-import logging
+from app.root_logger import get_root_logger
 
 from flask import Blueprint, redirect, url_for, render_template
 
@@ -9,7 +9,8 @@ from app.mongo_odm import TrainingsDBManager
 from app.status import TrainingStatus
 
 routes_presentations = Blueprint('routes_presentations', __name__)
-logger = logging.getLogger('root_logger')
+logger = get_root_logger()
+
 
 
 @routes_presentations.route('/handle_presentation_upload/', methods=['POST'])

@@ -2,7 +2,6 @@ import logging
 import sys
 from datetime import datetime
 
-from app.mongo_odm import LogsDBManager
 from app.utils import is_testing_active
 
 
@@ -15,6 +14,7 @@ class MongoDBLoggingHandler(logging.StreamHandler):
     def emit(self, record):
         if not record.msg or is_testing_active():
             return
+        from app.mongo_odm import LogsDBManager
         LogsDBManager().add_log(timestamp=datetime.now(),
                                 serviceName=self.service_name,
                                 levelname=record.levelname,
@@ -34,10 +34,11 @@ def get_logging_stdout_handler():
     return logging_stdout_handler
 
 
-def get_root_logger(service_name):
+def get_root_logger(service_name='root_logger'):
     root_logger = logging.getLogger('root_logger')
     root_logger.setLevel(logging.DEBUG)
-    root_logger.addHandler(get_logging_stdout_handler())
-    root_logger.addHandler(MongoDBLoggingHandler(service_name))
+    if not root_logger.hasHandlers():
+        root_logger.addHandler(get_logging_stdout_handler())
+        root_logger.addHandler(MongoDBLoggingHandler(service_name))
     root_logger.propagate = False
     return root_logger

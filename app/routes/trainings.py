@@ -1,5 +1,5 @@
 from datetime import datetime
-import logging
+from app.root_logger import get_root_logger
 import time
 import os
 import pytz
@@ -18,7 +18,8 @@ from app.status import TrainingStatus, AudioStatus, PresentationStatus
 from app.utils import check_arguments_are_convertible_to_object_id
 
 routes_trainings = Blueprint('routes_trainings', __name__)
-logger = logging.getLogger('root_logger')
+logger = get_root_logger()
+
 
 
 @check_arguments_are_convertible_to_object_id

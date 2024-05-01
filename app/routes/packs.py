@@ -1,4 +1,4 @@
-import logging
+from app.root_logger import get_root_logger
 from json import dumps
 
 from app.api.criteria_pack import get_all_criterion_packs
@@ -8,7 +8,8 @@ from flask import Blueprint, render_template
 
 routes_criteria_pack = Blueprint(
     'routes_criteria_pack', __name__, url_prefix='/criteria_pack')
-logger = logging.getLogger('root_logger')
+logger = get_root_logger()
+
 
 
 @routes_criteria_pack.route('/create/', methods=['GET'])

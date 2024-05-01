@@ -1,4 +1,4 @@
-import logging
+from app.root_logger import get_root_logger
 
 from bson import ObjectId
 from flask import Blueprint, make_response, request, send_file, session
@@ -11,7 +11,8 @@ from app.utils import safe_strtobool, check_file_mime, get_presentation_file_pre
     check_arguments_are_convertible_to_object_id, convert_to_pdf, is_convertible
 
 api_files = Blueprint('api_files', __name__)
-logger = logging.getLogger('root_logger')
+logger = get_root_logger()
+
 
 @check_arguments_are_convertible_to_object_id
 @api_files.route('/api/files/presentation-records/<presentation_record_file_id>/', methods=['GET'])

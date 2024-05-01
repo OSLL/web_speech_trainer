@@ -1,4 +1,4 @@
-import logging
+from app.root_logger import get_root_logger
 
 from bson import ObjectId
 from flask import Blueprint
@@ -9,7 +9,8 @@ from app.mongo_odm import TrainingsDBManager, DBManager
 from app.utils import check_arguments_are_convertible_to_object_id
 
 api_audio = Blueprint('api_audio', __name__)
-logger = logging.getLogger('root_logger')
+logger = get_root_logger()
+
 
 
 @check_arguments_are_convertible_to_object_id

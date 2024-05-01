@@ -1,4 +1,4 @@
-import logging
+from app.root_logger import get_root_logger
 import time
 import json
 import os
@@ -20,7 +20,8 @@ from app.utils import remove_blank_and_none, check_arguments_are_convertible_to_
 from app.localisation import *
 
 api_trainings = Blueprint('api_trainings', __name__)
-logger = logging.getLogger('root_logger')
+logger = get_root_logger()
+
 
 
 @check_arguments_are_convertible_to_object_id
@@ -395,7 +396,8 @@ def get_training(training_id) -> (dict, int):
 
 @api_trainings.route('/api/trainings/count-page', methods=['GET'])
 def get_count_page() -> (dict, int):
-    username = request.args.get('username', None)
+    filters = json.loads(request.args.get('filters', "{}"))
+    username = filters.get('username')
 
     countItems = request.args.get('count')
     if not countItems:
@@ -404,10 +406,8 @@ def get_count_page() -> (dict, int):
         countItems = int(countItems)
 
     authorized = check_auth() is not None
-    if not (check_admin() or (authorized and session.get('session_id') == username)):
+    if not (check_admin() or (authorized and [session.get('session_id')] == username)):
         return {}, 404
-
-    filters = json.loads(request.args.get('filters', "{}"))
 
     count = GetAllTrainingsFilterManager().count_page_with_filters(filters, countItems)
     result = {"count": count}
@@ -422,7 +422,8 @@ def get_all_trainings() -> (dict, int):
         an empty dictionary with 404 HTTP code if access was denied.
     """
 
-    username = request.args.get('username', None)
+    filters = json.loads(request.args.get('filters', "{}"))
+    username = filters.get('username')
 
     number_page = request.args.get('page')
     if not number_page:
@@ -439,10 +440,8 @@ def get_all_trainings() -> (dict, int):
     print(number_page, count_items)
 
     authorized = check_auth() is not None
-    if not (check_admin() or (authorized and session.get('session_id') == username)):
+    if not (check_admin() or (authorized and [session.get('session_id')] == username)):
         return {}, 404
-
-    filters = json.loads(request.args.get('filters', "{}"))
 
     trainings = GetAllTrainingsFilterManager().query_with_filters(filters, number_page, count_items)
 

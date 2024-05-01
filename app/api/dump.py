@@ -1,6 +1,6 @@
 from flask import Blueprint, send_file
 from datetime import datetime
-import logging
+from app.root_logger import get_root_logger
 import os
 import subprocess
 from werkzeug.utils import secure_filename
@@ -10,7 +10,8 @@ from app.lti_session_passback.auth_checkers import check_admin
 
 
 api_dump = Blueprint('api_dump', __name__)
-logger = logging.getLogger('root_logger')
+logger = get_root_logger()
+
 
 backup_filenames = ('backup.zip', 'backup_nochunks.zip')
 

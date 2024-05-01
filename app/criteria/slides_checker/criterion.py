@@ -1,4 +1,4 @@
-import logging
+from app.root_logger import get_root_logger
 import requests
 import time
 import traceback
@@ -12,7 +12,8 @@ from ..utils import get_proportional_result
 from lti.tool_consumer import ToolConsumer
 
 
-logger = logging.getLogger('root_logger')
+logger = get_root_logger()
+
 
 
 class SlidesCheckerCriterion(BaseCriterion):
