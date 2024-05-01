@@ -34,7 +34,8 @@ pack_configuration = {
         [['SimpleNumberSlidesCriterion', 0.05],
          ['SlidesCheckerCriterion', 0.95]],
     'ComparisonPack':
-    [['ComparisonSpeechSlidesCriterion', 1]]
+    [['ComparisonSpeechSlidesCriterion', 0.5],
+     ['ComparisonWholeSpeechCriterion', 0.5]]
 }
 
 
