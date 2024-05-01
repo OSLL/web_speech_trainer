@@ -7,7 +7,7 @@ from ..criterion_result import CriterionResult
 from app.audio import Audio
 from app.presentation import Presentation
 from app.utils import normalize_text, delete_punctuation
-from ..text_comparison import tfidf_similarity, word2vec_similarity, n_gramms_similarity
+from ..text_comparison import SlidesSimilarityEvaluator
 
 logger = get_root_logger('web')
 
@@ -26,6 +26,7 @@ class ComparisonSpeechSlidesCriterion(BaseCriterion):
             parameters=parameters,
             dependent_criteria=dependent_criteria,
         )
+        self.evaluator = SlidesSimilarityEvaluator()
 
     @property
     def description(self):
@@ -34,8 +35,8 @@ class ComparisonSpeechSlidesCriterion(BaseCriterion):
             "Описание": t(
                 "Проверяет, что текст слайда соответствует словам, которые произносит студент во время демонстрации "
                 "этого слайда"),
-            # TODO Проработать критерий оценки
-            "Оценка": t("COMMING SOON")
+            "Оценка": t("1, если среднее значение соответствия речи содержимому слайдов равно или превосходит 0.125, "
+                        "иначе 8 * r, где r - среднее значение соответствия речи демонстрируемым слайдам")
         }
 
     def skip_slide(self, current_slide_text: str) -> bool:
@@ -46,9 +47,10 @@ class ComparisonSpeechSlidesCriterion(BaseCriterion):
 
     def apply(self, audio: Audio, presentation: Presentation, training_id: ObjectId,
               criteria_results: dict) -> CriterionResult:
-        tf_idf = []
-        word2vec = []
-        n_grams = []
+        # Результаты сравнения текстов
+        results = {}
+
+        slides_to_process = []
 
         for current_slide_index in range(len(audio.audio_slides)):
             # Список слов, сказанных студентом на данном слайде -- список из RecognizedWord
@@ -57,6 +59,11 @@ class ComparisonSpeechSlidesCriterion(BaseCriterion):
             current_slide_speech = list(map(lambda x: x.word.value, current_slide_speech))
             # Нормализация текста выступления
             current_slide_speech = " ".join(normalize_text(current_slide_speech))
+
+            # Если на данном слайде ничего не сказано, то не обрабатываем данный слайд
+            if len(current_slide_speech.split()) == 0:
+                results[current_slide_index + 1] = 0.000
+                continue
 
             # Список слов со слайда презентации
             current_slide_text = presentation.slides[current_slide_index].words
@@ -67,26 +74,17 @@ class ComparisonSpeechSlidesCriterion(BaseCriterion):
 
             # Нормализация текста слайда
             current_slide_text = " ".join(normalize_text(current_slide_text.split()))
+            slides_to_process.append((current_slide_speech, current_slide_text, current_slide_index + 1))
 
-            # На этом слайде ничего не сказано или в презентации нет текста -- пропускаем
-            if len(current_slide_text.split()) == 0 or len(current_slide_speech.split()) == 0:
-                tf_idf.append(0.000)
-                word2vec.append(0.000)
-                n_grams.append(0.000)
-                continue
+        self.evaluator.train_model([" ".join(list(map(lambda x: x[0], slides_to_process))), " ".join(list(map(lambda x: x[1], slides_to_process)))])
 
-            # TF-IDF
-            tf_idf.append(tfidf_similarity(current_slide_speech, current_slide_text))
-            # word2vec
-            word2vec.append(word2vec_similarity(current_slide_speech, current_slide_text))
-            # n-gramms
-            n_grams.append(n_gramms_similarity(current_slide_speech,
-                                               current_slide_text,
-                                               self.parameters["n_values"],
-                                               self.parameters["weights"]))
+        for speech, slide_text, slide_number in slides_to_process:
+            results[slide_number] = self.evaluator.evaluate_semantic_similarity(speech, slide_text)
 
-        logger.info(f"TF-IDF: {tf_idf}\n")
-        logger.info(f"Word2Vec: {word2vec}\n")
-        logger.info(f"N-grams: {n_grams}\n")
+        results = dict(sorted(results.items()))
 
-        return CriterionResult(1.0, "Отлично")
+        score = 8 * (sum(list(results.values())) / len(list(results.values())))
+
+        return CriterionResult(1 if score >= 1 else score, "Отлично" if score >= 1 else "Следует уделить внимание "
+                                                                                        "соотвествию речи на слайдах "
+                                                                                        "{}".format(",\n".join([f"№{n} - {results[n]}" for n in dict(filter(lambda item: item[1] < 0.125, results.items()))])))
