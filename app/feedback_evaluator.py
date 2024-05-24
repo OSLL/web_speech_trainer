@@ -194,7 +194,7 @@ class PredefenceEightToTenMinutesNoSlideCheckFeedbackEvaluator(FeedbackEvaluator
             for necessary_criterion_name in necessary_criteria:
                 if necessary_criterion_name in criterion_name:
                     # if necessary_criterion_name exists and 0 -> training result 0, else -> continue
-                    if criteria_results[criterion_name].result == 0:
+                    if criteria_results[criterion_name].get('result', 0) == 0:
                         return None
                     necessary_criteria[necessary_criterion_name] = True
 
