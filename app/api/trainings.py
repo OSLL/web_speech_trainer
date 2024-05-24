@@ -440,9 +440,11 @@ def get_all_trainings() -> (dict, int):
     print(number_page, count_items)
 
     authorized = check_auth() is not None
-    if not (check_admin() or (authorized and [session.get('session_id')] == username)):
+    if not authorized:
         return {}, 404
-
+    elif not check_admin():
+        filters['username'] = [session.get('session_id')]
+        
     trainings = GetAllTrainingsFilterManager().query_with_filters(filters, number_page, count_items)
 
     trainings_json = {'trainings': {}}
