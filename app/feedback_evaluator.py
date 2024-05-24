@@ -162,14 +162,25 @@ class PredefenceEightToTenMinutesNoSlideCheckFeedbackEvaluator(FeedbackEvaluator
         super().__init__(name=PredefenceEightToTenMinutesNoSlideCheckFeedbackEvaluator.CLASS_NAME, weights=weights)
 
     def evaluate_feedback(self, criteria_results):
-        if not criteria_results.get("PredefenceStrictSpeechDurationCriterion") or \
-                criteria_results["PredefenceStrictSpeechDurationCriterion"].result == 0:
-            return Feedback(0)
-        if not criteria_results.get("DEFAULT_SPEECH_PACE_CRITERION") or \
-                criteria_results["DEFAULT_SPEECH_PACE_CRITERION"].result == 0:
-            return Feedback(0)
-        return super().evaluate_feedback(criteria_results)
+        necessary_criteria = {
+            "StrictSpeechDurationCriterion": False,
+            "DEFAULT_SPEECH_PACE_CRITERION": False
+        } 
 
+        # find all necessary_criteria in results
+        for criterion_name in criteria_results:
+            for necessary_criterion_name in necessary_criteria:
+                if necessary_criterion_name in criterion_name:
+                    # if necessary_criterion_name exists and 0 -> training result 0, else -> continue
+                    if criteria_results[criterion_name].result == 0
+                        return Feedback(0)
+                    necessary_criteria[necessary_criterion_name] = True
+
+        if all(necessary_criteria.values()):
+            return super().evaluate_feedback(criteria_results)
+        else:
+            return Feedback(0)
+    
     def get_result_as_sum_str(self, criteria_results):
         if criteria_results is None or self.weights is None or \
                 criteria_results.get("PredefenceStrictSpeechDurationCriterion", {}).get('result', 0) == 0 or \
