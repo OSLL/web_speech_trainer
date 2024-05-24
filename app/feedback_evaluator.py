@@ -172,7 +172,7 @@ class PredefenceEightToTenMinutesNoSlideCheckFeedbackEvaluator(FeedbackEvaluator
             for necessary_criterion_name in necessary_criteria:
                 if necessary_criterion_name in criterion_name:
                     # if necessary_criterion_name exists and 0 -> training result 0, else -> continue
-                    if criteria_results[criterion_name].result == 0
+                    if criteria_results[criterion_name].result == 0:
                         return Feedback(0)
                     necessary_criteria[necessary_criterion_name] = True
 
@@ -182,11 +182,26 @@ class PredefenceEightToTenMinutesNoSlideCheckFeedbackEvaluator(FeedbackEvaluator
             return Feedback(0)
     
     def get_result_as_sum_str(self, criteria_results):
-        if criteria_results is None or self.weights is None or \
-                criteria_results.get("PredefenceStrictSpeechDurationCriterion", {}).get('result', 0) == 0 or \
-                criteria_results.get("DEFAULT_SPEECH_PACE_CRITERION", {}).get('result', 0) == 0:
+        if criteria_results is None or self.weights is None:
             return None
-        return super().get_result_as_sum_str(criteria_results)
+        necessary_criteria = {
+            "StrictSpeechDurationCriterion": False,
+            "DEFAULT_SPEECH_PACE_CRITERION": False
+        } 
+
+        # find all necessary_criteria in results
+        for criterion_name in criteria_results:
+            for necessary_criterion_name in necessary_criteria:
+                if necessary_criterion_name in criterion_name:
+                    # if necessary_criterion_name exists and 0 -> training result 0, else -> continue
+                    if criteria_results[criterion_name].result == 0:
+                        return None
+                    necessary_criteria[necessary_criterion_name] = True
+
+        if all(necessary_criteria.values()):
+            return super().get_result_as_sum_str(criteria_results)
+        else:
+            return None
     
 
 FEEDBACK_EVALUATOR_CLASS_BY_ID = {
