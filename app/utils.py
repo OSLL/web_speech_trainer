@@ -1,4 +1,6 @@
 import os
+import string
+import re
 import tempfile
 from distutils.util import strtobool
 from threading import Timer
@@ -7,6 +9,8 @@ import fitz
 from bson import ObjectId
 from flask import json
 import magic
+import pymorphy2
+from nltk.corpus import stopwords
 from pydub import AudioSegment
 import subprocess
 
@@ -16,11 +20,11 @@ PDF_HEX_START = ['25', '50', '44', '46']
 SECONDS_PER_MINUTE = 60
 BYTES_PER_MEGABYTE = 1024 * 1024
 ALLOWED_MIMETYPES = {
-        'pdf': ['application/pdf'],
-        'ppt': ['application/vnd.ms-powerpoint'],
-        'odp': ['application/vnd.oasis.opendocument.presentation'],
-        'pptx': ['application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/zip']
-    }
+    'pdf': ['application/pdf'],
+    'ppt': ['application/vnd.ms-powerpoint'],
+    'odp': ['application/vnd.oasis.opendocument.presentation'],
+    'pptx': ['application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/zip']
+}
 CONVERTIBLE_EXTENSIONS = ('ppt', 'pptx', 'odp')
 ALLOWED_EXTENSIONS = set(ALLOWED_MIMETYPES.keys())
 DEFAULT_EXTENSION = 'pdf'
@@ -74,7 +78,7 @@ def convert_to_pdf(presentation_file):
     temp_file.write(presentation_file.read())
     temp_file.close()
     presentation_file.seek(0)
-    
+
     converted_file = None
     convert_cmd = f"soffice --headless --convert-to pdf --outdir {os.path.dirname(temp_file.name)} {temp_file.name}"
     if run_process(convert_cmd).returncode == 0:
@@ -136,9 +140,9 @@ def check_argument_is_convertible_to_object_id(arg):
             return {'message': '{} cannot be converted to ObjectId. {}: {}'.format(arg, e1.__class__, e1)}, 404
         except Exception as e2:
             return {
-                       'message': 'Some arguments cannot be converted to ObjectId or to str. {}: {}.'
-                       .format(e2.__class__, e2)
-                   }, 404
+                'message': 'Some arguments cannot be converted to ObjectId or to str. {}: {}.'
+                .format(e2.__class__, e2)
+            }, 404
 
 
 def check_arguments_are_convertible_to_object_id(f):
@@ -182,6 +186,29 @@ def check_dict_keys(dictionary, keys):
     return f"{msg}\n{dictionary}" if msg else ''
 
 
+# Функция нормализации текста
+def normalize_text(text: list) -> list:
+    table = str.maketrans("", "", string.punctuation)
+    morph = pymorphy2.MorphAnalyzer()
+
+    # Замена знаков препинания на пустые строки, конвертация в нижний регистр и обрезание пробелов по краям
+    text = list(map(lambda x: x.translate(table).lower().strip(), text))
+    # Замена цифр и слов не на русском языке на пустые строки
+    text = list(map(lambda x: re.sub(r'[^А-яёЁ\s]', '', x), text))
+    # Удаление пустых строк
+    text = list(filter(lambda x: x.isalpha(), text))
+    # Приведение слов к нормальной форме
+    text = list(map(lambda x: morph.normal_forms(x)[0], text))
+    # Очистка от стоп-слов
+    text = list(filter(lambda x: x not in RussianStopwords().words, text))
+    return text
+
+
+# Удаление пунктуации из текста
+def delete_punctuation(text: str) -> str:
+    return text.translate(str.maketrans('', '', string.punctuation + "\t\n\r\v\f"))
+
+
 class RepeatedTimer:
     """
     Utility class to call a function with a given interval between the end and the beginning of consecutive calls
@@ -210,3 +237,18 @@ class RepeatedTimer:
     def stop(self):
         self._timer.cancel()
         self.is_running = False
+
+
+class Singleton(type):
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+        return cls._instances[cls]
+
+
+class RussianStopwords(metaclass=Singleton):
+
+    def __init__(self):
+        self.words = stopwords.words('russian')

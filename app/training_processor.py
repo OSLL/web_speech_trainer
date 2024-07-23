@@ -87,6 +87,10 @@ class TrainingProcessor:
 
 
 if __name__ == "__main__":
+    import nltk
+    nltk.download('stopwords')
+    nltk.download('punkt')
+    
     Config.init_config(sys.argv[1])
     training_processor = TrainingProcessor()
     training_processor.run()
