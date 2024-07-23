@@ -25,6 +25,8 @@ class ComparisonSpeechSlidesCriterion(BaseCriterion):
             dependent_criteria=dependent_criteria,
         )
         self.evaluator = SlidesSimilarityEvaluator()
+        if 'slide_speech_threshold' not in self.parameters:
+            self.parameters['slide_speech_threshold'] = 0.125
 
     @property
     def description(self):
@@ -33,8 +35,8 @@ class ComparisonSpeechSlidesCriterion(BaseCriterion):
             "Описание": t(
                 "Проверяет, что текст слайда соответствует словам, которые произносит студент во время демонстрации "
                 "этого слайда"),
-            "Оценка": t("1, если среднее значение соответствия речи содержимому слайдов равно или превосходит 0.125, "
-                        "иначе 8 * r, где r - среднее значение соответствия речи демонстрируемым слайдам")
+            "Оценка": t("1, если среднее значение соответствия речи содержимому слайдов равно или превосходит заданного порога (от 0 до 1), "
+                        "иначе r / значение порога, где r - среднее значение соответствия речи демонстрируемым слайдам")
         }
 
     def skip_slide(self, current_slide_text: str) -> bool:
@@ -81,8 +83,8 @@ class ComparisonSpeechSlidesCriterion(BaseCriterion):
 
         results = dict(sorted(results.items()))
 
-        score = 8 * (sum(list(results.values())) / len(list(results.values())))
+        score = (sum(list(results.values())) / len(list(results.values()))) / self.parameters['slide_speech_threshold']
 
         return CriterionResult(1 if score >= 1 else score, "Отлично" if score >= 1 else "Следует уделить внимание "
                                                                                         "соотвествию речи на слайдах "
-                                                                                        "{}".format(",\n".join([f"№{n} - {results[n]}" for n in dict(filter(lambda item: item[1] < 0.125, results.items()))])))
+                                                                                        "{}".format(",\n".join([f"№{n} - {results[n]}" for n in dict(filter(lambda item: item[1] < self.parameters['slide_speech_threshold'], results.items()))])))
