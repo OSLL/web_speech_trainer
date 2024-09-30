@@ -168,11 +168,7 @@ class PredefenceEightToTenMinutesNoSlideCheckFeedbackEvaluator(FeedbackEvaluator
                 return criteria
 
     def evaluate_feedback(self, criteria_results):
-        ssd_criterion = self.find_strict_speech_duration_criterion(criteria_results.keys())
-        if ssd_criterion:
-            # replace critetion weights
-            self.weights[ssd_criterion] = self.weights.pop('StrictSpeechDurationCriterion')
-            self.ssd_criterion = ssd_criterion
+        self.ssd_criterion = self.find_strict_speech_duration_criterion(criteria_results.keys())
         if not criteria_results.get(self.ssd_criterion) or \
                 criteria_results[self.ssd_criterion].result == 0:
             return Feedback(0)
