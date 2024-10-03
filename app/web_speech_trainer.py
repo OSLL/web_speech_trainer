@@ -1,7 +1,7 @@
 import logging
 import sys
 
-from flask import Flask, session
+from flask import Flask, session, render_template
 
 from app.api.audio import api_audio
 from app.api.criteria import api_criteria
@@ -86,6 +86,12 @@ def resubmit_failed_trainings():
         TrainingManager().add_training(current_training.pk)
 
 
+@app.route('/', methods=['GET'])
+def index():
+    return render_template('intro_page.html')
+
+
+
 @app.route('/init/', methods=['GET'])
 def init():
     """
@@ -140,7 +146,10 @@ if __name__ == '__main__':
     app.logger.propagate = False
     app.wsgi_app = ReverseProxied(app.wsgi_app)
     app.secret_key = Config.c.constants.app_secret_key
-
+    
+    app.config['BUG_REPORT_FORM'] = Config.c.bugreport.form_link
+    app.config['BUG_REPORT_MAIL'] = Config.c.bugreport.report_mail
+    
     # check correct criterions
     if not check_criterions(CRITERIONS):
         logging.critical("Criterion's checking failed! See traceback")

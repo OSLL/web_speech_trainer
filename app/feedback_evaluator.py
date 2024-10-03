@@ -152,18 +152,25 @@ class PredefenceEightToTenMinutesNoSlideCheckFeedbackEvaluator(FeedbackEvaluator
     FEEDBACK_EVALUATOR_ID = 6
 
     def __init__(self, weights=None):
+        self.ssd_criterion = None
         if weights is None:
             weights = {
-                "PredefenceStrictSpeechDurationCriterion": 0.6,
+                "StrictSpeechDurationCriterion": 0.6,
                 "DEFAULT_SPEECH_PACE_CRITERION": 0.2,
                 "DEFAULT_FILLERS_NUMBER_CRITERION": 0.2,
             }
 
         super().__init__(name=PredefenceEightToTenMinutesNoSlideCheckFeedbackEvaluator.CLASS_NAME, weights=weights)
 
+    def find_strict_speech_duration_criterion(self, criteria_keys, suffix='StrictSpeechDurationCriterion'):
+        for criteria in criteria_keys:
+            if suffix in criteria:
+                return criteria
+
     def evaluate_feedback(self, criteria_results):
-        if not criteria_results.get("PredefenceStrictSpeechDurationCriterion") or \
-                criteria_results["PredefenceStrictSpeechDurationCriterion"].result == 0:
+        self.ssd_criterion = self.find_strict_speech_duration_criterion(criteria_results.keys())
+        if not criteria_results.get(self.ssd_criterion) or \
+                criteria_results[self.ssd_criterion].result == 0:
             return Feedback(0)
         if not criteria_results.get("DEFAULT_SPEECH_PACE_CRITERION") or \
                 criteria_results["DEFAULT_SPEECH_PACE_CRITERION"].result == 0:
@@ -172,7 +179,7 @@ class PredefenceEightToTenMinutesNoSlideCheckFeedbackEvaluator(FeedbackEvaluator
 
     def get_result_as_sum_str(self, criteria_results):
         if criteria_results is None or self.weights is None or \
-                criteria_results.get("PredefenceStrictSpeechDurationCriterion", {}).get('result', 0) == 0 or \
+                criteria_results.get(self.ssd_criterion, {}).get('result', 0) == 0 or \
                 criteria_results.get("DEFAULT_SPEECH_PACE_CRITERION", {}).get('result', 0) == 0:
             return None
         return super().get_result_as_sum_str(criteria_results)
