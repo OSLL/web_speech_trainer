@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<link rel="stylesheet" href="/static/css/answer_training.css">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="question-container">
+        <button id="start-recording-button">
+            Начать запись
+        </button>
+        <div id="question">
+            <p>Вопрос?</p>
+        </div>
+        <div id="timer">
+            <p>Таймер: 60 сек</p>
+        </div>
+        <div class="controls">
+            <button id="next-button">
+                Следующий вопрос
+            </button>
+            <button id="retry-button">
+                Повторить
+            </button>
+        </div>
+        <div id="questions-count">
+            <p>Вопрос 1 из 5</p>
+        </div>
+    </div>
+    <div class="generated-face-container">
+        <p>Сгенерированное лицо</p>
+    </div>
+</div>
+<script 
+    src="{{ url_for('static', filename='js/answer_training.js') }}"
+></script>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends 'base.html' %} 
+{% block header %}
+<link rel="stylesheet" href="/static/css/answer_training_greeting.css">
+{% endblock %}
+{% block content %}
+<div class="base-container">
+    <h3>{{ t("Задание для тренировки") }}</h3>
+    <h3>{{ t("Описание задания") }}</h3>
+    <h3>{{ t("Проходной балл") }}</h3>
+    <h3>{{ t("Номер попытки") }}</h3>
+    <h3>{{ t("Номер тренировки") }}</h3>
+    <h3>{{ t("Сумма баллов за предыдущие тренировки") }}</h3>
+    <caption>{{ t("Набор критериев") }}</caption>
+    <table
+        id="criteria-table"
+        border=""
+    >
+        <tr>
+            <th>{{ t("Критерий") }}</th>
+            <th>{{ t("Описание") }}</th>
+            <th>{{ t("Оценка") }}</th>
+            <th>{{ t("Вес критерия") }}</th>
+        </tr>
+        </tr>
+        <tr>
+            <td>{{ t("Критерий 1") }}</td>
+            <td>{{ t("Описание критерия 1") }}</td>
+            <td>{{ t("Оценка критерия 1") }}</td>
+            <td>{{ t("Вес критерия 1") }}</td>
+        </tr>
+    </table>
+    <button
+        id="start-training-button"
+        type="button"
+        onclick="location.href='{{ url_for('routes_trainings.view_answer_training') }}'"
+    >{{ t("Начать") }}</button>
+</div>
+<script 
+    src="{{ url_for('static', filename='js/answer_training_greeting.js') }}"
+></script>
+{% endblock %}

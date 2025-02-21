@@ -213,3 +213,27 @@ def view_training_greeting():
         training_id=training_id,
         presentation_id=presentation_id
     )
+
+@routes_trainings.route('/answer_training_greeting/', methods=['GET'])
+def view_answer_training_greeting():
+
+    user_session = check_auth()
+
+    if not user_session:
+        return {}, 404
+
+    return render_template(
+        'answer_training_greeting.html'
+    ), 200
+
+@routes_trainings.route('/answer_training/', methods=['GET'])
+def view_answer_training():
+
+    user_session = check_auth()
+    
+    if not user_session:
+        return {}, 404
+    
+    return render_template(
+        'answer_training.html'
+    ), 200

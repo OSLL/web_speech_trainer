@@ -1,0 +1,48 @@
+body {
+    margin-left: 10px;
+}
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+.question-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 50%;
+    height: 500px;
+    flex-direction:column;
+}
+.generated-face-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 30%;
+    height: 500px;
+    border: 1px solid black;
+    margin-left: 20px;
+}
+#question {
+    text-align: center;
+    font-size: 24px;
+}
+#timer {
+    text-align: center;
+    font-size: 20px;
+}
+#questions-count {
+    text-align: center;
+    font-size: 20px;
+}
+#next-button{
+    margin-top: 10px;
+    width: 150px;
+    height: 30px;
+}
+#retry-button{
+    margin-top: 10px;
+    width: 150px;
+    height: 30px;
+}
