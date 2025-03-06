@@ -1,6 +1,6 @@
 from app.root_logger import get_root_logger
 
-from flask import Blueprint, redirect, url_for, render_template
+from flask import Blueprint, redirect, url_for, render_template, request
 
 from app.api.files import upload_presentation
 from app.api.trainings import add_training
@@ -35,6 +35,10 @@ def handle_presentation_upload():
         return add_training_response, add_training_response_code
     TrainingsDBManager().change_training_status_by_training_id(add_training_response['training_id'],
                                                                 TrainingStatus.IN_PROGRESS)
+    
+    if request.args.get('from') == 'answer_training_greeting':
+        return redirect(url_for('routes_trainings.view_answer_training'))
+
     return redirect(url_for(
         'routes_trainings.view_training',
         training_id=add_training_response['training_id'],

@@ -156,3 +156,25 @@ class Logs(MongoModel):
     filename = fields.CharField()
     funcName = fields.CharField()
     lineno = fields.IntegerField()
+
+class Questions(MongoModel):
+    question = fields.CharField()
+    answer = fields.CharField()
+    question_type = fields.CharField()
+    question_id = fields.CharField()
+    answer_id = fields.CharField()
+    last_update = fields.DateTimeField(default=datetime.now(timezone.utc))
+
+    def to_dict(self):
+        return dict(
+            question = self.question,
+            answer = self.answer,
+            question_type = self.question_type,
+            question_id = self.question_id,
+            answer_id = self.answer_id,
+            last_update = int(self.last_update.timestamp()*1000)
+        )
+
+    def save(self):
+        self.last_update = datetime.now(timezone.utc)
+        super().save()

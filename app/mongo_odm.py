@@ -23,7 +23,7 @@ from app.mongo_models import (AudioToRecognize, Consumers, Criterion, CriterionP
                               RecognizedAudioToProcess,
                               RecognizedPresentationsToProcess, Sessions,
                               TaskAttempts, TaskAttemptsToPassBack, Tasks,
-                              Trainings, TrainingsToProcess)
+                              Trainings, TrainingsToProcess, Questions)
 from app.status import (AudioStatus, PassBackStatus, PresentationStatus,
                         TrainingStatus)
 from app.utils import remove_blank_and_none
@@ -877,3 +877,44 @@ class CriterionPackDBManager:
 
     def get_all_criterion_packs(self):
         return CriterionPack.objects.all().order_by([("name", pymongo.ASCENDING)])
+
+class QuestionsDBManager:
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super(QuestionsDBManager, cls).__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
+        return cls.instance
+    
+    def add_question(self, question, answer, question_type, question_id, answer_id):
+        new_question = Questions(
+            question=question,
+            answer=answer,
+            question_type=question_type,
+            question_id=question_id,
+            answer_id=answer_id
+        )
+        new_question.save()
+        logger.info(f'Add question with id = {question_id}')
+        return new_question
+    
+    def get_question_by_id(self, question_id):
+        try:
+            return Questions.objects.get({'question_id': question_id})
+        except Questions.DoesNotExist:
+            logger.warning(f'No question with question_id = {question_id}')
+            return None
+        except ValidationError as e:
+            logger.warning(f'Invalid question_id = {question_id}, {e}')
+            return None
+        
+    def get_all_questions(self):
+        return Questions.objects.all()
+    
+    def delete_question(self, question_id):
+        question = self.get_question_by_id(question_id)
+        if question is None:
+            return None
+        question.delete()
+        logger.info(f'Deleted question with question_id = {question_id}')
+        return True

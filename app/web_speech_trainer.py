@@ -13,6 +13,7 @@ from app.api.presentations import api_presentations
 from app.api.sessions import api_sessions
 from app.api.task_attempts import api_task_attempts
 from app.api.trainings import api_trainings
+from app.api.questions import api_questions_trainings
 from app.api.version import api_version
 from app.config import Config
 from app.criteria import CRITERIONS, check_criterions
@@ -45,6 +46,7 @@ app.register_blueprint(api_presentations)
 app.register_blueprint(api_sessions)
 app.register_blueprint(api_task_attempts)
 app.register_blueprint(api_trainings)
+app.register_blueprint(api_questions_trainings)
 app.register_blueprint(api_version)
 app.register_blueprint(routes_admin)
 app.register_blueprint(routes_criterion)
