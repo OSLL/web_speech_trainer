@@ -221,19 +221,30 @@ def view_answer_training_greeting():
 
     if not user_session:
         return {}, 404
+    
+    # username = session.get('session_id')
+    # task_id = session.get('task_id')
+
+    # task_db = TasksDBManager().get_task(task_id)
+    # if task_db is None:
+    #     return {'message': f'No task with id {task_id}.'}, 404
 
     return render_template(
         'answer_training_greeting.html'
     ), 200
 
-@routes_trainings.route('/answer_training/', methods=['GET'])
-def view_answer_training():
+@routes_trainings.route('/answer_training/<training_id>/', methods=['GET'])
+def view_answer_training(training_id: str):
 
     user_session = check_auth()
     
     if not user_session:
         return {}, 404
     
+    if not check_access({'_id': ObjectId(training_id)}):
+        return {}, 404
+
     return render_template(
-        'answer_training.html'
+        'answer_training.html',
+        training_id=training_id
     ), 200

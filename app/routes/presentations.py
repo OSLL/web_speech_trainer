@@ -37,7 +37,10 @@ def handle_presentation_upload():
                                                                 TrainingStatus.IN_PROGRESS)
     
     if request.args.get('from') == 'answer_training_greeting':
-        return redirect(url_for('routes_trainings.view_answer_training'))
+        return redirect(url_for(
+            'routes_trainings.view_answer_training',
+            training_id=add_training_response['training_id'],
+        ))
 
     return redirect(url_for(
         'routes_trainings.view_training',

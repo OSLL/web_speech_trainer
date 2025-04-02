@@ -1,6 +1,6 @@
 let questions = []
-let questionsTime = []
 let currentQuestionIndex = 0
+let questionsTime
 let timer
 let timeLeft
 
@@ -8,9 +8,14 @@ let gumStream,
     recorder,
     input,
     encodeAfterRecord = true,
-    currentTimestamp
+    currentTimestamp,
+    trainingId
 let isRecording = false
 let isRecordingCompleted = false
+
+function setupTraining(trainingId_) {
+    trainingId = trainingId_
+}
 
 $(document).ready(function() {
     let timerElement = $('#timer')
@@ -21,17 +26,20 @@ $(document).ready(function() {
     let startRecordingButton = $('#start-recording-button')
 
     function fetchQuestionsAndTime() {
+        const sec = 60
+        const count = 5
+
         $.ajax({
-            url: '/api/get_questions_and_time/',
+            url: `/api/get_questions_and_time/?sec=${sec}&count=${count}`,
             method: 'GET',
             dataType: 'json',
             success: function(data) {
                 questions = data.questions.map(q => q.text)
-                questionsTime = data.questions.map(q => q.time_for_answer)
+                questionsTime = data.sec
                 updateQuestion()
             },
             error: function(error) {
-                console.error('Error fetching questions and time:', error)
+                console.error('Error:', error)
             }
         })
     }
@@ -40,6 +48,7 @@ $(document).ready(function() {
         if (isRecording) return
         isRecording = true
         isRecordingCompleted = false
+        currentTimestamp = Date.now()
         navigator.mediaDevices.getUserMedia({ audio: true })
             .then(function(stream) {
                 gumStream = stream
@@ -54,7 +63,7 @@ $(document).ready(function() {
                     isRecordingCompleted = true
                     startRecordingButton.text('Начать запись').off('click').on('click', startRecording)
                     nextButton.removeAttr('disabled')
-                    nextButton.removeAttr('disabled')
+                    saveRecording(blob)
                 }
 
                 recorder.setOptions({
@@ -84,12 +93,12 @@ $(document).ready(function() {
         startRecordingButton.text('Начать запись').off('click').on('click', startRecording)
         nextButton.removeAttr('disabled')
         retryButton.removeAttr('disabled')
-        timeLeft = questionsTime[currentQuestionIndex]
+        timeLeft = questionsTime
         timerElement.html(`<p>Таймер: ${timeLeft} сек</p>`)
     }
 
     function startTimer() {
-        timeLeft = questionsTime[currentQuestionIndex]
+        timeLeft = questionsTime
         timerElement.html(`<p>Таймер: ${timeLeft} сек</p>`)
         timer = setInterval(function() {
             timeLeft--
@@ -115,7 +124,7 @@ $(document).ready(function() {
     }
 
     function updateQuestion() {
-        timeLeft = questionsTime[currentQuestionIndex]
+        timeLeft = questionsTime
         timerElement.html(`<p>Таймер: ${timeLeft} сек</p>`)
         questionElement.html(`<p>${questions[currentQuestionIndex]}</p>`)
         questionsCountElement.html(`<p>Вопрос ${currentQuestionIndex + 1} из ${questions.length}</p>`)
@@ -131,8 +140,30 @@ $(document).ready(function() {
         clearInterval(timer)
         isRecording = false
         isRecordingCompleted = false
-        timeLeft = questionsTime[currentQuestionIndex]
+        timeLeft = questionsTime
         timerElement.html(`<p>Таймер: ${timeLeft} сек</p>`)
+    }
+
+    function saveRecording(blob) {
+        let fd = new FormData()
+        fd.append("answerRecord", blob)
+        fd.append("answerRecordDuration", ((Date.now() - currentTimestamp) / 1000).toString())
+        console.log(currentTimestamp)
+        console.log(fd.get("answerRecordDuration"))
+        fetch(`/api/answer_training/records/${trainingId}/`, {method: "POST", body: fd})
+        .then(response => console.log(response))
+        // .then(response => response.json())
+        // .then(responseJson => {
+        //     if (responseJson["message"] === "OK") {
+        //         fetch(`/api/trainings/${trainingId}/`, {method: "POST"})
+        //             .then(response => response.json())
+        //             .then(innerResponseJson => {
+        //                 if (innerResponseJson["message"] === "OK") {
+        //                     location.href = `/trainings/statistics/${trainingId}/`
+        //                 }
+        //             })
+        //     }
+        // })
     }
 
     function finish() {

@@ -23,7 +23,8 @@ from app.mongo_models import (AudioToRecognize, Consumers, Criterion, CriterionP
                               RecognizedAudioToProcess,
                               RecognizedPresentationsToProcess, Sessions,
                               TaskAttempts, TaskAttemptsToPassBack, Tasks,
-                              Trainings, TrainingsToProcess, Questions)
+                              Trainings, TrainingsToProcess, Questions, AnswerTrainings,
+                              AnswerRecords)
 from app.status import (AudioStatus, PassBackStatus, PresentationStatus,
                         TrainingStatus)
 from app.utils import remove_blank_and_none
@@ -886,13 +887,10 @@ class QuestionsDBManager:
             cls.init_done = True
         return cls.instance
     
-    def add_question(self, question, answer, question_type, question_id, answer_id):
+    def add_question(self, question, question_id):
         new_question = Questions(
-            question=question,
-            answer=answer,
-            question_type=question_type,
             question_id=question_id,
-            answer_id=answer_id
+            question=question,
         )
         new_question.save()
         logger.info(f'Add question with id = {question_id}')
@@ -918,3 +916,74 @@ class QuestionsDBManager:
         question.delete()
         logger.info(f'Deleted question with question_id = {question_id}')
         return True
+    
+class AnswerRecordsDBManager:
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super(AnswerRecordsDBManager, cls).__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
+        return cls.instance
+
+    def add_record(self, training_id, record_file_id, record_file_duration):
+        new_answer_training = AnswerRecords(
+            training_id=training_id,
+            record_file_id=record_file_id,
+            record_file_duration=record_file_duration,
+        )
+        new_answer_training.save()
+        logger.info(f'Added answer training with training_id = {training_id}')
+        return new_answer_training
+
+    def get_record(self, training_id):
+        try:
+            return AnswerRecords.objects.get({'training_id': ObjectId(training_id)})
+        except AnswerRecords.DoesNotExist:
+            logger.warning(f'No answer training with training_id = {training_id}')
+            return None
+        except ValidationError as e:
+            logger.warning(f'Invalid training_id = {training_id}, {e}')
+            return None
+        
+    def get_all_record(self):
+        try:
+            return list(AnswerRecords.objects.all())
+        except Exception as e:
+            logger.error(f'Error retrieving all answer trainings: {e}')
+            return []
+
+class AnswerTrainingsDBManager:
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super(AnswerTrainingsDBManager, cls).__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
+        return cls.instance
+
+    def add_answer_training(self, task_attempt_id, username, full_name, file_id):
+        new_answer_training_id = AnswerTrainings(
+            task_attempt_id=task_attempt_id,
+            username=username,
+            full_name=full_name,
+            file_id=file_id
+        )
+        new_answer_training_id.save()
+        logger.info(f'Added answer training with task_attempt_id = {task_attempt_id}, username = {username}')
+        return new_answer_training_id
+
+    def get_answer_training(self, task_attempt_id):
+        try:
+            return AnswerTrainings.objects.get({'task_attempt_id': ObjectId(task_attempt_id)})
+        except AnswerTrainings.DoesNotExist:
+            logger.warning(f'No answer training with task_attempt_id = {task_attempt_id}')
+            return None
+        except ValidationError as e:
+            logger.warning(f'Invalid task_attempt_id = {task_attempt_id}, {e}')
+            return None
+
+    def get_all_answer_trainings(self):
+        try:
+            return list(AnswerTrainings.objects.all())
+        except Exception as e:
+            logger.error(f'Error retrieving all answer trainings: {e}')
+            return []

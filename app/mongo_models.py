@@ -157,24 +157,17 @@ class Logs(MongoModel):
     funcName = fields.CharField()
     lineno = fields.IntegerField()
 
+class AnswerTrainings(MongoModel):
+    task_attempt_id = fields.ObjectIdField(blank=True)
+    username = fields.CharField(blank=True)
+    full_name = fields.CharField(blank=True)
+    file_id = fields.ObjectIdField()
+
 class Questions(MongoModel):
     question = fields.CharField()
-    answer = fields.CharField()
-    question_type = fields.CharField()
     question_id = fields.CharField()
-    answer_id = fields.CharField()
-    last_update = fields.DateTimeField(default=datetime.now(timezone.utc))
 
-    def to_dict(self):
-        return dict(
-            question = self.question,
-            answer = self.answer,
-            question_type = self.question_type,
-            question_id = self.question_id,
-            answer_id = self.answer_id,
-            last_update = int(self.last_update.timestamp()*1000)
-        )
-
-    def save(self):
-        self.last_update = datetime.now(timezone.utc)
-        super().save()
+class AnswerRecords(MongoModel):
+    training_id = fields.ObjectIdField()
+    record_file_id = fields.ObjectIdField()
+    record_file_duration = fields.FloatField()
