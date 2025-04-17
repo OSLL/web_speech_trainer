@@ -11,17 +11,41 @@ api_questions_trainings = Blueprint('api_questions_trainings', __name__)
 logger = get_root_logger()
 
 
-@api_questions_trainings.route('/api/get_questions_and_time/', methods=['GET'])
-def get_questions_and_time():
-
+@api_questions_trainings.route('/api/get_questions_and_time/<training_id>/', methods=['GET'])
+def get_questions_and_time(training_id: str):
     user_session = check_auth()
     if not user_session:
         return {'message': 'Unauthorized'}, 401
-    
+
     seconds = request.args.get('sec', default=60, type=int)
     count = request.args.get('count', default=5, type=int)
 
-    questions = QuestionsDBManager().get_all_questions()
+    existing_questions = QuestionsDBManager().get_question_by_training_id(training_id)
+    if existing_questions:
+        questions_list = [{'text': q.question} for q in existing_questions[:count]]
+        return {
+            'questions': questions_list,
+            'message': 'OK',
+            'sec': seconds,
+            'count': count
+        }, 200
+    
+    new_questions = [
+        {'question_id': ObjectId(), 'question': 'Вопрос 1'},
+        {'question_id': ObjectId(), 'question': 'Вопрос 2'},
+        {'question_id': ObjectId(), 'question': 'Вопрос 3'},
+        {'question_id': ObjectId(), 'question': 'Вопрос 4'},
+        {'question_id': ObjectId(), 'question': 'Вопрос 5'},
+    ]
+
+    for question in new_questions:
+        QuestionsDBManager().add_question(
+            training_id=ObjectId(training_id),
+            question_id=question['question_id'],
+            question=question['question']
+        )
+
+    questions = QuestionsDBManager().get_question_by_training_id(training_id)
     questions_list = [{'text': q.question} for q in questions[:count]]
 
     return {
@@ -51,6 +75,32 @@ def add_answer_training_record(training_id: str):
 
     return {'message': 'OK'}, 200
 
+@api_questions_trainings.route('/api/training/<training_id>/questions_and_records', methods=['GET'])
+def get_questions_and_records(training_id: str):
+    user_session = check_auth()
+    if not user_session:
+        return {'message': 'Unauthorized'}, 401
+    
+    questions = QuestionsDBManager().get_questions_by_id(training_id)
+    questions_list = [{'id': str(q.id), 'text': q.question} for q in questions]
+
+    records = AnswerRecordsDBManager().get_records_by_training_id(training_id)
+    records_list = [
+        {
+            'id': str(record.id),
+            'file_id': str(record.record_file_id),
+            'duration': record.record_file_duration
+        }
+        for record in records
+    ]
+
+    return {
+        'training_id': training_id,
+        'questions': questions_list,
+        'records': records_list,
+        'message': 'OK'
+    }, 200
+
 # testing
 @api_questions_trainings.route('/api/answer_training/all_records', methods=['GET'])
 def get_answer_trainings():
@@ -68,48 +118,3 @@ def get_answer_trainings():
     return {
         'answer_training_records': answer_training_list
     }, 200
-
-# testing
-@api_questions_trainings.route('/api/add_test_questions/', methods=['GET'])
-def add_question():
-    user_session = check_auth()
-    if not user_session:
-        return {'message': 'Unauthorized'}, 401
-
-    QuestionsDBManager().add_question(
-        question_id='1',
-        question='Вопрос 1'
-    )
-    QuestionsDBManager().add_question(
-        question_id='2',
-        question='Вопрос 2'
-    )
-    QuestionsDBManager().add_question(
-        question_id='3',
-        question='Вопрос 3'
-    )
-    QuestionsDBManager().add_question(
-        question_id='4',
-        question='Вопрос 4'
-    )
-    QuestionsDBManager().add_question(
-        question_id='5',
-        question='Вопрос 5'
-    )
-
-    return {'message': 'added'}, 200
-
-# testing
-@api_questions_trainings.route('/api/delete_test_questions/', methods=['GET'])
-def delete_question():
-    user_session = check_auth()
-    if not user_session:
-        return {'message': 'Unauthorized'}, 401
-
-    QuestionsDBManager().delete_question('1')
-    QuestionsDBManager().delete_question('2')
-    QuestionsDBManager().delete_question('3')
-    QuestionsDBManager().delete_question('4')
-    QuestionsDBManager().delete_question('5')
-
-    return {'message': 'deleted'}, 200

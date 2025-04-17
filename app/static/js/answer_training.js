@@ -30,7 +30,7 @@ $(document).ready(function() {
         const count = 5
 
         $.ajax({
-            url: `/api/get_questions_and_time/?sec=${sec}&count=${count}`,
+            url: `/api/get_questions_and_time/${trainingId}/?sec=${sec}&count=${count}`,
             method: 'GET',
             dataType: 'json',
             success: function(data) {
@@ -152,22 +152,14 @@ $(document).ready(function() {
         console.log(fd.get("answerRecordDuration"))
         fetch(`/api/answer_training/records/${trainingId}/`, {method: "POST", body: fd})
         .then(response => console.log(response))
-        // .then(response => response.json())
-        // .then(responseJson => {
-        //     if (responseJson["message"] === "OK") {
-        //         fetch(`/api/trainings/${trainingId}/`, {method: "POST"})
-        //             .then(response => response.json())
-        //             .then(innerResponseJson => {
-        //                 if (innerResponseJson["message"] === "OK") {
-        //                     location.href = `/trainings/statistics/${trainingId}/`
-        //                 }
-        //             })
-        //     }
-        // })
     }
 
     function finish() {
-        alert('stop')
+        if (!trainingId) {
+            console.error("trainingId is not defined.")
+            return
+        }
+        window.location.href = `/answer_training/statistics/${trainingId}/`
     }
 
     startRecordingButton.on('click', startRecording)

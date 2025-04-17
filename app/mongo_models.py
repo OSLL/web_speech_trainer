@@ -164,8 +164,9 @@ class AnswerTrainings(MongoModel):
     file_id = fields.ObjectIdField()
 
 class Questions(MongoModel):
+    training_id = fields.ObjectIdField()
+    question_id = fields.ObjectIdField()
     question = fields.CharField()
-    question_id = fields.CharField()
 
 class AnswerRecords(MongoModel):
     training_id = fields.ObjectIdField()

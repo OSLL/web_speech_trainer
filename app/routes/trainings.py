@@ -13,7 +13,8 @@ from app.check_access import check_access
 from app.criteria_pack import CriteriaPackFactory
 from app.feedback_evaluator import FeedbackEvaluatorFactory
 from app.lti_session_passback.auth_checkers import check_admin, check_auth
-from app.mongo_odm import CriterionPackDBManager, TasksDBManager, TaskAttemptsDBManager
+from app.mongo_odm import (CriterionPackDBManager, TasksDBManager, TaskAttemptsDBManager,
+                           QuestionsDBManager, AnswerRecordsDBManager)
 from app.status import TrainingStatus, AudioStatus, PresentationStatus
 from app.utils import check_arguments_are_convertible_to_object_id
 
@@ -221,13 +222,6 @@ def view_answer_training_greeting():
 
     if not user_session:
         return {}, 404
-    
-    # username = session.get('session_id')
-    # task_id = session.get('task_id')
-
-    # task_db = TasksDBManager().get_task(task_id)
-    # if task_db is None:
-    #     return {'message': f'No task with id {task_id}.'}, 404
 
     return render_template(
         'answer_training_greeting.html'
@@ -247,4 +241,35 @@ def view_answer_training(training_id: str):
     return render_template(
         'answer_training.html',
         training_id=training_id
+    ), 200
+
+@routes_trainings.route('/answer_training/statistics/<training_id>/', methods=['GET'])
+def view_answer_statistics(training_id: str):
+
+    user_session = check_auth()
+    
+    if not user_session:
+        return {}, 404
+    
+    if not check_access({'_id': ObjectId(training_id)}):
+        return {}, 404
+    
+    questions = QuestionsDBManager().get_question_by_training_id(training_id)
+    questions_list = [{'id': str(q.question_id), 'text': q.question} for q in questions]
+
+    records = AnswerRecordsDBManager().get_records_by_training_id(training_id)
+    records_list = [
+        {
+            'id': str(record.record_file_id),
+            'duration': record.record_file_duration,
+            'url': f'/api/files/answer-records/{record.record_file_id}'
+        }
+        for record in records
+    ]
+
+    return render_template(
+        'answer_statistics.html',
+        training_id=training_id,
+        questions=questions_list,
+        records=records_list
     ), 200

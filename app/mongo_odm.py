@@ -887,8 +887,9 @@ class QuestionsDBManager:
             cls.init_done = True
         return cls.instance
     
-    def add_question(self, question, question_id):
+    def add_question(self, training_id, question_id, question):
         new_question = Questions(
+            training_id=training_id,
             question_id=question_id,
             question=question,
         )
@@ -896,14 +897,14 @@ class QuestionsDBManager:
         logger.info(f'Add question with id = {question_id}')
         return new_question
     
-    def get_question_by_id(self, question_id):
+    def get_question_by_training_id(self, training_id):
         try:
-            return Questions.objects.get({'question_id': question_id})
+            return list(Questions.objects.raw({'training_id': ObjectId(training_id)}))
         except Questions.DoesNotExist:
-            logger.warning(f'No question with question_id = {question_id}')
+            logger.warning(f'No question with training_id = {training_id}')
             return None
         except ValidationError as e:
-            logger.warning(f'Invalid question_id = {question_id}, {e}')
+            logger.warning(f'Invalid training_id = {training_id}, {e}')
             return None
         
     def get_all_questions(self):
@@ -935,15 +936,12 @@ class AnswerRecordsDBManager:
         logger.info(f'Added answer training with training_id = {training_id}')
         return new_answer_training
 
-    def get_record(self, training_id):
+    def get_records_by_training_id(self, training_id):
         try:
-            return AnswerRecords.objects.get({'training_id': ObjectId(training_id)})
-        except AnswerRecords.DoesNotExist:
-            logger.warning(f'No answer training with training_id = {training_id}')
-            return None
-        except ValidationError as e:
-            logger.warning(f'Invalid training_id = {training_id}, {e}')
-            return None
+            return list(AnswerRecords.objects.raw({'training_id': ObjectId(training_id)}))
+        except Exception as e:
+            logger.error(f'Error retrieving records for training_id {training_id}: {e}')
+            return []
         
     def get_all_record(self):
         try:

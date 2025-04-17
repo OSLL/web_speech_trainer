@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/training_statistics.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="base-container">
+    <h3>id тренировки: {{ training_id }}</h3>
+    <h3>Список вопросов:</h3>
+    <ul>
+        {% for question in questions %}
+        <li>Вопрос ID: {{ question.id }} - {{ question.text }}</li>
+        {% endfor %}
+    </ul>
+    <h3>Список аудиозаписей:</h3>
+    <ul>
+        {% for record in records %}
+        <li>
+            Аудиозапись ID: {{ record.id }} - Длительность: {{ record.duration }} секунд
+            <audio controls>
+                <source src="{{ record.url }}" type="audio/mpeg">
+                Ваш браузер не поддерживает элемент <code>audio</code>.
+            </audio>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+
+<script src="{{ url_for('static', filename='js/libraries/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/answer_statistics.js') }}"></script>
+<script type="text/javascript">
+    setupTrainingId(training_id);
+</script>
+{% endblock %}
