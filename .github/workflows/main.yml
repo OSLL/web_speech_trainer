@@ -32,4 +32,4 @@ jobs:
       run: |
         docker ps -a
         docker compose logs
-        docker exec web_speech_trainer_web_1 bash -c 'cd /project/tests && pytest .'
+        docker exec web_speech_trainer-web-1 bash -c 'cd /project/tests && pytest .'
