@@ -22,14 +22,14 @@ jobs:
 
     - name: Build docker-compose
       run: |
-        docker-compose build
+        docker compose build
 
     - name: Run docker-compose
       run:
-        APP_CONF=../app_conf/testing.ini docker-compose up -d
+        APP_CONF=../app_conf/testing.ini docker compose up -d
 
     - name: Run tests
       run: |
         docker ps -a
-        docker-compose logs
+        docker compose logs
         docker exec web_speech_trainer_web_1 bash -c 'cd /project/tests && pytest .'
