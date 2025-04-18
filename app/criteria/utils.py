@@ -62,29 +62,21 @@ def get_proportional_result(value: float,
         return f(upper_bound / value)
 
 def get_fillers(fillers: list, audio: Audio) -> list:
-    # logger.info('GOT TO FILLERS')
     found_fillers = []
     for audio_slide in audio.audio_slides:
-        # logger.info('FROM FILLERS SLIDE {}'.format(audio_slide))
         found_slide_fillers = []
         audio_slide_words = [
             recognized_word.word.value.strip().lower().translate(str.maketrans('', '', string.punctuation)) 
             for recognized_word in audio_slide.recognized_words
             ]
-        # logger.info('FROM FILLERS: {}'.format(audio_slide_words))
         for i in range(len(audio_slide_words)):
-            # logger.info('FROM FILLERS: {}'.format(i))
             for filler in fillers:
                 filler_split = filler.split()
-                # logger.info('FROM FILLERS ITERATION: {}'.format(filler_split))
                 filler_length = len(filler_split)
-                # logger.info('FROM FILLERS ITERATION: {}'.format(filler_length))
                 if i + filler_length > len(audio_slide_words):
                     continue
-                # logger.info('FROM FILLERS ITERATION: {} and {}'.format(audio_slide_words[i: i + filler_length], filler_split))
                 if audio_slide_words[i: i + filler_length] == filler_split:
                     found_slide_fillers.append(filler)
-                    # break? or 'собственно' and after 'собственно говоря' = 2 fillers not 1?
         found_fillers.append(found_slide_fillers)
     return found_fillers
 
