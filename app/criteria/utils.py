@@ -65,6 +65,7 @@ def get_fillers(fillers: list, audio: Audio) -> list:
     found_fillers = []
     for audio_slide in audio.audio_slides:
         found_slide_fillers = []
+        # добавлена предобработка слов - перевод в нижний регистр, очистка от пунктуации
         audio_slide_words = [
             recognized_word.word.value.strip().lower().translate(str.maketrans('', '', string.punctuation)) 
             for recognized_word in audio_slide.recognized_words
