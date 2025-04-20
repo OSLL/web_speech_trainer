@@ -6,10 +6,13 @@ from app.mongo_odm import (QuestionsDBManager, AnswerTrainingsDBManager,
                             AnswerRecordsDBManager, DBManager, TaskAttemptsDBManager)
 from app.lti_session_passback.auth_checkers import check_auth
 from app.utils import check_arguments_are_convertible_to_object_id
+from app.tts.silero_tts import SileroTTS
+import soundfile as sf
+import io
 
 api_questions_trainings = Blueprint('api_questions_trainings', __name__)
 logger = get_root_logger()
-
+tts_engine = SileroTTS()
 
 @api_questions_trainings.route('/api/get_questions_and_time/<training_id>/', methods=['GET'])
 def get_questions_and_time(training_id: str):
@@ -31,22 +34,31 @@ def get_questions_and_time(training_id: str):
         }, 200
     
     new_questions = [
-        {'question_id': ObjectId(), 'question': 'Вопрос 1'},
-        {'question_id': ObjectId(), 'question': 'Вопрос 2'},
-        {'question_id': ObjectId(), 'question': 'Вопрос 3'},
-        {'question_id': ObjectId(), 'question': 'Вопрос 4'},
-        {'question_id': ObjectId(), 'question': 'Вопрос 5'},
+        {'question_id': ObjectId(), 'question': 'Первый Вопрос?'},
+        {'question_id': ObjectId(), 'question': 'Второй Вопрос?'},
+        {'question_id': ObjectId(), 'question': 'Третий Вопрос?'},
+        {'question_id': ObjectId(), 'question': 'Четвертый Вопрос?'},
+        {'question_id': ObjectId(), 'question': 'Пятый Вопрос?'}
     ]
 
     for question in new_questions:
+        audio_buffer = tts_engine.generate_audio(question['question'])
+        audio_file_id = DBManager().add_file(audio_buffer, filename=f"{question['question_id']}.wav")
+
         QuestionsDBManager().add_question(
             training_id=ObjectId(training_id),
             question_id=question['question_id'],
+            question_audio_id=audio_file_id,
             question=question['question']
         )
 
     questions = QuestionsDBManager().get_question_by_training_id(training_id)
-    questions_list = [{'text': q.question} for q in questions[:count]]
+    questions_list = [
+        {
+            'text': q.question,
+            'audio_url': f'/api/files/questions-audio/{q.question_audio_id}',
+        }
+        for q in questions[:count]]
 
     return {
         'questions': questions_list,

@@ -1,4 +1,5 @@
 let questions = []
+let questionsAudio = []
 let currentQuestionIndex = 0
 let questionsTime
 let timer
@@ -24,6 +25,7 @@ $(document).ready(function() {
     let nextButton = $('#next-button')
     let retryButton = $('#retry-button')
     let startRecordingButton = $('#start-recording-button')
+    let listenQuestionButton = $('#listen-question-button')
 
     function fetchQuestionsAndTime() {
         const sec = 60
@@ -35,6 +37,7 @@ $(document).ready(function() {
             dataType: 'json',
             success: function(data) {
                 questions = data.questions.map(q => q.text)
+                questionsAudio = data.questions.map(q => q.audio_url)
                 questionsTime = data.sec
                 updateQuestion()
             },
@@ -48,6 +51,7 @@ $(document).ready(function() {
         if (isRecording) return
         isRecording = true
         isRecordingCompleted = false
+        retryButton.attr('disabled', 'true')
         currentTimestamp = Date.now()
         navigator.mediaDevices.getUserMedia({ audio: true })
             .then(function(stream) {
@@ -63,6 +67,7 @@ $(document).ready(function() {
                     isRecordingCompleted = true
                     startRecordingButton.text('Начать запись').off('click').on('click', startRecording)
                     nextButton.removeAttr('disabled')
+                    retryButton.removeAttr('disabled')
                     saveRecording(blob)
                 }
 
@@ -77,11 +82,30 @@ $(document).ready(function() {
                 startTimer()
                 startRecordingButton.text('Закончить запись').off('click').on('click', stopRecording)
                 nextButton.attr('disabled', 'true')
-                retryButton.attr('disabled', 'true')
             })
             .catch(function(err) {
                 isRecording = false
+                retryButton.removeAttr('disabled')
             })
+    }
+
+    function playQuestionAudio() {
+        const audioUrl = questionsAudio[currentQuestionIndex]
+        if (!audioUrl) {
+            console.error('Audio URL not found for the current question.')
+            return
+        }
+
+        const audio = new Audio(audioUrl)
+        startRecordingButton.attr('disabled', 'true')
+
+        audio.play()
+            .then(() => {
+                audio.onended = () => {
+                    startRecordingButton.removeAttr('disabled')
+                }
+            })
+            .catch(err => console.error('Error playing audio:', err))
     }
 
     function stopRecording() {
@@ -136,22 +160,12 @@ $(document).ready(function() {
         nextButton.attr('disabled', 'true')
     }
 
-    function retryQuestion() {
-        clearInterval(timer)
-        isRecording = false
-        isRecordingCompleted = false
-        timeLeft = questionsTime
-        timerElement.html(`<p>Таймер: ${timeLeft} сек</p>`)
-    }
-
     function saveRecording(blob) {
         let fd = new FormData()
         fd.append("answerRecord", blob)
         fd.append("answerRecordDuration", ((Date.now() - currentTimestamp) / 1000).toString())
-        console.log(currentTimestamp)
-        console.log(fd.get("answerRecordDuration"))
         fetch(`/api/answer_training/records/${trainingId}/`, {method: "POST", body: fd})
-        .then(response => console.log(response))
+        // .then(response => console.log(response))
     }
 
     function finish() {
@@ -164,7 +178,7 @@ $(document).ready(function() {
 
     startRecordingButton.on('click', startRecording)
     nextButton.on('click', nextQuestion)
-    retryButton.on('click', retryQuestion)
+    retryButton.on('click', playQuestionAudio)
 
     fetchQuestionsAndTime()
 })

@@ -85,6 +85,37 @@ def get_answer_record_file(answer_record_file_id: str):
 
     return response, 200
 
+@check_arguments_are_convertible_to_object_id
+@api_files.route('/api/files/questions-audio/<question_audio_file_id>/', methods=['GET'])
+def get_question_audio_file(question_audio_file_id: str):
+    if not check_access({'question_audio_file_id': ObjectId(question_audio_file_id)}):
+        return {}, 404
+
+    question_audio_file = DBManager().get_file(question_audio_file_id)
+
+    if not question_audio_file:
+        return {
+            'message': f'No question audio file with question_audio_file_id = {question_audio_file_id}.',
+        }, 404
+
+    logger.debug(
+        f'Got question audio file with question_audio_file_id = {question_audio_file_id}.'
+    )
+
+    audiofile_len = question_audio_file.length
+
+    response = make_response(send_file(
+        question_audio_file,
+        download_name=f'{question_audio_file_id}.wav',
+        as_attachment=True,
+    ))
+
+    response.headers['accept-ranges'] = "bytes"
+    response.headers['Content-Length'] = audiofile_len
+    response.headers['Content-Range'] = f"bytes 0-{audiofile_len}/{audiofile_len - 1}"
+    response.headers['content-type'] = question_audio_file.content_type
+    
+    return response, 200
 
 @check_arguments_are_convertible_to_object_id
 @api_files.route('/api/files/presentations/by-training/<training_id>/', methods=['GET'])

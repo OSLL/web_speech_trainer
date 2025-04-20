@@ -166,6 +166,7 @@ class AnswerTrainings(MongoModel):
 class Questions(MongoModel):
     training_id = fields.ObjectIdField()
     question_id = fields.ObjectIdField()
+    question_audio_id = fields.ObjectIdField()
     question = fields.CharField()
 
 class AnswerRecords(MongoModel):

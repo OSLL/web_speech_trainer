@@ -887,10 +887,11 @@ class QuestionsDBManager:
             cls.init_done = True
         return cls.instance
     
-    def add_question(self, training_id, question_id, question):
+    def add_question(self, training_id, question_id, question_audio_id, question):
         new_question = Questions(
             training_id=training_id,
             question_id=question_id,
+            question_audio_id=question_audio_id,
             question=question,
         )
         new_question.save()

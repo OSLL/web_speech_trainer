@@ -28,3 +28,6 @@ ua-parser               ==0.18
 vext                    ==0.7.6
 scikit-learn            ==1.4.2
 gensim                  ==4.3.2
+torch                   ==2.0.0
+soundfile               ==0.12.1
+omegaconf               ==2.3.0
