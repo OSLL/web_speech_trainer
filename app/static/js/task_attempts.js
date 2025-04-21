@@ -26,7 +26,7 @@ function createTableHeaderElement() {
     trainingScoreHeaderElement.innerHTML = "score";
 
     const trainingStatusHeaderElement = document.createElement("th");
-    trainingStatusHeaderElement.innerHTML = "passed_back_status";
+    trainingStatusHeaderElement.innerHTML = "pass_back_status";
 
     const tableHeaderElement = document.createElement("tr");
 
