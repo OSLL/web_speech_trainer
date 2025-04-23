@@ -35,7 +35,12 @@ pack_configuration = {
          ['SlidesCheckerCriterion', 0.95]],
     'ComparisonPack':
     [['ComparisonSpeechSlidesCriterion', 0.5],
-     ['ComparisonWholeSpeechCriterion', 0.5]]
+     ['ComparisonWholeSpeechCriterion', 0.5]],
+    'QuestionAnsweringPack': [
+        ['AnswerDurationCriterion', 0.4],
+        ['AnswerSpeechPaceCriterion', 0.3],
+        ['DEFAULT_FILLERS_RATIO_CRITERION', 0.2]
+    ]
 }
 
 

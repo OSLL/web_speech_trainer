@@ -161,11 +161,15 @@ class AnswerTrainings(MongoModel):
     task_attempt_id = fields.ObjectIdField(blank=True)
     username = fields.CharField(blank=True)
     full_name = fields.CharField(blank=True)
-    file_id = fields.ObjectIdField()
+    presentation_file_id = fields.ObjectIdField()
+    feedback = fields.DictField(blank=True)
+    criteria_pack_id = fields.CharField()
+    feedback_evaluator_id = fields.IntegerField(blank=True)
+    question_ids = fields.ListField(fields.ObjectIdField(), blank=True, default=[])
+    answer_record_ids = fields.ListField(fields.ObjectIdField(), blank=True, default=[])
 
 class Questions(MongoModel):
     training_id = fields.ObjectIdField()
-    question_id = fields.ObjectIdField()
     question_audio_id = fields.ObjectIdField()
     question = fields.CharField()
 

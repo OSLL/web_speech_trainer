@@ -887,32 +887,38 @@ class QuestionsDBManager:
             cls.init_done = True
         return cls.instance
     
-    def add_question(self, training_id, question_id, question_audio_id, question):
+    def add_question(self, training_id, question_audio_id, question):
         new_question = Questions(
             training_id=training_id,
-            question_id=question_id,
             question_audio_id=question_audio_id,
-            question=question,
+            question=question
         )
         new_question.save()
-        logger.info(f'Add question with id = {question_id}')
+        logger.info(f'Add question with id = {new_question.pk}')
         return new_question
     
+    def get_question(self, question_id):
+        try:
+            return Questions.objects.get({'_id': ObjectId(question_id)})
+        except Questions.DoesNotExist:
+            logger.warning(f'No question with question_id = {question_id}')
+            return None
+        except ValidationError as e:
+            logger.warning(f'Invalid question_id = {question_id}, {e}')
+            return None
+        
     def get_question_by_training_id(self, training_id):
         try:
             return list(Questions.objects.raw({'training_id': ObjectId(training_id)}))
-        except Questions.DoesNotExist:
-            logger.warning(f'No question with training_id = {training_id}')
-            return None
-        except ValidationError as e:
-            logger.warning(f'Invalid training_id = {training_id}, {e}')
-            return None
+        except Exception as e:
+            logger.warning(f'Error retrieving questions for training_id = {training_id}: {e}')
+            return []
         
     def get_all_questions(self):
         return Questions.objects.all()
     
     def delete_question(self, question_id):
-        question = self.get_question_by_id(question_id)
+        question = self.get_question(question_id)
         if question is None:
             return None
         question.delete()
@@ -928,21 +934,24 @@ class AnswerRecordsDBManager:
         return cls.instance
 
     def add_record(self, training_id, record_file_id, record_file_duration):
-        new_answer_training = AnswerRecords(
+        new_answer_record = AnswerRecords(
             training_id=training_id,
             record_file_id=record_file_id,
-            record_file_duration=record_file_duration,
+            record_file_duration=record_file_duration
         )
-        new_answer_training.save()
-        logger.info(f'Added answer training with training_id = {training_id}')
-        return new_answer_training
+        new_answer_record.save()
+        logger.info(f'Added answer record with record_id = {new_answer_record.pk}')
+        return new_answer_record
 
-    def get_records_by_training_id(self, training_id):
+    def get_record(self, record_id):
         try:
-            return list(AnswerRecords.objects.raw({'training_id': ObjectId(training_id)}))
-        except Exception as e:
-            logger.error(f'Error retrieving records for training_id {training_id}: {e}')
-            return []
+            return AnswerRecords.objects.get({'_id': ObjectId(record_id)})
+        except AnswerRecords.DoesNotExist:
+            logger.warning(f'No answer record with record_id = {record_id}')
+            return None
+        except ValidationError as e:
+            logger.warning(f'Invalid record_id = {record_id}, {e}')
+            return None
         
     def get_all_record(self):
         try:
@@ -959,25 +968,35 @@ class AnswerTrainingsDBManager:
             cls.init_done = True
         return cls.instance
 
-    def add_answer_training(self, task_attempt_id, username, full_name, file_id):
+    def add_answer_training(
+            self,
+            task_attempt_id, 
+            username, 
+            full_name, 
+            presentation_file_id,
+            criteria_pack_id=None,
+            feedback_evaluator_id=None
+        ):
         new_answer_training_id = AnswerTrainings(
             task_attempt_id=task_attempt_id,
             username=username,
             full_name=full_name,
-            file_id=file_id
+            presentation_file_id=presentation_file_id,
+            criteria_pack_id=criteria_pack_id,
+            feedback_evaluator_id=feedback_evaluator_id
         )
         new_answer_training_id.save()
-        logger.info(f'Added answer training with task_attempt_id = {task_attempt_id}, username = {username}')
+        logger.info(f'Added answer training with training_id = {new_answer_training_id.pk}, username = {username}')
         return new_answer_training_id
 
-    def get_answer_training(self, task_attempt_id):
+    def get_answer_training(self, training_id):
         try:
-            return AnswerTrainings.objects.get({'task_attempt_id': ObjectId(task_attempt_id)})
+            return AnswerTrainings.objects.get({'_id': ObjectId(training_id)})
         except AnswerTrainings.DoesNotExist:
-            logger.warning(f'No answer training with task_attempt_id = {task_attempt_id}')
+            logger.warning(f'No answer training with training_id = {training_id}')
             return None
         except ValidationError as e:
-            logger.warning(f'Invalid task_attempt_id = {task_attempt_id}, {e}')
+            logger.warning(f'Invalid training_id = {training_id}, {e}')
             return None
 
     def get_all_answer_trainings(self):
@@ -986,3 +1005,13 @@ class AnswerTrainingsDBManager:
         except Exception as e:
             logger.error(f'Error retrieving all answer trainings: {e}')
             return []
+
+    def add_question_ids_to_training(training_id, question_ids):
+        training = AnswerTrainings.objects.get({'_id': ObjectId(training_id)})
+        training.question_ids.extend(question_ids)
+        training.save()
+
+    def add_record_id_to_training(training_id, record_id):
+        training = AnswerTrainings.objects.get({'_id': ObjectId(training_id)})
+        training.answer_record_ids.append(record_id)
+        training.save()

@@ -41,10 +41,28 @@ preconfigured_criterions = [
         dependent_criteria=[],
     ),
 
+    SpeechDurationCriterion(
+        name="AnswerDurationCriterion",
+        parameters={
+            'minimal_allowed_duration': 10,  
+            'maximal_allowed_duration': SECONDS_PER_MINUTE
+        },
+        dependent_criteria=[],
+    ),
+
     SpeechPaceCriterion(
         name="SimpleSpeechPaceCriterion",
         parameters={
             'minimal_allowed_pace': 50,
+            'maximal_allowed_pace': 100,
+        },
+        dependent_criteria=[],
+    ),
+
+    SpeechPaceCriterion(
+        name="AnswerSpeechPaceCriterion",
+        parameters={
+            'minimal_allowed_pace': 80,
             'maximal_allowed_pace': 100,
         },
         dependent_criteria=[],
