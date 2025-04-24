@@ -20,7 +20,7 @@
 }
 .tutorButtons{
     width: 80px;
-    height 30px;
+    height: 30px;
 }
 .model {
     display: none;
@@ -37,7 +37,7 @@
     background-color: #f2dede;
     margin: 15% auto;
     padding: 20px;
-    border: 1px solid #ebccd;
+    border: 1px solid #ebccd0;
     width: 50%;
     text-align: center;
     color: #a94442;
@@ -47,11 +47,13 @@
     display: flex;
     font-size: 18px;
     margin-top: 1%;
+    align-items: center;
+    gap: 30px;
 }
 .pulse{
     position: relative;
     text-align: center;
-    left: 25px;
+    /* left: 25px; */
     border-radius: 50%;
     background: #ff0000;
     width: 20px;

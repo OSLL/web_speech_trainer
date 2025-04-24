@@ -56,9 +56,13 @@ function startRecording() {
                 time++;
             }, 1000);
         }, 3000);
+
         let audioContext = new window.AudioContext();
         gumStream = stream;
         input = audioContext.createMediaStreamSource(stream);
+
+        startMicVisualizer(stream, audioContext);
+
         recorder = new WebAudioRecorder(input, {
             workerDir: "/static/js/libraries/WebAudioRecorder.js/",
             encoding: "mp3",
@@ -126,3 +130,91 @@ $(document).ready(function () {
         return "Do you really want to close?";
     };
 });
+
+function startMicVisualizer (stream, audioContext) {
+    const canvasElement = document.querySelector("#mic-visualizer-canvas");
+    const canvasVisializerCxt = canvasElement.getContext("2d");
+    const volumeLevelElement = document.querySelector("#volume-level-box");
+
+    const audioStream = audioContext.createMediaStreamSource( stream );
+    const analyser = audioContext.createAnalyser();
+    const fftSize = 128;
+
+    analyser.fftSize = fftSize;
+    audioStream.connect(analyser);
+
+    const bufferLength = analyser.frequencyBinCount;
+
+    let frequencyArray = new Uint8Array(bufferLength);
+
+    const setUpCanvas = function () {
+        canvasVisializerCxt.fillStyle = "rgb(255 255 255)";
+        canvasVisializerCxt.fillRect(0, 0, canvasElement.width, canvasElement.height);
+      
+        canvasVisializerCxt.lineWidth = 1.5;
+        canvasVisializerCxt.strokeStyle = "rgb(0 0 0)";
+      
+        canvasVisializerCxt.beginPath();
+    }
+
+    const doDraw = function () {
+        requestAnimationFrame(doDraw);
+
+        setUpCanvas();
+
+        const sliceWidth = (canvasElement.width * 1.0) / (bufferLength + 1);
+
+        canvasVisializerCxt.moveTo(0, canvasElement.height / 2);
+
+        let x = 0 + sliceWidth;
+
+        analyser.getByteFrequencyData(frequencyArray);
+
+        let direction = 1;
+
+        for (let i = 0; i < bufferLength; i++) {
+            const v = frequencyArray[i] / (canvasElement.height * 2);
+            const y = (v * canvasElement.height) / 2;
+        
+            canvasVisializerCxt.lineTo(x, canvasElement.height / 2 + y * direction);
+        
+            x += sliceWidth;
+            direction *= -1;
+        }
+
+        canvasVisializerCxt.lineTo(canvasElement.width, canvasElement.height / 2);
+        canvasVisializerCxt.stroke();
+    }
+    
+    const showVolume = function () {
+        setTimeout(showVolume, 500);
+
+        analyser.getByteFrequencyData(frequencyArray);
+        let total = 0
+
+        for(let i = 0; i < bufferLength; i++) {
+            let x = frequencyArray[i];
+            total += x * x;
+        }
+
+        const rms = Math.sqrt(total / bufferLength);
+        let db = 20 * ( Math.log(rms) / Math.log(10) );
+
+        db = Math.max(db, 0);
+
+        let status = "";
+
+        // добавить эти поля в локаль
+        if (db == 0) {
+            status = "Ваш микрофон не работает";
+        }
+        else if (db <= 35) { // или другое значение/проверка (например только по средним частотам)
+            status = "Пожалуйста, говорите громче"; // проверить, что пауза достаточно продолжительна
+        }
+
+        volumeLevelElement.innerHTML = `db: ${db.toFixed(1)} ${status}`;
+    }
+
+    doDraw();
+    showVolume();
+}
