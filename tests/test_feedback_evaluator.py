@@ -20,7 +20,7 @@ class TestPredefenceEightToTenMinutesNoSlideCheckFeedbackEvaluator:
                 "PredefenceStrictSpeechDurationCriterion": {'result': 0.5},
                 "DEFAULT_SPEECH_PACE_CRITERION": {'result': 0.7},
                 "DEFAULT_FILLERS_NUMBER_CRITERION": {'result': 0.9},
-            }, '0.600 * 0.50 + 0.200 * 0.70 + 0.200 * 0.90'),
+            }, '0.200 * 0.70 + 0.200 * 0.90 + 0.600 * 0.50'),
         ],
     )
     def test_get_result_as_sum_str(self, criteria_results, expected_string):
