@@ -63,13 +63,18 @@ def get_proportional_result(value: float,
 
 def get_fillers(fillers: list, audio: Audio) -> list:
     found_fillers = []
+    # пунктуация + пробелы для str.translate
+    removable = string.punctuation + string.whitespace
+    translation_table = str.maketrans('', '', removable)
+    
     for audio_slide in audio.audio_slides:
         found_slide_fillers = []
         # добавлена предобработка слов - перевод в нижний регистр, очистка от пунктуации
         audio_slide_words = [
-            recognized_word.word.value.strip().lower().translate(str.maketrans('', '', string.punctuation)) 
+            recognized_word.word.value.lower().translate(translation_table) 
             for recognized_word in audio_slide.recognized_words
             ]
+        
         for i in range(len(audio_slide_words)):
             for filler in fillers:
                 filler_split = filler.split()
