@@ -42,7 +42,7 @@ function createTableRowElement(trainingInfo, trainingId) {
     tableRowIdElement.innerHTML = `<a href="/trainings/statistics/${trainingId}/">${trainingId}</a>`;
 
     const tableRowScoreElement = document.createElement("td");
-    tableRowScoreElement.innerHTML = trainingInfo.score.toFixed(2) || "none";
+    tableRowScoreElement.innerHTML = trainingInfo.score ? trainingInfo.score.toFixed(2) : "none";
 
     const tableRowStatusElement = document.createElement("td");
     tableRowStatusElement.innerHTML = trainingInfo.passedBackStatus || "none";

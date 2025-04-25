@@ -10,7 +10,7 @@ from flask import Blueprint, session, request
 
 from app.audio import Audio
 from app.check_access import check_access
-from app.lti_session_passback.auth_checkers import is_admin, check_auth, check_admin
+from app.lti_session_passback.auth_checkers import is_admin, check_auth, check_admin, is_logged_in
 from app.mongo_models import Trainings
 from app.mongo_odm import TrainingsDBManager, TaskAttemptsDBManager, TasksDBManager, DBManager
 from app.filters import GetAllTrainingsFilterManager
@@ -439,8 +439,7 @@ def get_all_trainings() -> (dict, int):
 
     print(number_page, count_items)
 
-    authorized = check_auth() is not None
-    if not (check_admin() or (authorized and [session.get('session_id')] == username)):
+    if not (check_admin() or (is_logged_in() and [session.get('session_id')] == username)):
         return {}, 404
 
     trainings = GetAllTrainingsFilterManager().query_with_filters(filters, number_page, count_items)

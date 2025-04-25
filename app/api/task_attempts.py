@@ -3,7 +3,7 @@ from app.root_logger import get_root_logger
 from bson import ObjectId
 from flask import session, request, Blueprint
 
-from app.check_access import check_access
+from app.check_access import check_access, check_task_attempt_access
 from app.lti_session_passback.auth_checkers import check_auth, is_admin
 from app.mongo_odm import TaskAttemptsDBManager, TasksDBManager
 from app.utils import check_arguments_are_convertible_to_object_id, check_argument_is_convertible_to_object_id
@@ -91,7 +91,7 @@ def get_task_attempt(task_attempt_id) -> tuple[dict, int]:
         a dictionary with an explanation and 404 HTTP return code if a task attempt was not found, or
         an empty dictionary with 404 HTTP return code if access was denied.
     """
-    if not check_access({'_id': ObjectId(task_attempt_id)}):
+    if not check_task_attempt_access(task_attempt_id):
         return {}, 404
     
     task_attempt_db = TaskAttemptsDBManager().get_task_attempt(task_attempt_id)
