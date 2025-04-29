@@ -1,6 +1,7 @@
 from app.root_logger import get_root_logger
 import math
 import traceback
+import string   # to remove punctuation
 from typing import Optional, Callable
 
 from app.audio import Audio
@@ -60,13 +61,20 @@ def get_proportional_result(value: float,
     else:
         return f(upper_bound / value)
 
-
 def get_fillers(fillers: list, audio: Audio) -> list:
     found_fillers = []
+    # пунктуация + пробелы для str.translate
+    removable = string.punctuation + string.whitespace
+    translation_table = str.maketrans('', '', removable)
+    
     for audio_slide in audio.audio_slides:
         found_slide_fillers = []
+        # добавлена предобработка слов - перевод в нижний регистр, очистка от пунктуации
         audio_slide_words = [
-            recognized_word.word.value for recognized_word in audio_slide.recognized_words]
+            recognized_word.word.value.lower().translate(translation_table) 
+            for recognized_word in audio_slide.recognized_words
+            ]
+        
         for i in range(len(audio_slide_words)):
             for filler in fillers:
                 filler_split = filler.split()
