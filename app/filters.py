@@ -27,7 +27,7 @@ class GetAllTrainingsFilterManager():
             cls.init_done = True
         return cls.instance
 
-    def __collect_filters(self, filters: dict) -> (dict, dict):
+    def __collect_filters(self, filters: dict) -> tuple[dict, dict]:
         simple_filters = {}
         complex_filters = {}
 
@@ -64,8 +64,11 @@ class GetAllTrainingsFilterManager():
                 logger.info("ELSE ID: " + str(values[0]))
                 mongodb_query[key] = ObjectId(values[0])
             elif key == "username" or key == "full_name":
-                # Частичное совпадение
-                mongodb_query[key] = {"$regex": regex.escape(values[0], literal_spaces=True)}
+                # Частичное совпадение без учета регистра
+                mongodb_query[key] = {
+                    "$regex": regex.escape(values[0], literal_spaces=True),
+                    "$options": 'i'
+                }
             elif key == "presentation_record_duration":
                 # Range по длительности воспроизведения
                 start_range_time = datetime.strptime(values[0], "%M:%S").time()
