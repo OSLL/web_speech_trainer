@@ -9,6 +9,7 @@ from app.mongo_odm import TaskAttemptsDBManager, TasksDBManager
 from app.utils import check_arguments_are_convertible_to_object_id, check_argument_is_convertible_to_object_id
 from app.localisation import t
 from app.status import PassBackStatus
+from app.api.trainings import get_training
 
 from app.mongo_models import TaskAttempts
 
@@ -62,19 +63,14 @@ def get_current_task_attempt() -> tuple[dict, int]:
 
 def get_task_attempt_information(task_attempt_db: TaskAttempts) -> dict:
     try:
-        is_passed_back = dict(task_attempt_db.is_passed_back)
-
-        for training_id, training_status in is_passed_back.items():
-            is_passed_back[training_id] = t(PassBackStatus.russian.get(training_status))
-
+        training_ids = task_attempt_db.training_scores.keys()
+        trainings = dict(zip(training_ids, map(get_training, training_ids)))
+        
         return {
             'message': 'OK',
             'task_id': str(task_attempt_db.task_id),
             'username': str(task_attempt_db.username),
-            'training_count': task_attempt_db.training_count,
-            'training_scores': dict(task_attempt_db.training_scores),
-            'is_passed_back': is_passed_back,
-            'params_for_passback': dict(task_attempt_db.params_for_passback)
+            'trainings': trainings,
         }
     except Exception as e:
         return {'message': '{}: {}'.format(e.__class__, e)}

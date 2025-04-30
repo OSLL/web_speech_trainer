@@ -1,65 +1,93 @@
-function getTrainingsTable(trainingScores, isPassedBack) {
-    const trainingsTable = {}; 
+const tableColomnHeaders = [
+    "№", "training_id", "start_timestamp", "training_status", "pass_back_status",  "score"
+];
 
-    Object.keys(trainingScores).forEach(trainingId => {
-        if (trainingsTable[trainingId] === undefined) {
-            trainingsTable[trainingId] = {};
-        }
-        trainingsTable[trainingId].score = trainingScores[trainingId];
-    });
+function get_time_string(timestampStr){
+    const timestamp = Date.parse(timestampStr);
 
-    Object.keys(isPassedBack).forEach(trainingId => {
-        if (trainingsTable[trainingId] === undefined) {
-            trainingsTable[trainingId] = {};
-        }
-        trainingsTable[trainingId].passedBackStatus = isPassedBack[trainingId];
-    });
-
-    return trainingsTable;
+    options = { weekday: 'short', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit', timeZoneName: 'short' }
+    if (!isNaN(timestamp)) {
+        processing_time = new Date(timestamp);
+        return processing_time.toLocaleString("ru-RU", options);
+    } else {
+        return "";
+    }
 }
 
 function createTableHeaderElement() {
-    const trainingIdHeaderElement = document.createElement("th");
-    trainingIdHeaderElement.innerHTML = "training_id";
-
-    const trainingScoreHeaderElement = document.createElement("th");
-    trainingScoreHeaderElement.innerHTML = "score";
-
-    const trainingStatusHeaderElement = document.createElement("th");
-    trainingStatusHeaderElement.innerHTML = "pass_back_status";
-
     const tableHeaderElement = document.createElement("tr");
 
-    tableHeaderElement.append(trainingIdHeaderElement, trainingScoreHeaderElement, trainingStatusHeaderElement);
+    tableColomnHeaders.forEach(colomnHeader => {
+        const tableColomnHeaderElement = document.createElement("th");
+        tableColomnHeaderElement.innerHTML = colomnHeader;
+
+        tableHeaderElement.appendChild(tableColomnHeaderElement);
+    });
 
     return tableHeaderElement;
 }
 
-function createTableRowElement(trainingInfo, trainingId) {
+function createTableRowElement() {
     const tableRowElement = document.createElement("tr");
 
-    const tableRowIdElement = document.createElement("td");
-    tableRowIdElement.innerHTML = `<a href="/trainings/statistics/${trainingId}/">${trainingId}</a>`;
+    const tableRow = {};
 
-    const tableRowScoreElement = document.createElement("td");
-    tableRowScoreElement.innerHTML = trainingInfo.score ? trainingInfo.score.toFixed(2) : "none";
+    tableColomnHeaders.forEach(columnHeader => {
+        const tableCellElement = document.createElement("td");
 
-    const tableRowStatusElement = document.createElement("td");
-    tableRowStatusElement.innerHTML = trainingInfo.passedBackStatus || "none";
+        tableRow[columnHeader] = tableCellElement;
+        tableRowElement.appendChild(tableCellElement);
+    });
 
-    tableRowElement.append(tableRowIdElement, tableRowScoreElement, tableRowStatusElement);
-
-    return tableRowElement;
+    return [tableRowElement, tableRow];
 }
 
-function showRelatedTrainingsTable(trainingScores, isPassedBack) {
-    const trainingsTable = getTrainingsTable(trainingScores, isPassedBack);
+function TableRowFiller() {
+    let pos = 1;
 
+    function fillTableRow(tableRow, training) {
+        tableRow["№"].innerHTML = pos++;
+        tableRow["training_id"].innerHTML = `<a href="/trainings/statistics/${training.id}/">${training.id}</a>`;
+        tableRow["start_timestamp"].innerHTML = get_time_string(training.training_start_timestamp);
+        tableRow["score"].innerHTML = training.score ? training.score.toFixed(2) : "none";
+        tableRow["training_status"].innerHTML = training.training_status;
+        tableRow["pass_back_status"].innerHTML = training.passedBackStatus || "none";
+    }
+
+    return fillTableRow;
+}
+
+function getSortedTrainingsList(trainings) {
+    const trainingsList = [];
+
+    Object.keys(trainings).forEach(trainingId => {
+        const training = trainings[trainingId];
+        training["id"] = trainingId;
+
+        trainingsList.push(training);
+    });
+
+    trainingsList.sort((a, b) => {
+        return Date.parse(a) - Date.parse(b);
+    });
+
+    return trainingsList;
+}
+
+function showRelatedTrainingsTable(trainings) {
     const tableElement = document.getElementById("related-trainings-table");
 
     tableElement.appendChild(createTableHeaderElement());
 
-    Object.keys(trainingsTable).forEach(trainingId => {
-        tableElement.appendChild(createTableRowElement(trainingsTable[trainingId], trainingId));
+    const trainingsList = getSortedTrainingsList(trainings);
+
+    const fillTableRow = TableRowFiller();
+
+    trainingsList.forEach(training => {
+        const [tableRowElement, tableRow] = createTableRowElement();
+
+        fillTableRow(tableRow, training);
+
+        tableElement.appendChild(tableRowElement);
     });
 }

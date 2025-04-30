@@ -12,11 +12,6 @@ from app.utils import check_arguments_are_convertible_to_object_id
 routes_task_attempts = Blueprint('routes_task_attempts', __name__)
 logger = get_root_logger()
 
-def ch(tr_id):
-    print(tr_id)
-    print(check_access({'_id': ObjectId(tr_id)}), sep=" ")
-    print()
-    return check_access({'_id': ObjectId(tr_id)})
 
 @check_arguments_are_convertible_to_object_id
 @routes_task_attempts.route('/task_attempts/<task_attempt_id>/', methods=['GET'])
@@ -33,6 +28,8 @@ def view_task_attempt(task_attempt_id: str):
     
     task_attempt, task_attempt_status_code = get_task_attempt(task_attempt_id)
 
+    print(task_attempt)
+
     if task_attempt.get('message') != 'OK':
         return task_attempt, task_attempt_status_code
 
@@ -41,6 +38,5 @@ def view_task_attempt(task_attempt_id: str):
         task_attempt_id=task_attempt_id,
         task_id=task_attempt['task_id'],
         username=task_attempt['username'],
-        training_scores=task_attempt['training_scores'],
-        is_passed_back=task_attempt['is_passed_back'],
+        trainings=task_attempt['trainings'],
     ), 200
