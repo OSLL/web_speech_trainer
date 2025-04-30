@@ -5,7 +5,7 @@ function buildCurrentAttemptStatistics() {
         .then(response => {
             let trainingNumber = response["training_number"];
             let attemptCount = response["attempt_count"];
-            if (response === {} || trainingNumber === attemptCount) {
+            if (jQuery.isEmptyObject(response) || trainingNumber === attemptCount) {
                 return;
             }
             document.getElementById("training-number").textContent
