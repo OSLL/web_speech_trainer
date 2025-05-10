@@ -11,7 +11,7 @@ from bson.errors import InvalidId
 from gridfs import GridFSBucket, NoFile
 from pymodm import connect
 from pymodm.connection import _get_db
-from pymodm.errors import ValidationError
+from pymodm.errors import ValidationError, DoesNotExist
 from pymodm.files import GridFSStorage
 from pymongo import ReturnDocument
 from pymongo.errors import CollectionInvalid
@@ -81,7 +81,7 @@ class DBManager:
     def _get_or_create_storage_meta(self):
         try:
             return StorageMeta.objects.get({})
-        except StorageMeta.DoesNotExist:
+        except DoesNotExist:
             meta = StorageMeta(used_size=0).save()
             return meta
     
@@ -99,7 +99,7 @@ class DBManager:
         meta.save()
     
     def check_storage_limit(self, new_file_size):
-        max_size = int(Config.c.constants.storage_max_size_bytes)*1024*1024
+        max_size = int(Config.c.constants.storage_max_size_mbytes)*1024*1024
         current_size = self.get_used_storage_size()
         if current_size + new_file_size > max_size:
             logger.warning('current_size = {}, new file size = {}'.format(current_size, new_file_size))

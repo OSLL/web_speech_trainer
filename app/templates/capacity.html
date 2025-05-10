@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-body">
+            <h4 class="card-title">Загруженность Базы Данных</h4>
+            <p><strong>Использовано:</strong> {{ size }} байт</p>
+            <p><strong>Максимум:</strong> {{ max_size }} байт</p>
+            <p><strong>Заполнено:</strong> {{ ratio }}%</p>
+            <div class="progress">
+                <div class="progress-bar" role="progressbar" style="width: {{ ratio }}%;" aria-valuenow="{{ ratio }}" aria-valuemin="0" aria-valuemax="100">
+                    {{ ratio }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
