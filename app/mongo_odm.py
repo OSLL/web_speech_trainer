@@ -23,7 +23,7 @@ from app.mongo_models import (AudioToRecognize, Consumers, Criterion, CriterionP
                               RecognizedAudioToProcess,
                               RecognizedPresentationsToProcess, Sessions,
                               TaskAttempts, TaskAttemptsToPassBack, Tasks,
-                              Trainings, TrainingsToProcess)
+                              Trainings, TrainingsToProcess, StorageMeta)
 from app.status import (AudioStatus, PassBackStatus, PresentationStatus,
                         TrainingStatus)
 from app.utils import remove_blank_and_none
@@ -42,7 +42,17 @@ class DBManager:
         return cls.instance
 
     def add_file(self, file, filename=uuid.uuid4()):
-        return self.storage.save(name=filename, content=file)
+        try:
+            file.seek(0, os.SEEK_END)
+            size = file.tell()
+            file.seek(0)
+        except:
+            if(isinstance(file, str)):
+                size = len(file)
+        self.check_storage_limit(size)
+        _id = self.storage.save(name=filename, content=file)
+        self.update_storage_size(size)
+        return _id
 
     def read_and_add_file(self, path, filename=None):
         if filename is None:
@@ -67,6 +77,33 @@ class DBManager:
         except (NoFile, ValidationError, InvalidId) as e:
             logger.warning('file_id = {}, {}.'.format(file_id, e))
             return None
+    
+    def _get_or_create_storage_meta(self):
+        try:
+            return StorageMeta.objects.get({})
+        except StorageMeta.DoesNotExist:
+            meta = StorageMeta(used_size=0).save()
+            return meta
+    
+    def get_used_storage_size(self):
+        return self._get_or_create_storage_meta().used_size
+    
+    def set_used_storage_size(self, size):
+        meta = self._get_or_create_storage_meta()
+        meta.used_size = size
+        meta.save()
+        
+    def update_storage_size(self, deltasize):
+        meta = self._get_or_create_storage_meta()
+        meta.used_size += deltasize
+        meta.save()
+    
+    def check_storage_limit(self, new_file_size):
+        max_size = int(Config.c.constants.storage_max_size_bytes)*1024*1024
+        current_size = self.get_used_storage_size()
+        if current_size + new_file_size > max_size:
+            logger.warning('current_size = {}, new file size = {}'.format(current_size, new_file_size))
+            
 
 
 class TrainingsDBManager:
