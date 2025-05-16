@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/task_attempt.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/libraries/jquery-ui/jquery-ui.min.css') }}">
+
+{% endblock %}
+
+{% block content %}
+<div class="base-container">
+    <h3>{{ title }}</h3>
+    <h3>Информация по попытке с ID {{ task_attempt_id }}</h3>
+    <h3>task_id: {{ task_id }}</h3>
+    <h3>Имя пользователя: {{ username }}</h3>
+    <div class="related-trainings-container">
+        <h3>Связанные тренировки:</h3>
+        <table id="related-trainings-table" class="table center-align-table"></table>
+    </div>
+</div>
+<script src="{{ url_for('static', filename='js/libraries/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/task_attempts.js') }}"></script>
+<script type="text/javascript">
+    showRelatedTrainingsTable({{ trainings|tojson|safe }});
+</script>
+{% endblock %}

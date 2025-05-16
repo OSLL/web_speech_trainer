@@ -3,10 +3,15 @@ from app.root_logger import get_root_logger
 from bson import ObjectId
 from flask import session, request, Blueprint
 
-from app.check_access import check_access
+from app.check_access import check_access, check_task_attempt_access
 from app.lti_session_passback.auth_checkers import check_auth, is_admin
 from app.mongo_odm import TaskAttemptsDBManager, TasksDBManager
 from app.utils import check_arguments_are_convertible_to_object_id, check_argument_is_convertible_to_object_id
+from app.localisation import t
+from app.status import PassBackStatus
+from app.api.trainings import get_training
+
+from app.mongo_models import TaskAttempts
 
 api_task_attempts = Blueprint('api_task_attempts', __name__)
 logger = get_root_logger()
@@ -15,7 +20,7 @@ logger = get_root_logger()
 
 @check_arguments_are_convertible_to_object_id
 @api_task_attempts.route('/api/task-attempts/', methods=['GET'])
-def get_current_task_attempt() -> (dict, int):
+def get_current_task_attempt() -> tuple[dict, int]:
     """
     Endpoint to get current task attempt information.
 
@@ -56,10 +61,44 @@ def get_current_task_attempt() -> (dict, int):
         'attempt_count': task_db.attempt_count,
     }, 200
 
+def get_task_attempt_information(task_attempt_db: TaskAttempts) -> dict:
+    try:
+        training_ids = task_attempt_db.training_scores.keys()
+        trainings = dict(zip(training_ids, map(get_training, training_ids)))
+        
+        return {
+            'message': 'OK',
+            'task_id': str(task_attempt_db.task_id),
+            'username': str(task_attempt_db.username),
+            'trainings': trainings,
+        }
+    except Exception as e:
+        return {'message': '{}: {}'.format(e.__class__, e)}
+
+
+@check_arguments_are_convertible_to_object_id
+@api_task_attempts.route('/api/task-attempts/<task_attempt_id>/', methods=['GET'])
+def get_task_attempt(task_attempt_id) -> tuple[dict, int]:
+    """
+    Endpoint to get information about a task attempt by its identifier.
+
+    :param task_attempt_id: Task attempt identifier
+    :return: Dictionary with task attempt information and 'OK' message, or
+        a dictionary with an explanation and 404 HTTP return code if a task attempt was not found, or
+        an empty dictionary with 404 HTTP return code if access was denied.
+    """
+    if not check_task_attempt_access(task_attempt_id):
+        return {}, 404
+    
+    task_attempt_db = TaskAttemptsDBManager().get_task_attempt(task_attempt_id)
+
+    if task_attempt_db is None:
+        return {'message': 'No task attempt with task_attempt_id = {}.'.format(task_attempt_id)}, 404
+    return get_task_attempt_information(task_attempt_db), 200
 
 @check_arguments_are_convertible_to_object_id
 @api_task_attempts.route('/api/task_attempts/<task_attempt_id>/', methods=['DELETE'])
-def delete_task_attempt_by_task_attempt_id(task_attempt_id: str) -> (dict, int):
+def delete_task_attempt_by_task_attempt_id(task_attempt_id: str) -> tuple[dict, int]:
     """
     Endpoint to delete a task attempt by its identifier.
 

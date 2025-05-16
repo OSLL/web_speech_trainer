@@ -29,6 +29,7 @@ from app.routes.packs import routes_criteria_pack
 from app.routes.lti import routes_lti
 from app.routes.presentations import routes_presentations
 from app.routes.trainings import routes_trainings
+from app.routes.task_attempts import routes_task_attempts
 from app.routes.version import routes_version
 from app.status import PassBackStatus, TrainingStatus
 from app.training_manager import TrainingManager
@@ -52,6 +53,7 @@ app.register_blueprint(routes_criteria_pack)
 app.register_blueprint(routes_lti)
 app.register_blueprint(routes_presentations)
 app.register_blueprint(routes_trainings)
+app.register_blueprint(routes_task_attempts)
 app.register_blueprint(routes_version)
 
 logger = get_root_logger(service_name='web')

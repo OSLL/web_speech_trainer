@@ -12,7 +12,7 @@ from app.api.trainings import add_training, get_training_statistics
 from app.check_access import check_access
 from app.criteria_pack import CriteriaPackFactory
 from app.feedback_evaluator import FeedbackEvaluatorFactory
-from app.lti_session_passback.auth_checkers import check_admin, check_auth
+from app.lti_session_passback.auth_checkers import check_admin, check_auth, is_logged_in
 from app.mongo_odm import CriterionPackDBManager, TasksDBManager, TaskAttemptsDBManager
 from app.status import TrainingStatus, AudioStatus, PresentationStatus
 from app.utils import check_arguments_are_convertible_to_object_id
@@ -141,8 +141,7 @@ def view_all_trainings():
     except:
         pass
 
-    authorized = check_auth() is not None
-    if not (check_admin() or (authorized and session.get('session_id') == username)):
+    if not (check_admin() or (is_logged_in() and session.get('session_id') == username)):
         return {}, 404
 
     raw_filters = request.args.getlist('f')

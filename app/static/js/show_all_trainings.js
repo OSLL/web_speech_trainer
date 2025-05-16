@@ -21,7 +21,10 @@ function buildCurrentTrainingRow(trainingId, trainingJson, is_Admin=false) {
 
     const trainingAttemptIdElement = document.createElement("td");
     if(trainingJson["task_attempt_id"] !== "undefined" && trainingJson["message"] === "OK"){
-        trainingAttemptIdElement.textContent = "..." + String(trainingJson["task_attempt_id"]).slice(-5);
+        const trainingAttemptIdLink = document.createElement("a");
+        trainingAttemptIdLink.href=`/task_attempts/${trainingJson["task_attempt_id"]}`;
+        trainingAttemptIdLink.textContent = `...${(trainingJson["task_attempt_id"]).slice(-5)}`;
+        trainingAttemptIdElement.appendChild(trainingAttemptIdLink);
     }
     currentTrainingRowElement.appendChild(trainingAttemptIdElement);
 
