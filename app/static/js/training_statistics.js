@@ -3,15 +3,34 @@ function buildCurrentAttemptStatistics() {
     fetch(`/api/task-attempts/?training_id=${trainingId}`)
         .then(response => response.json())
         .then(response => {
+            fetch('/api/sessions/admin')
+                .then(response_admin => response_admin.json())
+                .then(responseJSON => {
+                    const isAdmin = responseJSON.admin;
+
+                    if (isAdmin) {
+                        const recheckBtn = $("#recheck-btn")[0];
+
+                        recheckBtn.addEventListener("click", () => {
+                            recheck(trainingId);
+                        })
+
+                        recheckBtn.style.visibility = 'visible';
+                    }
+                })
+
             let trainingNumber = response["training_number"];
             let attemptCount = response["attempt_count"];
+
             if (jQuery.isEmptyObject(response) || trainingNumber === attemptCount) {
                 return;
             }
+
             document.getElementById("training-number").textContent
                 = "Номер тренировки: " + response["training_number"] + " / " + response["attempt_count"];
             document.getElementById("current-points").textContent
                 = "Сумма баллов за предыдущие тренировки: " + response["current_points_sum"].toFixed(2);
+
             let next_training = document.getElementById("next-training");
             next_training.style.visibility = "visible";
             next_training.style.fontSize = "14pt";
