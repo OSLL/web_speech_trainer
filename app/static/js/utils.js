@@ -8,6 +8,18 @@ function buildTitleRow(columns) {
     return titleRowElement;
 }
 
+function recheck(trainingId){
+    console.log(`Start recheck for ${trainingId}`)
+    fetch(`/api/trainings/${trainingId}/`, {method: "POST"})
+    .then(response => response.json())
+    .then(innerResponseJson => {
+        if (innerResponseJson["message"] === "OK") {
+            window.open(`/trainings/statistics/${trainingId}/`);
+            //location.href = `/trainings/statistics/${trainingId}/`;
+        }
+    });
+}
+
 function strtobool(val, onError= false) {
     try {
         val = val.toLowerCase();
