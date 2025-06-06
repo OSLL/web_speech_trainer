@@ -9,13 +9,18 @@ function buildTitleRow(columns) {
 }
 
 function recheck(trainingId){
-    console.log(`Start recheck for ${trainingId}`)
-    fetch(`/api/trainings/${trainingId}/`, {method: "POST"})
+    fetch('/api/sessions/admin')
     .then(response => response.json())
-    .then(innerResponseJson => {
-        if (innerResponseJson["message"] === "OK") {
-            window.open(`/trainings/statistics/${trainingId}/`);
-            //location.href = `/trainings/statistics/${trainingId}/`;
+    .then(res => {
+        if (res.admin) {
+            fetch(`/api/trainings/${trainingId}/`, {method: "POST"})
+            .then(response => response.json())
+            .then(innerResponseJson => {
+                if (innerResponseJson["message"] === "OK") {
+                    window.open(`/trainings/statistics/${trainingId}/`);
+                    //location.href = `/trainings/statistics/${trainingId}/`;
+                }
+            });
         }
     });
 }
