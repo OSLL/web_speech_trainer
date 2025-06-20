@@ -8,15 +8,42 @@
 {% block content %}
 <div class="base-container">
     <h3>{{ title }}</h3>
+    <h3>Связанные попытки: <a href="/task_attempts/{{task_attempt_id}}">{{ task_attempt_id }}</a></h3>
+
+    <h3>Логин студента: {{ username }}</h3>
+    <h3>{{ t("Дата создания тренировки") }}: {{ gen_time }}. </h3>
+
+    <h3>{{ remaining_processing_time_estimation }}</h3>
+
+    <table class="table">
+        <tr>
+            <th></th>
+            <th>Id</th>
+            <th>Статус</th>
+        </tr>
+        <tr>
+            <td><b>Тренировка</b></td>
+            <td>{{ training_id }}</td>
+            <td>{{ training_status }}</td>
+        </tr>
+        <tr>
+            <td><b>Презентация</b></td>
+            <td>{{ presentation_file_id }}</td>
+            <td>{{ presentation_status }}</td>
+        </tr>
+        <tr>
+            <td><b>Аудиозапись</b></td>
+            <td>{{ presentation_record_file_id }}</td>
+            <td>{{ audio_status }}</td>
+        </tr>
+    </table>
+
     <h3 id="feedback">{{ feedback }}</h3>
     <div id="criteria-results" style="margin-left: auto"></div>
     <div id="verdict"></div>
-    <h3>{{ remaining_processing_time_estimation }}</h3>
-    <h3>{{ t("id тренировки") }}: {{ training_id }}. {{ training_status }}. </h3>
-    <h3>{{ t("Дата создания тренировки") }}: {{ gen_time }}. </h3>
-    <h3>{{ t("id презентации") }}: {{ presentation_file_id }}. {{ presentation_status }}</h3>
-    <h3>{{ t("Название презентации") }}: {{ presentation_file_name }}</h3>
-    <h3>{{ t("id аудиозаписи") }}: {{ presentation_record_file_id }}. {{ audio_status }}</h3>
+
+    <h3>{{ t("Название презентации") }}: <a href="/api/files/presentations/{{ presentation_file_id }}">{{ presentation_file_name }}</a></h3>
+
     <div id="next-training" style="visibility: hidden; font-size: 0">
         <h3 id="training-number"></h3>
         <h3 id="current-points"></h3>
@@ -32,8 +59,9 @@
     <div>
         <canvas id="the-canvas" style="border: 1px solid #000000; direction: ltr;"></canvas>
     </div>
-    
+
     <audio id="presentation-record" controls src="/api/files/presentation-records/{{ presentation_record_file_id }}/"></audio>
+
     <table class="table transcription-table" id="per-slide-audio-transcription-table"></table>
 </div>
 <script src="{{ url_for('static', filename='js/libraries/jquery.min.js') }}"></script>
