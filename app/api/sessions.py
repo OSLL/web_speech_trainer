@@ -3,7 +3,7 @@ from app.root_logger import get_root_logger
 from flask import Blueprint, request, session
 
 from app.config import Config
-from app.lti_session_passback.auth_checkers import check_auth
+from app.lti_session_passback.auth_checkers import check_auth, is_admin
 from app.utils import DEFAULT_EXTENSION
 from packaging import version as version_util
 from ua_parser.user_agent_parser import Parse as user_agent_parse
@@ -11,7 +11,18 @@ from ua_parser.user_agent_parser import Parse as user_agent_parse
 api_sessions = Blueprint('api_sessions', __name__)
 logger = get_root_logger()
 
+@api_sessions.route('/api/sessions/admin/', methods=['GET'])
+def get_session_admin():
+    """
+    Endpoint to return session is admin.
 
+    :return: Dictionary with admin status (is corrent user admin or not), and  'OK' message, or
+        or an empty dictionary with 404 HTTP code if access was denied.
+    """
+
+    if not check_auth():
+        return {}, 404
+    return {'admin': is_admin(), 'message': 'OK'}, 200
 
 @api_sessions.route('/api/sessions/info/', methods=['GET'])
 def get_session_info():
