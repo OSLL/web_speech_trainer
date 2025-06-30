@@ -8,7 +8,7 @@ function get_time_string(timestamp){
     }
 }
 
-function buildCurrentTrainingRow(trainingId, trainingJson, is_Admin=false) {
+function buildCurrentTrainingRow(trainingId, trainingJson, isAdmin=false) {
 
     const currentTrainingRowElement = document.createElement("tr");
 
@@ -102,7 +102,7 @@ function buildCurrentTrainingRow(trainingId, trainingJson, is_Admin=false) {
     }
     currentTrainingRowElement.appendChild(recordingElement);
 
-    if (is_Admin) {
+    if (isAdmin) {
         const recheckingElement = document.createElement("td");
         const button = document.createElement("input")
         button.type = "button"
@@ -112,22 +112,11 @@ function buildCurrentTrainingRow(trainingId, trainingJson, is_Admin=false) {
         recheckingElement.appendChild(button);
         currentTrainingRowElement.appendChild(recheckingElement);
     }
+
     return currentTrainingRowElement;
 }
 
-function recheck(trainingId){
-    console.log(`Start recheck for ${trainingId}`)
-    fetch(`/api/trainings/${trainingId}/`, {method: "POST"})
-    .then(response => response.json())
-    .then(innerResponseJson => {
-        if (innerResponseJson["message"] === "OK") {
-            window.open(`/trainings/statistics/${trainingId}/`);
-            //location.href = `/trainings/statistics/${trainingId}/`;
-        }
-    });
-}
-
-function buildAllTrainingsTable(trainingsJson, is_Admin=false) {
+function buildAllTrainingsTable(trainingsJson) {
     if (trainingsJson["message"] !== "OK") return;
 
     const allTrainingsTable = document.getElementById("all-trainings-table");
@@ -148,16 +137,31 @@ function buildAllTrainingsTable(trainingsJson, is_Admin=false) {
         "Презентация",
         "Аудиозапись"
     ]
-    if (is_Admin) {titles.push('Запустить перепроверку')}
-    const titleRow = buildTitleRow(titles);
-    allTrainingsTable.appendChild(titleRow);
 
-    const arrayTrainings = trainingsJson.trainings; // Array of train from FETCH
+    fetch('/api/sessions/admin')
+    .then(response => response.json())
+    .then(responseJson => {
+        const isAdmin = responseJson.admin;
+        const arrayTrainings = trainingsJson.trainings; // Array of train from FETCH
+        
+        if (isAdmin) {
+            titles.push('Запустить перепроверку');
+        }
 
-    Object.keys(arrayTrainings).forEach(trainingId => {
-        const currentTrainingRowElement = buildCurrentTrainingRow(trainingId, arrayTrainings[trainingId], is_Admin);
-        allTrainingsTable.appendChild(currentTrainingRowElement);
-    });
+        const titleRow = buildTitleRow(titles);
+        allTrainingsTable.appendChild(titleRow);
+        
+        Object.keys(arrayTrainings).forEach(trainingId => {
+            const currentTrainingRowElement = buildCurrentTrainingRow(
+                trainingId, 
+                arrayTrainings[trainingId], 
+                isAdmin
+            );
+            
+            allTrainingsTable.appendChild(currentTrainingRowElement);
+        });
+    })
+    .catch(err => console.log(err));
 }
 
 const REF_PAGE_COUNT = document.getElementById('ref-page-count');
@@ -262,7 +266,7 @@ async function updateCountPage() {
     REF_BUTTON_TO_END.innerText = pageTotal;
 }
 
-function call_get_all_trainings({filters, admin=false, page = 0, count}) {
+function call_get_all_trainings({filters, page = 0, count}) {
     const query = new URLSearchParams({
         filters,
         count
@@ -272,5 +276,5 @@ function call_get_all_trainings({filters, admin=false, page = 0, count}) {
 
     return fetch(`/api/trainings?${query.toString()}`)
         .then(response => response.json())
-        .then(responseJson => buildAllTrainingsTable(responseJson, admin));
+        .then(responseJson => buildAllTrainingsTable(responseJson));
 }
