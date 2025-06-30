@@ -8,6 +8,23 @@ function buildTitleRow(columns) {
     return titleRowElement;
 }
 
+function recheck(trainingId){
+    fetch('/api/sessions/admin')
+    .then(response => response.json())
+    .then(res => {
+        if (res.admin) {
+            fetch(`/api/trainings/${trainingId}/`, {method: "POST"})
+            .then(response => response.json())
+            .then(innerResponseJson => {
+                if (innerResponseJson["message"] === "OK") {
+                    window.open(`/trainings/statistics/${trainingId}/`);
+                    //location.href = `/trainings/statistics/${trainingId}/`;
+                }
+            });
+        }
+    });
+}
+
 function strtobool(val, onError= false) {
     try {
         val = val.toLowerCase();
