@@ -10,13 +10,13 @@ RUN apt-get update && \
 COPY tests/requirements.txt requirements.txt
 RUN pip install -r requirements.txt
 
-COPY tests/selenium tests/selenium
-COPY tests/test_data tests/test_data
-COPY tests/simple_phrases_russian.wav tests/simple_phrases_russian.wav
+COPY tests/selenium selenium
+COPY tests/test_data test_data
+COPY tests/simple_phrases_russian.wav simple_phrases_russian.wav
 
 COPY app/config.py app/config.py
 COPY app_conf/testing.ini app_conf/testing.ini
 
 ENV PYTHONPATH='/usr/src/project/:/usr/src/project/app/'
 
-ENTRYPOINT pytest .
+CMD ["pytest", "-s", "."]

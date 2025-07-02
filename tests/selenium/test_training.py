@@ -1,3 +1,4 @@
+import difflib
 import os
 from time import sleep
 
@@ -26,6 +27,8 @@ def test_basic_training():
     chrome_options.add_experimental_option('detach', True)
     driver = Chrome(options=chrome_options)
 
+    sleep(5)
+
     driver.request('POST', 'http://127.0.0.1:5000/lti', data={
         'lis_person_name_full': Config.c.testing.lis_person_name_full,
         'ext_user_username': Config.c.testing.session_id,
@@ -40,11 +43,22 @@ def test_basic_training():
         'oauth_consumer_key': Config.c.testing.oauth_consumer_key,
     })
 
-    # driver.get('http://127.0.0.1:5000/upload_presentation/')
-    # file_input = WebDriverWait(driver, 20).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "input[type=file]")))
-    # file_input.send_keys(f'{os.getcwd()}/test_data/test_presentation_file_0.pdf')
-    # WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.ID, "button-submit"))).click()
-    # WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, "record"))).click()
+    driver.get('http://web:5000/upload_presentation/')
+    
+    file_input = WebDriverWait(driver, 20).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "input[type=file]")))
+    file_input.send_keys(f'{os.getcwd()}/test_data/test_presentation_file_0.pdf')
+
+    cur = driver.page_source
+    print(cur)
+    WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.ID, "button-submit"))).click()
+
+    sleep(10)
+    print(*difflib.unified_diff(cur, driver.page_source)) # <p id="error-text">No task attempt with task_attempt_id = None.</p>
+    print(driver.page_source)
+
+    WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, "record"))).click()
+
+
     # WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "model-timer")))
     # WebDriverWait(driver, 10).until(EC.invisibility_of_element((By.ID, "model-timer")))
     # WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.ID, "next")))
@@ -69,4 +83,5 @@ def test_basic_training():
     #     except:
     #         sleep(step)
     # driver.close()
+
     # assert feedback_flag, f"Проверка тренировки заняла более {step_count*step} секунд"
