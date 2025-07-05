@@ -1,5 +1,5 @@
-import difflib
 import os
+import requests
 from time import sleep
 
 from selenium.common.exceptions import TimeoutException
@@ -8,7 +8,7 @@ from selenium.webdriver.common.alert import Alert
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-from seleniumrequests import Chrome
+from selenium.webdriver import Chrome
 
 from app.config import Config
 
@@ -20,16 +20,21 @@ def test_basic_training():
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--headless')
     chrome_options.add_argument("--disable-user-media-security")
-    chrome_options.add_argument("--use-fake-ui-for-media-stream")
     chrome_options.add_argument("--use-fake-device-for-media-stream")
     chrome_options.add_argument("--use-fake-ui-for-media-stream")
     chrome_options.add_argument('--use-file-for-fake-audio-capture={}/simple_phrases_russian.wav'.format(os.getcwd()))
-    chrome_options.add_experimental_option('detach', True)
+    # chrome_options.add_experimental_option('detach', True)
+
+    chrome_options.set_capability("goog:loggingPrefs", {"browser": "ALL"})
+
     driver = Chrome(options=chrome_options)
+    session = requests.Session()
 
     sleep(5)
 
-    driver.request('POST', 'http://127.0.0.1:5000/lti', data={
+    driver.get('http://web:5000/init/')
+
+    session.request('POST','http://web:5000/lti', data={
         'lis_person_name_full': Config.c.testing.lis_person_name_full,
         'ext_user_username': Config.c.testing.session_id,
         'custom_task_id': Config.c.testing.custom_task_id,
@@ -44,28 +49,37 @@ def test_basic_training():
     })
 
     driver.get('http://web:5000/upload_presentation/')
-    
+
     file_input = WebDriverWait(driver, 20).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "input[type=file]")))
     file_input.send_keys(f'{os.getcwd()}/test_data/test_presentation_file_0.pdf')
 
-    cur = driver.page_source
-    print(cur)
     WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.ID, "button-submit"))).click()
 
-    sleep(10)
-    print(*difflib.unified_diff(cur, driver.page_source)) # <p id="error-text">No task attempt with task_attempt_id = None.</p>
-    print(driver.page_source)
+    WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.ID, "next")))
 
     WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, "record"))).click()
 
+    WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "model-timer")))
 
-    # WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "model-timer")))
-    # WebDriverWait(driver, 10).until(EC.invisibility_of_element((By.ID, "model-timer")))
+    WebDriverWait(driver, 10).until(EC.invisibility_of_element((By.ID, "model-timer")))
+
+    logs = driver.get_log('browser')
+    for entry in logs:
+        print(f"{entry['level']} - {entry['message']}")
+
+    # print(driver.find_element(By.ID, "next").is_enabled())
+    # print(driver.find_element(By.ID, "next").get_attribute('disabled'))
+
     # WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.ID, "next")))
     # sleep(5)
+    # print(cur == driver.page_source)
+    # print(difflib.unified_diff(cur, driver.page_source))
+    # print(driver.page_source)
+
     # WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, "next"))).click()
     # sleep(5)
     # WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.ID, "done"))).click()
+
     # alert = Alert(driver) 
     # alert.accept() 
 

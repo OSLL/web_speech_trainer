@@ -1,13 +1,11 @@
+version: '2'
+
 services:
   selenium-tests:
     build:
       context: .
       dockerfile: Dockerfile_selenium
-      
     depends_on:
       - web
-
-    network_mode: service:web
-
-    tty: true
-    stdin_open: true
+    networks:
+      - default
