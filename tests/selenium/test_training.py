@@ -17,23 +17,27 @@ def test_basic_training():
     Config.init_config('/usr/src/project/app_conf/testing.ini')
 
     chrome_options = Options()
+
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--headless')
+    chrome_options.add_argument('--unsafely-treat-insecure-origin-as-secure=http://web:5000')
+
     chrome_options.add_argument("--disable-user-media-security")
     chrome_options.add_argument("--use-fake-device-for-media-stream")
     chrome_options.add_argument("--use-fake-ui-for-media-stream")
     chrome_options.add_argument('--use-file-for-fake-audio-capture={}/simple_phrases_russian.wav'.format(os.getcwd()))
-    # chrome_options.add_experimental_option('detach', True)
 
-    chrome_options.set_capability("goog:loggingPrefs", {"browser": "ALL"})
+    chrome_options.add_experimental_option('detach', True)
+
 
     driver = Chrome(options=chrome_options)
     session = requests.Session()
-
     sleep(5)
 
+    # Инициализация тестовой сессии
     driver.get('http://web:5000/init/')
 
+    # Регистрация в системе
     session.request('POST','http://web:5000/lti', data={
         'lis_person_name_full': Config.c.testing.lis_person_name_full,
         'ext_user_username': Config.c.testing.session_id,
@@ -48,6 +52,7 @@ def test_basic_training():
         'oauth_consumer_key': Config.c.testing.oauth_consumer_key,
     })
 
+    # Загрузка презентации
     driver.get('http://web:5000/upload_presentation/')
 
     file_input = WebDriverWait(driver, 20).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "input[type=file]")))
@@ -55,47 +60,41 @@ def test_basic_training():
 
     WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.ID, "button-submit"))).click()
 
-    WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.ID, "next")))
-
+    # Подготовка и начало записи
     WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, "record"))).click()
 
     WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "model-timer")))
 
     WebDriverWait(driver, 10).until(EC.invisibility_of_element((By.ID, "model-timer")))
 
-    logs = driver.get_log('browser')
-    for entry in logs:
-        print(f"{entry['level']} - {entry['message']}")
+    sleep(5)
 
-    # print(driver.find_element(By.ID, "next").is_enabled())
-    # print(driver.find_element(By.ID, "next").get_attribute('disabled'))
+    # Взаимодействие с презентацией
+    WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, "next"))).click()
 
-    # WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.ID, "next")))
-    # sleep(5)
-    # print(cur == driver.page_source)
-    # print(difflib.unified_diff(cur, driver.page_source))
-    # print(driver.page_source)
+    sleep(5)
 
-    # WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, "next"))).click()
-    # sleep(5)
-    # WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.ID, "done"))).click()
+    # Конец выступления
+    WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.ID, "done"))).click()
 
-    # alert = Alert(driver) 
-    # alert.accept() 
+    # ???
+    alert = Alert(driver) 
+    alert.accept() 
 
-    # feedback_flag = False
-    # step_count = 10
-    # step = 10
-    # for _ in range(step_count):
-    #     driver.refresh()
-    #     try:
-    #         feedback_element = WebDriverWait(driver, step).until(EC.presence_of_element_located((By.ID, 'feedback')))
-    #         if feedback_element.text.startswith('Оценка за тренировку'):
-    #             feedback_flag = True
-    #             break
-    #         sleep(step)
-    #     except:
-    #         sleep(step)
-    # driver.close()
+    # Ожидание результата тренировки
+    feedback_flag = False
+    step_count = 10
+    step = 10
+    for _ in range(step_count):
+        driver.refresh()
+        try:
+            feedback_element = WebDriverWait(driver, step).until(EC.presence_of_element_located((By.ID, 'feedback')))
+            if feedback_element.text.startswith('Оценка за тренировку'):
+                feedback_flag = True
+                break
+            sleep(step)
+        except:
+            sleep(step)
+    driver.close()
 
-    # assert feedback_flag, f"Проверка тренировки заняла более {step_count*step} секунд"
+    assert feedback_flag, f"Проверка тренировки заняла более {step_count*step} секунд"
