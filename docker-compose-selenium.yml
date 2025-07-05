@@ -1,0 +1,11 @@
+version: '2'
+
+services:
+  selenium-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile_selenium
+    depends_on:
+      - web
+    networks:
+      - default

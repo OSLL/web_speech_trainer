@@ -1,6 +1,5 @@
 .venv
 venv
-.venv
 .idea
 ssl
 __pycache__

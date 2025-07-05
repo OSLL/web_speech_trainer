@@ -6,9 +6,9 @@ let gumStream,
     timer;
 
 function startRecording() {
-    console.log("call startRecording(). Try to call navigator.mediaDevices.getUserMedia")
-    console.log(navigator)
-    console.log(navigator.mediaDevices)
+    console.log("call startRecording(). Try to call navigator.mediaDevices.getUserMedia");
+    console.log("navigator", navigator);
+    console.log("navigator.mediaDevices", navigator.mediaDevices);
     $("#alert").hide()
     $("#record-contain").show();
     navigator.mediaDevices.getUserMedia({audio: true, video: false}).then(function (stream) {
