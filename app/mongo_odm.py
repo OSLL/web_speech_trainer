@@ -33,11 +33,12 @@ logger = get_root_logger()
 
 
 class DBManager:
-    def __new__(cls):
+    def __new__(cls, max_size=20000): # max_size only on first creation
         if not hasattr(cls, 'init_done'):
             cls.instance = super(DBManager, cls).__new__(cls)
             connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
             cls.instance.storage = GridFSStorage(GridFSBucket(_get_db()))
+            cls.instance.max_size = max_size
             cls.init_done = True
         return cls.instance
 
@@ -47,8 +48,7 @@ class DBManager:
             size = file.tell()
             file.seek(0)
         except:
-            if(isinstance(file, str)):
-                size = len(file)
+            size = len(file)
         self.check_storage_limit(size)
         _id = self.storage.save(name=filename, content=file)
         self.update_storage_size(size)
@@ -99,11 +99,29 @@ class DBManager:
         meta.save()
     
     def check_storage_limit(self, new_file_size):
-        max_size = int(Config.c.constants.storage_max_size_mbytes)*1024*1024
+        max_size = self.max_size*1024*1024 # megabytes to bytes
         current_size = self.get_used_storage_size()
+        inf_msg = (
+            f"Check for ability to add file: "
+            f"Current: {current_size/(1024*1024):.2f} MB, "
+            f"New file: {new_file_size/(1024*1024):.2f} MB, "
+            f"Storage size: {self.max_size} MB"
+        )
+        logger.info(inf_msg)
         if current_size + new_file_size > max_size:
-            logger.warning('current_size = {}, new file size = {}'.format(current_size, new_file_size))
-            
+            error_msg = (
+                f"Storage limit exceeded. "
+                f"Current: {current_size/(1024*1024):.2f} MB, "
+                f"New file: {new_file_size/(1024*1024):.2f} MB, "
+                f"Storage size: {self.max_size} MB"
+            )
+            logger.critical(error_msg)
+            raise StorageLimitExceeded(error_msg) # new exception
+   
+   
+class StorageLimitExceeded(Exception):
+    def __init__(self, message):
+        super().__init__(message)         
 
 
 class TrainingsDBManager:

@@ -18,8 +18,8 @@ def storage_capacity():
     ratio = current_size / max_size
     return render_template(
         'capacity.html',
-        size=round(current_size / 1, 2),
-        max_size=round(max_size / 1, 2),
+        size=round(current_size / (1024*1024), 2),
+        max_size=round(max_size / (1024*1024), 2),
         ratio=round(ratio * 100, 1)
     )
     
