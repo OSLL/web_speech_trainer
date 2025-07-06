@@ -172,13 +172,19 @@ def upload_presentation() -> (dict, int):
         presentation_file.filename = converted_name
         # save nonconverted file with original_name
         nonconverted_file_id = DBManager().add_file(non_converted_file, original_name)
+        if nonconverted_file_id is None:
+            return {'message': 'Недостаточно места.'}, 404
 
     presentation_file_id = DBManager().add_file(presentation_file, presentation_file.filename)
+    if presentation_file_id is None:
+        return {'message': 'Недостаточно места.'}, 400
     presentation_file_preview = get_presentation_file_preview(DBManager().get_file(presentation_file_id))
     presentation_file_preview_id = DBManager().read_and_add_file(
         presentation_file_preview.name,
         presentation_file_preview.name,
     )
+    if presentation_file_preview_id is None:
+        return {'message': 'Недостаточно места.'}, 400
     presentation_file_preview.close()
     PresentationFilesDBManager().add_presentation_file(
         presentation_file_id,

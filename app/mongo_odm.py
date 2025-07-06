@@ -29,8 +29,7 @@ from app.status import (AudioStatus, PassBackStatus, PresentationStatus,
 from app.utils import remove_blank_and_none
 
 logger = get_root_logger()
-
-
+    
 
 class DBManager:
     def __new__(cls, max_size=20000): # max_size only on first creation
@@ -42,6 +41,7 @@ class DBManager:
             cls.init_done = True
         return cls.instance
 
+    # returns id of saved file and None if storage limit exceeded
     def add_file(self, file, filename=uuid.uuid4()):
         try:
             file.seek(0, os.SEEK_END)
@@ -49,7 +49,10 @@ class DBManager:
             file.seek(0)
         except:
             size = len(file)
-        self.check_storage_limit(size)
+        cur_size = self.check_storage_limit(size)
+        if cur_size > self.max_size:
+            logger.error(f"Could not save file {filename}: Storage limit exceeded")
+            return None  # storage limit exceeded, can't add file
         _id = self.storage.save(name=filename, content=file)
         self.update_storage_size(size)
         return _id
@@ -108,20 +111,7 @@ class DBManager:
             f"Storage size: {self.max_size} MB"
         )
         logger.info(inf_msg)
-        if current_size + new_file_size > max_size:
-            error_msg = (
-                f"Storage limit exceeded. "
-                f"Current: {current_size/(1024*1024):.2f} MB, "
-                f"New file: {new_file_size/(1024*1024):.2f} MB, "
-                f"Storage size: {self.max_size} MB"
-            )
-            logger.critical(error_msg)
-            raise StorageLimitExceeded(error_msg) # new exception
-   
-   
-class StorageLimitExceeded(Exception):
-    def __init__(self, message):
-        super().__init__(message)         
+        return current_size + new_file_size
 
 
 class TrainingsDBManager:
