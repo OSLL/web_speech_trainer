@@ -102,7 +102,6 @@ class DBManager:
         meta.save()
     
     def check_storage_limit(self, new_file_size):
-        max_size = self.max_size*1024*1024 # megabytes to bytes
         current_size = self.get_used_storage_size()
         inf_msg = (
             f"Check for ability to add file: "
