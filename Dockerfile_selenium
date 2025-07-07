@@ -19,4 +19,4 @@ COPY app_conf/testing.ini app_conf/testing.ini
 
 ENV PYTHONPATH='/usr/src/project/:/usr/src/project/app/'
 
-CMD ["pytest", "-s", "."]
+# CMD ["pytest", "-s", "."]
