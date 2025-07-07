@@ -5,6 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile_selenium
+    shm_size: 2g
     depends_on:
       - web
     networks:

@@ -77,24 +77,26 @@ def test_basic_training():
     # Конец выступления
     WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.ID, "done"))).click()
 
-    # ???
-    alert = Alert(driver) 
-    alert.accept() 
+    WebDriverWait(driver, 5).until(lambda d : d.switch_to.alert).accept()
+
+    sleep(5)
 
     # Ожидание результата тренировки
     feedback_flag = False
     step_count = 10
     step = 10
+
     for _ in range(step_count):
         driver.refresh()
-        try:
-            feedback_element = WebDriverWait(driver, step).until(EC.presence_of_element_located((By.ID, 'feedback')))
-            if feedback_element.text.startswith('Оценка за тренировку'):
-                feedback_flag = True
-                break
-            sleep(step)
-        except:
-            sleep(step)
+
+        feedback_elements = driver.find_elements(By.ID, 'feedback')
+
+        if feedback_elements and feedback_elements[0].text.startswith('Оценка за тренировку'):
+            feedback_flag = True
+            break
+        
+        sleep(step)
+
     driver.close()
 
-    assert feedback_flag, f"Проверка тренировки заняла более {step_count*step} секунд"
+    assert feedback_flag, f"Проверка тренировки заняла более {step_count * step} секунд"

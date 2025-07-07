@@ -24,8 +24,6 @@ def lti():
     """
     params = request.form
 
-    logger.debug(params)
-
     consumer_key = params.get('oauth_consumer_key', '')
     consumer_secret = ConsumersDBManager().get_secret(consumer_key)
     request_info = dict(
