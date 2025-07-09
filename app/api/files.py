@@ -146,6 +146,12 @@ def upload_presentation() -> (dict, int):
                 Config.c.constants.presentation_file_max_size_in_megabytes
             )
         }, 404
+    # check if file can be stored (*2.5 is an estimate of pdf and preview)
+    if not DBManager().check_storage_limit(request.content_length * 2.5):
+        return {
+            'message': "Not enough place in database to store file"
+        }, 404
+        
     presentation_file = request.files['presentation']
 
     # check extension and mimetype of file 
@@ -172,19 +178,13 @@ def upload_presentation() -> (dict, int):
         presentation_file.filename = converted_name
         # save nonconverted file with original_name
         nonconverted_file_id = DBManager().add_file(non_converted_file, original_name)
-        if nonconverted_file_id is None:
-            return {'message': 'Недостаточно места.'}, 404
 
     presentation_file_id = DBManager().add_file(presentation_file, presentation_file.filename)
-    if presentation_file_id is None:
-        return {'message': 'Недостаточно места.'}, 400
     presentation_file_preview = get_presentation_file_preview(DBManager().get_file(presentation_file_id))
     presentation_file_preview_id = DBManager().read_and_add_file(
         presentation_file_preview.name,
         presentation_file_preview.name,
     )
-    if presentation_file_preview_id is None:
-        return {'message': 'Недостаточно места.'}, 400
     presentation_file_preview.close()
     PresentationFilesDBManager().add_presentation_file(
         presentation_file_id,

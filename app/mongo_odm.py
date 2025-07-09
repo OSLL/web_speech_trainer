@@ -29,19 +29,19 @@ from app.status import (AudioStatus, PassBackStatus, PresentationStatus,
 from app.utils import remove_blank_and_none
 
 logger = get_root_logger()
-    
+
+BYTES_PER_MB = 1024*1024    
 
 class DBManager:
-    def __new__(cls, max_size=20000): # max_size only on first creation
+    def __new__(cls, max_size=20000): # max_size only on first creation, in MB
         if not hasattr(cls, 'init_done'):
             cls.instance = super(DBManager, cls).__new__(cls)
             connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
             cls.instance.storage = GridFSStorage(GridFSBucket(_get_db()))
-            cls.instance.max_size = max_size
+            cls.instance.max_size = max_size * BYTES_PER_MB
             cls.init_done = True
         return cls.instance
 
-    # returns id of saved file and None if storage limit exceeded
     def add_file(self, file, filename=uuid.uuid4()):
         try:
             file.seek(0, os.SEEK_END)
@@ -49,10 +49,6 @@ class DBManager:
             file.seek(0)
         except:
             size = len(file)
-        cur_size = self.check_storage_limit(size)
-        if cur_size > self.max_size:
-            logger.error(f"Could not save file {filename}: Storage limit exceeded")
-            return None  # storage limit exceeded, can't add file
         _id = self.storage.save(name=filename, content=file)
         self.update_storage_size(size)
         return _id
@@ -100,17 +96,21 @@ class DBManager:
         meta = self._get_or_create_storage_meta()
         meta.used_size += deltasize
         meta.save()
+        
+    def get_max_size(self):
+        return self.max_size
     
+    # returns Bool variable - True if file can be stored else False
     def check_storage_limit(self, new_file_size):
         current_size = self.get_used_storage_size()
         inf_msg = (
             f"Check for ability to add file: "
-            f"Current: {current_size/(1024*1024):.2f} MB, "
-            f"New file: {new_file_size/(1024*1024):.2f} MB, "
-            f"Storage size: {self.max_size} MB"
+            f"Current: {current_size/BYTES_PER_MB:.2f} MB, "
+            f"New file: {new_file_size/BYTES_PER_MB:.2f} MB, "
+            f"Storage size: {self.max_size/BYTES_PER_MB} MB"
         )
         logger.info(inf_msg)
-        return current_size + new_file_size
+        return False if current_size + new_file_size > self.max_size else True
 
 
 class TrainingsDBManager:

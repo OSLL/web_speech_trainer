@@ -275,8 +275,6 @@ def add_presentation_record(training_id: str) -> (dict, int):
     TrainingsDBManager().change_training_status_by_training_id(training_id,
                                                                TrainingStatus.SENT_FOR_PREPARATION)
     presentation_record_file_id = DBManager().add_file(presentation_record_file)
-    if presentation_record_file_id is None:
-        return {'message': 'Недостаточно места.'}, 404
     TrainingsDBManager().add_presentation_record(
         training_id, presentation_record_file_id, presentation_record_duration,
     )
