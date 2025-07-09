@@ -146,6 +146,12 @@ def upload_presentation() -> (dict, int):
                 Config.c.constants.presentation_file_max_size_in_megabytes
             )
         }, 404
+    # check if file can be stored (*2.5 is an estimate of pdf and preview)
+    if not DBManager().check_storage_limit(request.content_length * 2.5):
+        return {
+            'message': "Not enough place in database to store file"
+        }, 404
+        
     presentation_file = request.files['presentation']
 
     # check extension and mimetype of file 
