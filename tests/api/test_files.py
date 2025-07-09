@@ -174,6 +174,7 @@ class TestUploadPresentation:
 
     def test_file_is_not_pdf(self):
         with patch('app.api.files.check_auth', return_value=True), \
+             patch('app.api.files.DBManager') as mock_db_manager, \
                 patch('app.api.files.Config.c', new_callable=PropertyMock) as mock_config, \
                 app.test_client() as test_client:
             mock_config.return_value = Mock(constants=Mock(presentation_file_max_size_in_megabytes='10'), testing=Mock(active=True))
