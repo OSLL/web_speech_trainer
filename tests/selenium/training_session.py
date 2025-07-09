@@ -1,6 +1,6 @@
 from time import sleep
 
-from selenium_session import SeleniumSession
+from selenium_session import SeleniumSession, HOST
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -8,8 +8,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 
 class Training(SeleniumSession):
-    def __init__(self, host, config, chrome_options, requires_init=True):
-        super().__init__(host, config, chrome_options, requires_init)
+    def __init__(self, config, chrome_options, requires_init=True):
+        super().__init__(config, chrome_options, requires_init)
 
     def upload_presentation(self, presentation_path):
         self.driver.get(f'{self.host}/upload_presentation/')
