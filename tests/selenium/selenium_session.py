@@ -14,11 +14,11 @@ def chrome_options(audio_file=None):
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--headless')
     chrome_options.add_argument(f'--unsafely-treat-insecure-origin-as-secure={HOST}')
-    chrome_options.add_argument("--disable-user-media-security")
-    chrome_options.add_argument("--use-fake-device-for-media-stream")
-    chrome_options.add_argument("--use-fake-ui-for-media-stream")
     
     if audio_file is not None:
+        chrome_options.add_argument("--disable-user-media-security")
+        chrome_options.add_argument("--use-fake-device-for-media-stream")
+        chrome_options.add_argument("--use-fake-ui-for-media-stream")
         chrome_options.add_argument(f'--use-file-for-fake-audio-capture={audio_file}')
 
     return chrome_options
