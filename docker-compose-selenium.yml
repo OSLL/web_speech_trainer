@@ -1,0 +1,12 @@
+version: '2'
+
+services:
+  selenium-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile_selenium
+    shm_size: 2g
+    depends_on:
+      - web
+    networks:
+      - default

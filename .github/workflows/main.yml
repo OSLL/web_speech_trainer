@@ -22,14 +22,15 @@ jobs:
 
     - name: Build docker-compose
       run: |
-        docker compose build
+        docker compose -f docker-compose.yml -f docker-compose-selenium.yml build
 
     - name: Run docker-compose
       run:
-        APP_CONF=../app_conf/testing.ini docker compose up -d
+        APP_CONF=../app_conf/testing.ini docker compose -f docker-compose.yml -f docker-compose-selenium.yml up -d
 
     - name: Run tests
       run: |
         docker ps -a
         docker compose logs
-        docker exec web_speech_trainer-web-1 bash -c 'cd /project/tests && pytest .'
+        docker exec web_speech_trainer-web-1 bash -c 'cd /project/tests && pytest --ignore=selenium'
+        docker exec web_speech_trainer-selenium-tests-1 bash -c 'pytest .'
