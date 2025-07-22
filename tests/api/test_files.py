@@ -170,7 +170,7 @@ class TestUploadPresentation:
                 data=dict(presentation=(io.BytesIO(test_pdf.read()), 'test.pdf')),
                 content_type='multipart/form-data',
             )
-            check_json_response(response, {'message': 'Presentation file should not exceed 0.001MB.'}, 404)
+            check_json_response(response, {'message': 'Presentation file should not exceed 0.001MB.'}, 413)
 
     def test_file_is_not_pdf(self):
         with patch('app.api.files.check_auth', return_value=True), \
