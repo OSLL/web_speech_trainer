@@ -210,6 +210,8 @@ def get_training_statistics(training_id: str) -> (dict, int):
     
     training_db = TrainingsDBManager().get_training(training_id)
 
+    if training_db is None:
+        return {'message': 'No training with training_id = {}'.format(training_id)}, 404
 
     presentation_file_id = training_db.presentation_file_id
     presentation_file_name = DBManager().get_file_name(presentation_file_id)
