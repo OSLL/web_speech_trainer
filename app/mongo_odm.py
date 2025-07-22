@@ -33,12 +33,12 @@ logger = get_root_logger()
 BYTES_PER_MB = 1024*1024    
 
 class DBManager:
-    def __new__(cls, max_size=20000): # max_size only on first creation, in MB
+    def __new__(cls):
         if not hasattr(cls, 'init_done'):
             cls.instance = super(DBManager, cls).__new__(cls)
             connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
             cls.instance.storage = GridFSStorage(GridFSBucket(_get_db()))
-            cls.instance.max_size = max_size * BYTES_PER_MB
+            cls.instance.max_size = float(Config.c.constants.storage_max_size_mbytes) * BYTES_PER_MB
             cls.init_done = True
         return cls.instance
 
@@ -111,7 +111,15 @@ class DBManager:
         )
         logger.info(inf_msg)
         return False if current_size + new_file_size > self.max_size else True
-
+    
+    def recalculate_used_storage_data(self):
+        total_size = 0
+        db = _get_db()
+        for file_doc in db.fs.files.find():
+            total_size += file_doc['length']
+        self.set_used_storage_size(total_size)
+        logger.info(f"Storage size recalculated: {total_size/BYTES_PER_MB:.2f} MB")
+        
 
 class TrainingsDBManager:
     def __new__(cls):

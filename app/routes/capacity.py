@@ -24,3 +24,9 @@ def storage_capacity():
         ratio=round(ratio * 100, 1)
     )
     
+@routes_capacity.route('/refresh_capacity', methods=['POST'])
+def refresh_capacity():
+    if not is_admin():
+        return {}, 404
+    DBManager().recalculate_used_storage_data()
+    return {'message': 'OK'}

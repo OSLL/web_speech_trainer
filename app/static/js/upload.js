@@ -26,6 +26,17 @@ $(function(){
                 return;
             }
             $("#spinner").hide();
+
+            if (response.status == 413) {
+                response.json().then(responseJson => {
+                    $("#alert").show();
+                    $("#error-text").html(responseJson["message"] || "Файл слишком большой или превышает лимит хранилища");
+                });
+                $('#button-submit')[0].value = button_value;
+                
+                return;
+            }
+
             response.json().then(responseJson => {
                 if (responseJson["message"] !== "OK"){
                     $("#alert").show();
