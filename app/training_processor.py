@@ -12,7 +12,7 @@ from app.status import PresentationStatus, TrainingStatus
 from app.training import Training
 
 logger = get_root_logger(service_name='training_processor')
-
+TOTAL_WORDS_CRITERIA = 1e10
 
 class TrainingProcessor:
     def run(self):
@@ -60,6 +60,16 @@ class TrainingProcessor:
                     continue
                 presentation = Presentation.from_json_file(presentation_file)
                 presentation_file.close()
+                if audio.audio_stats['total_words'] < TOTAL_WORDS_CRITERIA * audio.audio_stats['duration']:
+                    TrainingsDBManager().change_training_status_by_training_id(
+                        training_id, TrainingStatus.PROCESSING_FAILED
+                    )
+                    verdict = 'Not enough words, total words = {}, duration = {}, training_id = {}.'\
+                        .format(audio.audio_stats['total_words'], audio.audio_stats['duration'], training_id)
+                    TrainingsDBManager().append_verdict(training_id, verdict)
+                    TrainingsDBManager().set_score(training_id, 0)
+                    logger.warning(verdict)
+                    continue
                 criteria_pack_id = training_db.criteria_pack_id
                 criteria_pack = CriteriaPackFactory().get_criteria_pack(criteria_pack_id)
                 criteria_pack_db = CriterionPackDBManager().get_criterion_pack_by_name(criteria_pack.name)
