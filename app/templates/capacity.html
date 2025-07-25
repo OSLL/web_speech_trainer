@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-body">
+            <h4 class="card-title">Загруженность Базы Данных</h4>
+            <p><strong>Использовано:</strong> {{ size }} Мбайт</p>
+            <p><strong>Максимум:</strong> {{ max_size }} Мбайт</p>
+            <p><strong>Заполнено:</strong> {{ ratio }}%</p>
+            <div class="progress">
+                <div class="progress-bar" role="progressbar" style="width: {{ ratio }}%;" aria-valuenow="{{ ratio }}" aria-valuemin="0" aria-valuemax="100">
+                    {{ ratio }}
+                </div>
+            </div>
+        </div>
+        <button type="button" id="refresh_button">Обновить данные</button>
+
+        <script src="/static/js/libraries/jquery.min.js"></script>
+        <script>
+            $('#refresh_button').click(function() {
+                $.post("{{ url_for('routes_capacity.refresh_capacity') }}", {}, function(data) {
+                    location.reload();
+                });
+            });
+        </script>
+    </div>
+</div>
+{% endblock %}

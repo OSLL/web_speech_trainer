@@ -156,3 +156,6 @@ class Logs(MongoModel):
     filename = fields.CharField()
     funcName = fields.CharField()
     lineno = fields.IntegerField()
+
+class StorageMeta(MongoModel):
+    used_size = fields.IntegerField()

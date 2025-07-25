@@ -31,6 +31,7 @@ from app.routes.presentations import routes_presentations
 from app.routes.trainings import routes_trainings
 from app.routes.task_attempts import routes_task_attempts
 from app.routes.version import routes_version
+from app.routes.capacity import routes_capacity
 from app.status import PassBackStatus, TrainingStatus
 from app.training_manager import TrainingManager
 from app.utils import ALLOWED_EXTENSIONS, DEFAULT_EXTENSION
@@ -55,6 +56,7 @@ app.register_blueprint(routes_presentations)
 app.register_blueprint(routes_trainings)
 app.register_blueprint(routes_task_attempts)
 app.register_blueprint(routes_version)
+app.register_blueprint(routes_capacity)
 
 logger = get_root_logger(service_name='web')
 
