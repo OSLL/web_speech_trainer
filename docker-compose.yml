@@ -86,6 +86,13 @@ services:
     volumes:
       - whisper_models:/root/.cache/whisper
 
+  processing_watchdog:
+    image: wst-image:v0.2
+    command: python3 -m processing_watchdog $APP_CONF
+    restart: always
+    depends_on: 
+      - db
+
 volumes:
   whisper_models:
   nltk_data:

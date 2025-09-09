@@ -16,8 +16,8 @@ from app.status import TrainingStatus, PresentationStatus, AudioStatus
 
 logger = get_root_logger(service_name='processing_watchdog')
 
-DEFAULT_MAX_SECONDS = 600
-DEFAULT_INTERVAL_SECONDS = 60
+DEFAULT_MAX_SECONDS = 300
+DEFAULT_INTERVAL_SECONDS = 30
 
 def get_config_values():
     try:
