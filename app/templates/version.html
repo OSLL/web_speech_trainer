@@ -2,8 +2,8 @@
 <html>
 {% block header %}
 {% include "header.html" %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/version.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/danger-alert.css') }}">
+<link rel="stylesheet" href="{{ versioned_url('css/version.css') }}">
+<link rel="stylesheet" href="{{ versioned_url('css/danger-alert.css') }}">
 {% endblock %}
 
 
@@ -14,6 +14,6 @@
     <table id="version-table"></table>
     {% block footer %} {% include "footer.html" %} {% endblock %}
 </body>
-<script src="{{ url_for('static', filename='js/libraries/jquery.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/version.js') }}"></script>
+<script src="{{ versioned_url('js/libraries/jquery.min.js') }}"></script>
+<script src="{{ versioned_url('js/version.js') }}"></script>
 </html>

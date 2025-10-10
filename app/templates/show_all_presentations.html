@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block header %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+<link rel="stylesheet" href="{{ versioned_url('css/index.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -11,8 +11,8 @@
 </form>
 
 <table id="all-presentations-table" class="table center-align-table"></table>
-<script src="{{ url_for('static', filename='js/utils.js') }}"></script>
-<script src="{{ url_for('static', filename='js/show_all_presentations.js') }}"></script>
+<script src="{{ versioned_url('js/utils.js') }}"></script>
+<script src="{{ versioned_url('js/show_all_presentations.js') }}"></script>
 <script type="text/javascript">
     call_get_all_presentations();
 </script>

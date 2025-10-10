@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
 
 {% block header %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/show_all_trainings.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/libraries/jquery-ui/jquery-ui.min.css') }}">
+<link rel="stylesheet" href="{{ versioned_url('css/index.css') }}">
+<link rel="stylesheet" href="{{ versioned_url('css/show_all_trainings.css') }}">
+<link rel="stylesheet" href="{{ versioned_url('css/libraries/jquery-ui/jquery-ui.min.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -52,14 +52,14 @@
 </div>
 
 <table id="all-trainings-table" class="table center-align-table"></table>
-<script src="{{ url_for('static', filename='js/libraries/jquery.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/libraries/jquery-ui.min.js') }}"></script>
+<script src="{{ versioned_url('js/libraries/jquery.min.js') }}"></script>
+<script src="{{ versioned_url('js/libraries/jquery-ui.min.js') }}"></script>
 
-<script src="{{ url_for('static', filename='js/changeURL.js') }}"></script>
-<script src="{{ url_for('static', filename='js/event_observer.js') }}"></script>
-<script src="{{ url_for('static', filename='js/utils.js') }}"></script>
-<script src="{{ url_for('static', filename='js/show_all_trainings_filters.js') }}"></script>
-<script src="{{ url_for('static', filename='js/show_all_trainings.js') }}"></script>
+<script src="{{ versioned_url('js/changeURL.js') }}"></script>
+<script src="{{ versioned_url('js/event_observer.js') }}"></script>
+<script src="{{ versioned_url('js/utils.js') }}"></script>
+<script src="{{ versioned_url('js/show_all_trainings_filters.js') }}"></script>
+<script src="{{ versioned_url('js/show_all_trainings.js') }}"></script>
 <script type="text/javascript">
     $(document).ready(async () => {
 

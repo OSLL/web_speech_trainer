@@ -13,7 +13,6 @@ import pymorphy2
 from nltk.corpus import stopwords
 from pydub import AudioSegment
 import subprocess
-
 from app.config import Config, VersionCache
 
 PDF_HEX_START = ['25', '50', '44', '46']
@@ -210,7 +209,7 @@ def delete_punctuation(text: str) -> str:
 
 
 def versioned_url(filename):
-    v = VersionCache.get_version()
+    v = VersionCache().get_version()
     return url_for('static', filename=filename) + f'?v={v}'
 
 class RepeatedTimer:

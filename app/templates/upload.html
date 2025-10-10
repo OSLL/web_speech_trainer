@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
 
 {% block header %}
-<link rel="stylesheet" href="/static/css/danger-alert.css">
-<link rel="stylesheet" href="/static/css/spinner.css">
+<link rel="stylesheet" href="{{ versioned_url('/static/css/danger-alert.css') }}">
+<link rel="stylesheet" href="{{ versioned_url('/static/css/spinner.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -26,6 +26,6 @@
         {{ t("Форматы, доступные для загрузки: ") }}<label id='user_allowed_formats'>...</label>
     </div>    
 </i>
-<script src="/static/js/libraries/jquery.min.js"></script>
-<script src="/static/js/upload.js"></script>
+<script src="{{ versioned_url('/static/js/libraries/jquery.min.js') }}"></script>
+<script src="{{ versioned_url('/static/js/upload.js') }}"></script>
 {% endblock %}

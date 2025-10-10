@@ -1,6 +1,6 @@
 {% extends 'base.html' %} 
 {% block header %}
-<link rel="stylesheet" href="/static/css/training_greeting.css">
+<link rel="stylesheet" href="{{ versioned_url('/static/css/training_greeting.css') }}">
 {% endblock %}
 {% block content %}
 <div class="base-container">
@@ -36,7 +36,7 @@
     {% endif %}
 
 </div>
-<script src="{{ url_for('static', filename='js/training_greeting.js') }}"></script>
+<script src="{{ versioned_url('js/training_greeting.js') }}"></script>
 <script type="text/javascript">
     setCriteriaPackDescription({{criteria_pack_description|tojson}});
 </script>

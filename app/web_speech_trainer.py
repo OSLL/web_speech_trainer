@@ -14,7 +14,7 @@ from app.api.sessions import api_sessions
 from app.api.task_attempts import api_task_attempts
 from app.api.trainings import api_trainings
 from app.api.version import api_version
-from app.config import Config
+from app.config import Config, VersionCache
 from app.criteria import CRITERIONS, check_criterions
 from app.criteria.preconfigured_criterions import \
     add_preconfigured_criterions_to_db

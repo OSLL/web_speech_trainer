@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
 
 {% block header %}
-<link rel="stylesheet" href="/static/css/danger-alert.css">
-<link rel="stylesheet" href="/static/css/libraries/codemirror.min.css">
-<link rel="stylesheet" href="/static/css/spinner.css">
+<link rel="stylesheet" href="{{ versioned_url('/static/css/danger-alert.css') }}">
+<link rel="stylesheet" href="{{ versioned_url('/static/css/libraries/codemirror.min.css') }}">
+<link rel="stylesheet" href="{{ versioned_url('/static/css/spinner.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -58,8 +58,8 @@
     <input id="button-submit" type="submit" value="{{ t(" Сохранить") }}">
 </form>
 
-<script src="/static/js/libraries/jquery.min.js"></script>
-<script src="/static/js/libraries/codemirror.min.js"></script>
-<script src="/static/js/pack.js"></script>
+<script src="{{ versioned_url('/static/js/libraries/jquery.min.js') }}"></script>
+<script src="{{ versioned_url('/static/js/libraries/codemirror.min.js') }}"></script>
+<script src="{{ versioned_url('/static/js/pack.js') }}"></script>
 
 {% endblock %}

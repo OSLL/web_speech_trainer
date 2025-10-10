@@ -28,18 +28,26 @@ class Config:
 
 class VersionCache:
     _instance = None
-    
+    _initialized = False
+
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def __init__(self):
+        if not self.__class__._initialized:
             hash_file = os.getenv("APP_STATIC_HASH_FILE", "dev")
             if hash_file and os.path.exists(hash_file):
                 with open(hash_file) as f:
-                    cls._instance.version=f.read().split()
+                    self.version=f.read().split()
             else:
-                cls._instance.version = "dev"
-            return cls._instance
-    
+                self.version = "dev"
+            self.__class__._initialized = True
+
     @classmethod
     def get_version(cls):
-        return cls().version
+        if cls._instance is None or not hasattr(cls._instance, "version"):
+            cls._instance = cls()
+        return cls._instance.version
+    _instance = None

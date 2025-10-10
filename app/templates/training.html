@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
 
 {% block header %}
-<link rel="stylesheet" href="/static/css/danger-alert.css">
-<link rel="stylesheet" href="/static/css/training.css">
+<link rel="stylesheet" href="{{ versioned_url('/static/css/danger-alert.css') }}">
+<link rel="stylesheet" href="{{ versioned_url('/static/css/training.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -44,13 +44,13 @@
   <canvas id="the-canvas" style="border: 1px solid #000000; direction: ltr;"></canvas>
 </div>
 
-<script src="{{ url_for('static', filename='js/libraries/jquery.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/libraries/pdf.js/build/pdf.js') }}"></script>
-<script src="{{ url_for('static', filename='js/libraries/WebAudioRecorder.js/WebAudioRecorder.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/training.js') }}"></script>
+<script src="{{ versioned_url('js/libraries/jquery.min.js') }}"></script>
+<script src="{{ versioned_url('js/libraries/pdf.js/build/pdf.js') }}"></script>
+<script src="{{ versioned_url('js/libraries/WebAudioRecorder.js/WebAudioRecorder.min.js') }}"></script>
+<script src="{{ versioned_url('js/training.js') }}"></script>
 <script type="text/javascript">
     setupPresentationViewer("{{ training_id }}");
 </script>
-<script src="{{ url_for('static', filename='js/recording.js') }}"></script>
+<script src="{{ versioned_url('js/recording.js') }}"></script>
 
 {% endblock %}
