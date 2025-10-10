@@ -7,14 +7,14 @@ from threading import Timer
 
 import fitz
 from bson import ObjectId
-from flask import json
+from flask import json, url_for
 import magic
 import pymorphy2
 from nltk.corpus import stopwords
 from pydub import AudioSegment
 import subprocess
 
-from app.config import Config
+from app.config import Config, VersionCache
 
 PDF_HEX_START = ['25', '50', '44', '46']
 SECONDS_PER_MINUTE = 60
@@ -208,6 +208,10 @@ def normalize_text(text: list) -> list:
 def delete_punctuation(text: str) -> str:
     return text.translate(str.maketrans('', '', string.punctuation + "\t\n\r\v\f"))
 
+
+def versioned_url(filename):
+    v = VersionCache.get_version()
+    return url_for('static', filename=filename) + f'?v={v}'
 
 class RepeatedTimer:
     """

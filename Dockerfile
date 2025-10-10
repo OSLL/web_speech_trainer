@@ -12,3 +12,8 @@ COPY . .
 
 ENV PYTHONPATH='/project/:/project/app/'
 WORKDIR /project/app
+
+RUN STATIC_HASH=$(find app/static -type f -exec md5sum {} \; | md5sum | cut -d' ' -f1) && \
+    echo $STATIC_HASH >> /APP_STATIC_HASH 
+
+ENV APP_STATIC_HASH_FILE=/APP_STATIC_HASH

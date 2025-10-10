@@ -1,3 +1,4 @@
+import os
 from configparser import ConfigParser
 from collections import OrderedDict
 
@@ -24,3 +25,21 @@ class Config:
         config_raw = ConfigParser()
         config_raw.read(config_path)
         Config.c = DictToObject(config_raw._sections)
+
+class VersionCache:
+    _instance = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            hash_file = os.getenv("APP_STATIC_HASH_FILE", "dev")
+            if hash_file and os.path.exists(hash_file):
+                with open(hash_file) as f:
+                    cls._instance.version=f.read().split()
+            else:
+                cls._instance.version = "dev"
+            return cls._instance
+    
+    @classmethod
+    def get_version(cls):
+        return cls().version
