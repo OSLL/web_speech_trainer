@@ -1,0 +1,102 @@
+.interview-container {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 50px;
+}
+
+.placeholder-photo {
+    width: 250px;
+    height: 250px;
+    background-color: black;
+    margin: 0 auto;
+    border-radius: 10px;
+}
+
+.mic-icon {
+    font-size: 2.5rem;
+    color: #007bff;
+}
+
+.mic-circle-wrapper {
+    width: 60px;
+    height: 60px;
+    background-color: #007bff;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 15px auto 0 auto;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.2s;
+}
+
+.mic-circle-wrapper:hover {
+    background-color: #0056b3;
+    transform: scale(1.1);
+}
+
+.mic-circle-wrapper i {
+    color: white;
+    font-size: 1.5rem;
+}
+
+#start-btn {
+    display: block;
+    margin: 15px auto 0 auto;
+    padding: 15px 40px;
+    font-size: 1.3rem;
+    border-radius: 12px;
+    background-color: #363773;
+    border: none;
+    color: white;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+#start-btn:hover {
+    background-color: #218838;
+}
+
+.stop-btn {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    padding: 15px 30px;
+    font-size: 1.2rem;
+    border-radius: 12px;
+    background-color: #9F0F0F;
+    border: none;
+    color: white;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+.stop-btn:hover {
+    background-color: #c82333;
+}
+
+.timer-section {
+    position: absolute;
+    top: 50px;
+    right: 50px;
+    text-align: left;
+    max-width: 350px;
+    font-family: Arial, sans-serif;
+}
+
+#timer {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #343a40;
+}
+
+#question-number {
+    font-size: 2.2rem;
+    font-weight: bold;
+}
+
+#question-text {
+    font-size: 2.2rem;
+    margin-top: 5px;
+}
