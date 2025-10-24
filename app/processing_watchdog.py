@@ -1,9 +1,20 @@
 """
     Watchdog для мониторинга и прерывания длительных обработок попыток и их прерывания
-    Запускать как отдельный сервис. Два значения читаются из конфига - макс. время попытки и интервал проверок
+    Запускать как отдельный сервис
+    
+    Два значения читаются из конфига - макс. время попытки и интервал проверок
     [constants]
     processing_limit = ()
     interval_time = ()
+    
+    Взаимодействие с базой данных:
+    - Использует TrainingsDBManager для доступа к тренировкам
+    - Находит все тренировки, у которых задано поле `processing_start_timestamp`
+    - Если прошло больше processing_limit секунд:
+        * Добавляет в базу вердикт с комментарием "обратиться к администраторам" через append_verdict()
+        * Устанавливает оценку 0 через set_score()
+        * Меняет статусы presentation и audio на PROCESSING_FAILED, если они ещё не финальные
+    - После каждой итерации ждёт interval_time секунд и повторяет проверку
 """
 
 import time
@@ -22,7 +33,8 @@ DEFAULT_INTERVAL_SECONDS = 30
 def get_config_values():
     try:
         return int(Config.c.constants.processing_limit), int(Config.c.constants.interval_time)
-    except Exception:
+    except Exception as e:
+        logger.warning("Failed to read config values, using defaults: %s", e)
         return DEFAULT_MAX_SECONDS, DEFAULT_INTERVAL_SECONDS
     
 def time_now():
@@ -42,8 +54,8 @@ def run_once(max_seconds):
             continue
         try:
             started = datetime.fromtimestamp(process_started.time, timezone.utc)
-        except Exception:
-            continue
+        except Exception as e:
+            logger.warning("Invalid timestamp in training %s: %s", getattr(training, "_id", "?"), e)
         elapsed = (now - started).total_seconds()
         if elapsed <= max_seconds:
             continue
@@ -66,16 +78,16 @@ def run_once(max_seconds):
                 pres_status = getattr(training, "presentation_status", None)
                 if pres_status not in [PresentationStatus.PROCESSED, PresentationStatus.PROCESSING_FAILED]:
                     TrainingsDBManager().change_presentation_status(training_id, PresentationStatus.PROCESSING_FAILED)
-            except Exception:
-                logger.exception("Failed to mark presentation status as failed for training %s", training_id)
+            except Exception as e:
+                logger.exception("Failed to mark presentation status as failed for training %s: %s", training_id, e)
             try:
                 audio_status = getattr(training, "audio_status", None)
                 if audio_status not in [AudioStatus.PROCESSED, AudioStatus.PROCESSING_FAILED]:
                     TrainingsDBManager().change_audio_status(training_id, AudioStatus.PROCESSING_FAILED)
-            except Exception:
-                logger.exception("Failed to mark audio status as failed for training %s", training_id)
-        except Exception:
-            logger.exception("Error while handling timeout for training %s", training_id)
+            except Exception as e:
+                logger.exception("Failed to mark audio status as failed for training %s: %s", training_id, e)
+        except Exception as e:
+            logger.exception("Error while handling timeout for training %s: %s", training_id, e)
             
 def run():
     max_seconds, interval_time = get_config_values()
@@ -83,8 +95,8 @@ def run():
     while True:
         try:
             run_once(max_seconds)
-        except Exception:
-            logger.exception("Unhandled error in processing watchdog main loop")
+        except Exception as e:
+            logger.exception("Unhandled error in processing watchdog main loop (%s)", e)
         time.sleep(interval_time)
         
 if __name__ == "__main__":
