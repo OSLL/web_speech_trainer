@@ -1,0 +1,7 @@
+<script type="text/javascript">
+    window.onerror=function(msg,source, lineno, colno){
+        var old_message = document.body.getAttribute("JSError");
+        document.body.setAttribute("JSError", old_message + "\n" + "At " + source + ", " + lineno +":" + colno + ", error: " +  msg);
+        return false;
+    }
+</script>

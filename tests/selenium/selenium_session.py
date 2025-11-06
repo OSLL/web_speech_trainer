@@ -1,3 +1,4 @@
+from selenium.webdriver.chrome.options import Options
 import requests
 from time import sleep
 
@@ -6,22 +7,24 @@ from selenium.webdriver import Chrome
 HOST = 'http://web:5000'
 ROOT_DIR = '/usr/src/project'
 
-from selenium.webdriver.chrome.options import Options
 
 def chrome_options(audio_file=None):
     chrome_options = Options()
 
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--headless')
-    chrome_options.add_argument(f'--unsafely-treat-insecure-origin-as-secure={HOST}')
-    
+    chrome_options.add_argument(
+        f'--unsafely-treat-insecure-origin-as-secure={HOST}')
+
     if audio_file is not None:
         chrome_options.add_argument("--disable-user-media-security")
         chrome_options.add_argument("--use-fake-device-for-media-stream")
         chrome_options.add_argument("--use-fake-ui-for-media-stream")
-        chrome_options.add_argument(f'--use-file-for-fake-audio-capture={audio_file}')
+        chrome_options.add_argument(
+            f'--use-file-for-fake-audio-capture={audio_file}')
 
     return chrome_options
+
 
 class SeleniumSession:
     def __init__(self, config, chrome_options, requires_init=True):
@@ -32,9 +35,9 @@ class SeleniumSession:
         self.session = requests.Session()
 
         sleep(5)
-        
+
     def __registrate(self, config):
-        self.session.request('POST',f'{self.host}/lti', data={
+        self.session.request('POST', f'{self.host}/lti', data={
             'lis_person_name_full': config.testing.lis_person_name_full,
             'ext_user_username': config.testing.session_id,
             'custom_task_id': config.testing.custom_task_id,
@@ -59,4 +62,7 @@ class SeleniumSession:
         self.__registrate(config)
 
     def end_session(self):
+        body = self.driver.find_element('tag name', 'body')
+        jsError = body.get_attribute('JSError')
+        self.assertIsNone(jsError)
         self.driver.quit()

@@ -16,7 +16,7 @@
         </div>
         <button type="button" id="refresh_button">Обновить данные</button>
 
-        <script src="{{ versioned_url('/static/js/libraries/jquery.min.js') }}"></script>
+        <script src="{{ versioned_url('/js/libraries/jquery.min.js') }}"></script>
         <script>
             $('#refresh_button').click(function() {
                 $.post("{{ url_for('routes_capacity.refresh_capacity') }}", {}, function(data) {
