@@ -64,5 +64,5 @@ class SeleniumSession:
     def end_session(self):
         body = self.driver.find_element('tag name', 'body')
         jsError = body.get_attribute('JSError')
-        self.assertIsNone(jsError)
+        assert jsError is None, f"JavaScript error detected: {jsError}"
         self.driver.quit()
