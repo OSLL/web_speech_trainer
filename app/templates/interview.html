@@ -7,7 +7,9 @@
 <div class="interview-container">
 
     <div class="top-center text-center">
-        <div class="placeholder-photo"></div>
+        <div class="placeholder-photo">
+            <img id="avatar-video" src="{{ url_for('avatar_stream') }}" alt="avatar stream" class="avatar-stream">
+        </div>
         <div class="mt-3">
             <button id="start-btn" class="btn btn-success px-4 py-2">Начать</button>
         </div>
@@ -15,6 +17,7 @@
              <i class="bi bi-mic-fill"></i>
         </div>
     </div>
+
 
     <div class="timer-section">
         <h3 id="timer">00:00</h3>
