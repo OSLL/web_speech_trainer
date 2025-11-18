@@ -165,7 +165,7 @@ class PredefenceEightToTenMinutesNoSlideCheckFeedbackEvaluator(FeedbackEvaluator
     def rework_strict_speech_duration_criterion(self, criteria_keys, suffix='StrictSpeechDurationCriterion'):
         for criteria in criteria_keys:
             if criteria.endswith(suffix):
-                self.weights[criteria] = self.weights.pop('StrictSpeechDurationCriterion')
+                if criteria not in self.weights and 'StrictSpeechDurationCriterion' in self.weights: self.weights[criteria] = self.weights.pop('StrictSpeechDurationCriterion')
                 return criteria
 
     def evaluate_feedback(self, criteria_results):
