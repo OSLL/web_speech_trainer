@@ -159,3 +159,8 @@ class Logs(MongoModel):
 
 class StorageMeta(MongoModel):
     used_size = fields.IntegerField()
+
+class Questions(MongoModel):
+    session_id = fields.CharField()
+    text = fields.CharField()
+    created_at = fields.DateTimeField(default=datetime.now(timezone.utc))

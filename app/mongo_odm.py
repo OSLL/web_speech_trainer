@@ -929,3 +929,18 @@ class CriterionPackDBManager:
 
     def get_all_criterion_packs(self):
         return CriterionPack.objects.all().order_by([("name", pymongo.ASCENDING)])
+
+class QuestionsDBManager:
+
+    def add_question(self, session_id: str, text: str):
+        question = Question(session_id=session_id, text=text)
+        return question.save()
+
+    def get_questions_by_session(self, session_id: str):
+        return Question.objects.raw({"session_id": session_id})
+
+    def remove_question(self, question_id):
+        return Question.objects.get({"_id": question_id}).delete()
+
+    def get_all(self):
+        return Question.objects.all()

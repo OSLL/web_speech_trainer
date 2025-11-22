@@ -7,6 +7,7 @@
     padding-top: 50px;
 }
 
+/* контейнер под видео/заглушку */
 .placeholder-photo {
     width: 320px;
     height: 240px;
@@ -14,15 +15,27 @@
     background-color: #000;
     border-radius: 12px;
     overflow: hidden;
+    position: relative;
 }
 
+/* видео-аватар */
 .avatar-stream {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    background: #000;
+    display: block;
 }
 
+/* чёрная заглушка (если видео нет) */
+.avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    background: #000;
+    border-radius: 12px;
+}
 
+/* ===== микрофон ===== */
 .mic-icon {
     font-size: 2.5rem;
     color: #007bff;
@@ -51,6 +64,7 @@
     font-size: 1.5rem;
 }
 
+/* ===== кнопка Начать ===== */
 #start-btn {
     display: block;
     margin: 15px auto 0 auto;
@@ -63,10 +77,12 @@
     font-weight: bold;
     transition: background-color 0.2s;
 }
+
 #start-btn:hover {
     background-color: #218838;
 }
 
+/* ===== кнопка Стоп ===== */
 .stop-btn {
     position: fixed;
     bottom: 20px;
@@ -80,10 +96,12 @@
     font-weight: bold;
     transition: background-color 0.2s;
 }
+
 .stop-btn:hover {
     background-color: #c82333;
 }
 
+/* ===== секция таймера и вопросов ===== */
 .timer-section {
     position: absolute;
     top: 50px;
