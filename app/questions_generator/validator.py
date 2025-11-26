@@ -17,8 +17,8 @@ class VkrQuestionValidator:
             vkr_text: Полный текст ВКР
         """
         self.vkr_text = vkr_text.lower()
-        self.keywords = self._extract_keywords()
         self.stopwords = set(stopwords.words('russian'))
+        self.keywords = self._extract_keywords()
 
     def _extract_keywords(self) -> Dict[str, Set[str]]:
         """

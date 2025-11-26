@@ -7,6 +7,6 @@
 - `hf download cointegrated/rut5-base-multitask --local-dir rut5-base`
 ## Выбор файла ВКР
 - заменить в `run.py` в функции `main` путь для файла ВКР
-## Запуск
+## Запуск (после любых изменений)
 - `docker build -t vkr-generator .`
 - `docker run -it --rm vkr-generator`

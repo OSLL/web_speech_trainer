@@ -18,6 +18,8 @@ RUN pip install --no-cache-dir --upgrade pip \
 # 4. NLTK
 RUN python -m nltk.downloader punkt stopwords
 
+RUN python -m nltk.downloader punkt
+
 # 5. Copy local model
 COPY rut5-base/ /app/rut5-base/
 

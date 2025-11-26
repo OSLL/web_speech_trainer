@@ -3,6 +3,7 @@ from validator import VkrQuestionValidator
 import sys
 import os
 from docx import Document
+import nltk
 
 
 def load_vkr_text(path: str) -> str:
@@ -19,6 +20,12 @@ def load_vkr_text(path: str) -> str:
 
 
 def main():
+    try:
+        nltk.data.find('tokenizers/punkt_tab/english')
+    except LookupError:
+        print("Загрузка необходимых данных NLTK...")
+        nltk.download('punkt_tab')
+
     print("=== Загрузка текста ВКР ===")
     text = load_vkr_text("vkr_examples/VKR1.docx")
 
