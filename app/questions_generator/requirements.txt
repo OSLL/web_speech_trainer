@@ -1,0 +1,5 @@
+transformers
+sentencepiece
+nltk
+huggingface_hub
+python-docx
