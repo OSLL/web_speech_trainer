@@ -1,6 +1,5 @@
 import os
 from flask import Blueprint, render_template, request, jsonify, current_app, Response
-from werkzeug.utils import secure_filename
 
 routes_interview = Blueprint('routes_interview', __name__)
 
@@ -32,7 +31,6 @@ def upload_avatar():
     if not allowed_file(file.filename):
         return jsonify({'ok': False, 'error': 'Invalid file type'}), 400
 
-    secure_filename(file.filename)
     save_path = os.path.join(UPLOAD_DIR, AVATAR_FILENAME)
 
     file.save(save_path)
