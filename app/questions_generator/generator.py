@@ -146,5 +146,6 @@ class VkrQuestionGenerator:
         """
         result = []
         result.extend(self.heuristic_questions())
-        result.extend(self.generate_llm_questions(count=7))
+        result.extend(["Начало rut5-base-multitask вопросов"])
+        result.extend(self.generate_llm_questions(count=10))
         return list(dict.fromkeys(result))  # убрать дубли
