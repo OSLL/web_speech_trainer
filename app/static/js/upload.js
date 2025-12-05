@@ -80,7 +80,7 @@ function fileLoadingOnChange() {
         const file = $("#file-loading").prop("files")[0];
         let parts = file.name.split(".");
         let extension = parts.pop().toLowerCase();
-        console.log(`File extension ${extension}`)
+        logWrapper(`File extension ${extension}`)
         /* TODO: use list with user-allowed extensions */
         if (parts.length < 1 || !user_formats.includes(extension)) {
             $("#alert").show();

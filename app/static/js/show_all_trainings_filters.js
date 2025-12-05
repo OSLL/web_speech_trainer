@@ -578,7 +578,7 @@ function createFilter(filterCode, initialValues = "") {
  */
 function removeAllFiltersUI() {
     for (const key of Object.keys(currentFilters)) {
-        // console.log($("#" + key + "-filter"))
+        // logWrapper($("#" + key + "-filter"))
         $("#" + key + "-filter").remove();
     }
 }

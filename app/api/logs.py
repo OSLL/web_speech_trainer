@@ -1,7 +1,7 @@
-from  datetime import datetime
+from datetime import datetime
 from app.root_logger import get_root_logger
 from ast import literal_eval
-
+import inspect
 from flask import Blueprint, request
 
 from app.lti_session_passback.auth_checkers import check_admin
@@ -9,7 +9,6 @@ from app.mongo_odm import LogsDBManager
 
 api_logs = Blueprint('api_logs', __name__)
 logger = get_root_logger()
-
 
 
 @api_logs.route('/api/logs/', methods=['GET'])
@@ -26,13 +25,15 @@ def get_logs() -> (dict, int):
     try:
         limit = request.args.get('limit', default=None, type=int)
     except Exception as e:
-        logger.info('Limit value {} is invalid.\n{}'.format(request.args.get('limit'), e))
+        logger.info('Limit value {} is invalid.\n{}'.format(
+            request.args.get('limit'), e))
         limit = None
 
     try:
         offset = request.args.get('offset', default=None, type=int)
     except Exception as e:
-        logger.info('Offset value {} is invalid.\n{}'.format(request.args.get('offset', default=None), e))
+        logger.info('Offset value {} is invalid.\n{}'.format(
+            request.args.get('offset', default=None), e))
         offset = None
 
     raw_filters = request.args.get('filter', default=None)
@@ -42,7 +43,8 @@ def get_logs() -> (dict, int):
             if not isinstance(filters, dict):
                 filters = None
         except Exception as e:
-            logger.info('Filter value {} is invalid.\n{}'.format(raw_filters, e))
+            logger.info(
+                'Filter value {} is invalid.\n{}'.format(raw_filters, e))
             filters = None
     else:
         filters = raw_filters
@@ -52,18 +54,22 @@ def get_logs() -> (dict, int):
         try:
             ordering = literal_eval(raw_ordering)
             if not isinstance(ordering, list) or not all(map(lambda x: x[1] in [-1, 1], ordering)):
-                logger.info('Ordering value {} is invalid.'.format(raw_ordering))
+                logger.info(
+                    'Ordering value {} is invalid.'.format(raw_ordering))
                 ordering = None
         except Exception as e:
-            logger.info('Ordering value {} is invalid.\n{}'.format(request.args.get('ordering', default=None), e))
+            logger.info('Ordering value {} is invalid.\n{}'.format(
+                request.args.get('ordering', default=None), e))
             ordering = None
     else:
         ordering = raw_ordering
 
     try:
-        logs = LogsDBManager().get_logs_filtered(filters=filters, limit=limit, offset=offset, ordering=ordering)
+        logs = LogsDBManager().get_logs_filtered(
+            filters=filters, limit=limit, offset=offset, ordering=ordering)
     except Exception as e:
-        message = 'Incorrect get_logs_filtered execution, {}: {}.'.format(e.__class__, e)
+        message = 'Incorrect get_logs_filtered execution, {}: {}.'.format(
+            e.__class__, e)
         logger.warning(message)
         return {'message': message}, 404
 
@@ -84,3 +90,56 @@ def get_logs() -> (dict, int):
         logs_json['logs'][str(_id)] = current_log_json
     logs_json['message'] = 'OK'
     return logs_json, 200
+
+
+@api_logs.route('/logs', methods=['POST'])
+def create_log():
+    """
+    Endpoint to receive client logs.
+    Expected JSON:
+    {
+        "timestamp": "...",
+        "message": "..."
+    }
+    """
+    # logger.info("Received client log")
+    frame = inspect.currentframe()  # кадр
+    caller = frame.f_back  # кадр вызывающей функции
+    pathname = caller.f_code.co_filename  # путь к файлу вызвывающей функции
+    filename = pathname.split('/')[-1]  # имя файла
+    funcName = caller.f_code.co_name  # имя функции
+    lineno = caller.f_lineno  # номер строки
+    try:
+        data = request.get_json(force=True)
+        if not data:
+            return {"message": "Invalid json"}, 400
+
+        timestamp = data.get("timestamp")
+        message = data.get("message")
+
+        if message is None:
+            return {"message": "message field is required"}, 400
+
+        if timestamp:
+            timestamp = datetime.fromisoformat(
+                timestamp.replace("Z", "+00:00"))
+        else:
+            timestamp = datetime.now()
+
+        LogsDBManager().add_log(
+            timestamp=timestamp,
+            serviceName="client",
+            levelname="INFO",
+            levelno=20,
+            message=message,
+            pathname=pathname,
+            filename=filename,
+            funcName=funcName,
+            lineno=lineno
+        )
+
+        return {"message": "log received"}, 201
+
+    except Exception as e:
+        logger.warning(f"Client log creation failed: {e}")
+        return {"message": "Internal server error"}, 500
