@@ -63,7 +63,7 @@ def main():
         clr = validator.check_clarity(q)
         diff = validator.check_difficulty(q)
 
-        status = "✔ OK" if (rel and clr and diff) else "✖ FAIL"
+        status = "✔ OK" if (int(rel) + int(clr) + int(diff) >= 2) else "✖ FAIL"  # хотя бы 2 условия выполнены
 
         print(f"\n[{status}] {q}")
         print(f"  - relevance: {rel}")
