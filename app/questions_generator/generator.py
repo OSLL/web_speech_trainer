@@ -10,7 +10,7 @@ class VkrQuestionGenerator:
     Генератор вопросов по тексту ВКР.
     Основан на гибридном подходе: NLTK + rut5-base-multitask.
     """
-    def __init__(self, vkr_text: str, model_path: str = "./rut5-base"):
+    def __init__(self, vkr_text: str, model_path: str):
         self.vkr_text = vkr_text
         self.sentences = sent_tokenize(vkr_text)
         self.stopwords = set(stopwords.words("russian"))

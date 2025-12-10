@@ -1,5 +1,5 @@
 transformers==4.57.3
 sentencepiece==0.2.1
 nltk==3.9.2
-huggingface_hub==1.2.1
+huggingface_hub==0.36.0
 python-docx==1.2.0

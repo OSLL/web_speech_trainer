@@ -1,9 +1,12 @@
-from generator import VkrQuestionGenerator
-from validator import VkrQuestionValidator
 import sys
 import os
+import argparse
+
 from docx import Document
 import nltk
+
+from generator import VkrQuestionGenerator
+from validator import VkrQuestionValidator
 
 
 def load_vkr_text(path: str) -> str:
@@ -16,21 +19,37 @@ def load_vkr_text(path: str) -> str:
     for paragraph in document.paragraphs:
         text.append(paragraph.text)
 
-    return '\n'.join(text)
+    return "\n".join(text)
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Генерация экзаменационных вопросов по тексту ВКР"
+    )
+    parser.add_argument(
+        "vkr_path",
+        nargs="?",
+        default="vkr_examples/VKR1.docx",
+        help="Путь к .docx файлу с текстом ВКР (по умолчанию: vkr_examples/VKR1.docx)",
+    )
+    return parser.parse_args()
 
 
 def main():
+    args = parse_args()
+    vkr_path = args.vkr_path
+
     try:
-        nltk.data.find('tokenizers/punkt_tab/english')
+        nltk.data.find("tokenizers/punkt_tab/english")
     except LookupError:
         print("Загрузка необходимых данных NLTK...")
-        nltk.download('punkt_tab')
+        nltk.download("punkt_tab")
 
-    print("=== Загрузка текста ВКР ===")
-    text = load_vkr_text("vkr_examples/VKR1.docx")
+    print(f"=== Загрузка текста ВКР из '{vkr_path}' ===")
+    text = load_vkr_text(vkr_path)
 
     print("=== Инициализация генератора ===")
-    gen = VkrQuestionGenerator(text, model_path="/app/rut5-base")
+    gen = VkrQuestionGenerator(text, model_path="/app/question_generator/rut5-base")
 
     print("=== Инициализация валидатора ===")
     validator = VkrQuestionValidator(text)
