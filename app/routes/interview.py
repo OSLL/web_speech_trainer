@@ -1,65 +1,75 @@
-import os
-from flask import Blueprint, render_template, request, jsonify, current_app, Response
+from flask import Blueprint, render_template, session, request, Response
+
+from app.root_logger import get_root_logger
+from app.lti_session_passback.auth_checkers import check_auth
+from app.mongo_odm import InterviewAvatarsDBManager
 
 routes_interview = Blueprint('routes_interview', __name__)
+logger = get_root_logger()
 
-UPLOAD_DIR = os.path.join(os.path.dirname(__file__), '..', 'uploads')
-AVATAR_FILENAME = 'avatar.mp4'
-ALLOWED_EXTENSIONS = {'mp4', 'm4v', 'mov', 'webm'}
 
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-@routes_interview.route('/interview', methods=['GET'])
+@routes_interview.route('/interview/', methods=['GET'])
 def interview_page():
-    avatar_path = os.path.join(UPLOAD_DIR, AVATAR_FILENAME)
-    has_avatar = os.path.exists(avatar_path)
+    user_session = check_auth()
+    if not user_session:
+        return {}, 404
+
+    session_id = session.get('session_id')
+    if not session_id:
+        return {}, 404
+
+    avatar_record = InterviewAvatarsDBManager().get_avatar_record(session_id)
+    has_avatar = avatar_record is not None
+
     return render_template(
         'interview.html',
-        has_avatar=has_avatar
+        has_avatar=has_avatar,
     ), 200
 
-@routes_interview.route('/upload_avatar', methods=['POST'])
-def upload_avatar():
-    if 'file' not in request.files:
-        return jsonify({'ok': False, 'error': 'No file part'}), 400
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({'ok': False, 'error': 'No selected file'}), 400
-    if not allowed_file(file.filename):
-        return jsonify({'ok': False, 'error': 'Invalid file type'}), 400
 
-    save_path = os.path.join(UPLOAD_DIR, AVATAR_FILENAME)
+def _partial_response_file(grid_out):
+    file_size = getattr(grid_out, 'length', None)
+    if file_size is None:
+        grid_out.seek(0, 2)  # SEEK_END
+        file_size = grid_out.tell()
+        grid_out.seek(0)
 
-    file.save(save_path)
-    return jsonify({'ok': True, 'message': 'Uploaded'}), 200
+    content_type = getattr(grid_out, 'content_type', None) or 'video/mp4'
 
-def partial_response(path):
-    file_size = os.path.getsize(path)
     range_header = request.headers.get('Range', None)
     if not range_header:
         def full_stream():
-            with open(path, 'rb') as f:
-                while True:
-                    chunk = f.read(8192)
-                    if not chunk:
-                        break
-                    yield chunk
+            chunk_size = 8192
+            grid_out.seek(0)
+            while True:
+                chunk = grid_out.read(chunk_size)
+                if not chunk:
+                    break
+                yield chunk
+
         headers = {
             'Content-Length': str(file_size),
             'Accept-Ranges': 'bytes',
-            'Content-Type': 'video/mp4'
+            'Content-Type': content_type,
         }
         return Response(full_stream(), status=200, headers=headers)
-    byte_range = range_header.strip().split('=')[1]
-    start_str, end_str = byte_range.split('-')
+
+    try:
+        byte_range = range_header.strip().split('=')[1]
+        start_str, end_str = byte_range.split('-')
+    except Exception:
+        return Response(status=416)
+
     try:
         start = int(start_str) if start_str else 0
     except ValueError:
         start = 0
-    end = int(end_str) if end_str else file_size - 1
+
+    try:
+        end = int(end_str) if end_str else file_size - 1
+    except ValueError:
+        end = file_size - 1
+
     if end >= file_size:
         end = file_size - 1
     if start > end:
@@ -68,28 +78,38 @@ def partial_response(path):
     length = end - start + 1
 
     def stream_range():
-        with open(path, 'rb') as f:
-            f.seek(start)
-            remaining = length
-            while remaining > 0:
-                chunk_size = 8192 if remaining >= 8192 else remaining
-                data = f.read(chunk_size)
-                if not data:
-                    break
-                remaining -= len(data)
-                yield data
+        chunk_size = 8192
+        grid_out.seek(start)
+        remaining = length
+        while remaining > 0:
+            size = chunk_size if remaining >= chunk_size else remaining
+            data = grid_out.read(size)
+            if not data:
+                break
+            remaining -= len(data)
+            yield data
 
     headers = {
         'Content-Range': f'bytes {start}-{end}/{file_size}',
         'Accept-Ranges': 'bytes',
         'Content-Length': str(length),
-        'Content-Type': 'video/mp4'
+        'Content-Type': content_type,
     }
     return Response(stream_range(), status=206, headers=headers)
 
+
 @routes_interview.route('/avatar_video')
 def avatar_video():
-    avatar_path = os.path.join(UPLOAD_DIR, AVATAR_FILENAME)
-    if not os.path.exists(avatar_path):
-        return ('', 404)
-    return partial_response(avatar_path)
+    user_session = check_auth()
+    if not user_session:
+        return '', 404
+
+    session_id = session.get('session_id')
+    if not session_id:
+        return '', 404
+
+    grid_out = InterviewAvatarsDBManager().get_avatar_file(session_id)
+    if grid_out is None:
+        return '', 404
+
+    return _partial_response_file(grid_out)
