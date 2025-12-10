@@ -37,9 +37,6 @@ class VkrQuestionGenerator:
     def extract_conclusion(self) -> str:
         return self.extract_section("Заключение")
 
-    def extract_methodology(self) -> str:
-        return self.extract_section("Методолог")
-
     # ---------------------------------------------------------
     # --- 2. ЭВРИСТИКА: Поиск ключевых концепций ---
     # ---------------------------------------------------------
@@ -79,7 +76,6 @@ class VkrQuestionGenerator:
         """
         intro = self.extract_intro()
         conc = self.extract_conclusion()
-        meth = self.extract_methodology()
         keywords = self.extract_keywords(self.vkr_text)
 
         q = []
@@ -87,11 +83,6 @@ class VkrQuestionGenerator:
         # --- По связям между разделами ---
         if intro and conc:
             q.append("Как сформулированные во введении задачи связаны с выводами работы?")
-
-        # --- По методологии ---
-        if meth:
-            for kw in keywords[:3]:
-                q.append(f"Почему был выбран метод {kw} и где он применён в работе?")
 
         # --- По выводам ---
         if conc:
