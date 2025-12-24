@@ -7,12 +7,9 @@ NLTK_DIR="${NLTK_DATA:-/nltk_data}"
 echo "MODEL_DIR=${MODEL_DIR}"
 echo "NLTK_DIR=${NLTK_DIR}"
 
-# Гарантируем, что каталоги существуют
 mkdir -p "$MODEL_DIR" "$NLTK_DIR"
 
-########################################
-# 1. Загрузка модели в volume (один раз)
-########################################
+# 1) ruT5 model (один раз)
 if [ -z "$(ls -A "$MODEL_DIR" 2>/dev/null)" ]; then
   echo "Model directory is empty. Downloading model to $MODEL_DIR..."
   huggingface-cli download \
@@ -24,24 +21,20 @@ else
   echo "Model directory is not empty, skipping download."
 fi
 
-########################################
-# 2. Загрузка данных NLTK в volume
-########################################
+# 2) NLTK data (один раз)
 if [ -z "$(ls -A "$NLTK_DIR" 2>/dev/null)" ]; then
   echo "NLTK data directory is empty. Downloading 'punkt' and 'stopwords' to $NLTK_DIR..."
-  python - <<EOF
+  python - <<'PY'
+import os
 import nltk
-nltk.data.path = ["$NLTK_DIR"] + nltk.data.path
-nltk.download("punkt", download_dir="$NLTK_DIR")
-nltk.download("stopwords", download_dir="$NLTK_DIR")
-EOF
+
+nltk_dir = os.environ.get("NLTK_DATA", "/nltk_data")
+nltk.data.path = [nltk_dir] + nltk.data.path
+
+nltk.download("punkt", download_dir=nltk_dir)
+nltk.download("stopwords", download_dir=nltk_dir)
+PY
   echo "NLTK data downloaded."
 else
   echo "NLTK data directory is not empty, skipping download."
 fi
-
-# Экспортируем путь для NLTK
-export NLTK_DATA="$NLTK_DIR"
-
-echo "Starting application..."
-exec "$@"

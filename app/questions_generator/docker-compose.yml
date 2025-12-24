@@ -1,0 +1,24 @@
+services:
+  init:
+    build:
+      context: .
+      target: init
+    volumes:
+      - rut5_model:/app/question_generator/rut5-base
+      - nltk_data:/nltk_data
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      target: app
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    volumes:
+      - rut5_model:/app/question_generator/rut5-base
+      - nltk_data:/nltk_data
+
+volumes:
+  rut5_model:
+  nltk_data:
