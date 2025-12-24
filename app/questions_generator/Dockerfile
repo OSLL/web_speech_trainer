@@ -23,7 +23,7 @@ COPY . .
 
 # ====== runtime image ======
 FROM base AS app
-CMD ["python", "run.py"]
+CMD ["bash", "-lc", "sleep infinity"]
 
 # ====== init image ======
 FROM base AS init

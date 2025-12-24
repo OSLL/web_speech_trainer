@@ -15,9 +15,12 @@ services:
     depends_on:
       init:
         condition: service_completed_successfully
+    stdin_open: true
+    tty: true
     volumes:
       - rut5_model:/app/question_generator/rut5-base
       - nltk_data:/nltk_data
+      - ./vkr_examples:/app/vkr_examples  # монтируется для интерактивного запуска с файлами из этой папки (папка рядом с композом)
 
 volumes:
   rut5_model:

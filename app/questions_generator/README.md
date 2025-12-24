@@ -1,8 +1,8 @@
-## Сборка
-`docker build -t vkr-generator .`
+## Запуск (контейнер вечно крутится)
+`docker-compose up` - ВАЖНО: Первый раз ОЧЕНЬ ДОЛГО билдится (30-40 минут)!!!
 
-## Запуск
-`python run_docker.py <путь к файлу с текстом ВКР>`
+## Использование (интерактивное)
+`docker compose exec app python run.py /app/vkr_examples/VKR1.docx` - папка `vkr_examples` локальная, лежит рядом с композом
 
 ## Пример сгенерированных вопросов по тексту ВКР
 
