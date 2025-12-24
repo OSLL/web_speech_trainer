@@ -1,11 +1,23 @@
 import re
+import logging
+import time
+from contextlib import contextmanager
 from typing import List, Dict, Set
 from collections import Counter
-import nltk
-from nltk.tokenize import sent_tokenize, word_tokenize
+from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
-import string
 from datetime import datetime
+
+
+@contextmanager
+def timed(logger: logging.Logger, operation: str, level: int = logging.INFO, **extra):
+    start = time.perf_counter()
+    logger.log(level, "START %s %s", operation, (extra if extra else ""))
+    try:
+        yield
+    finally:
+        elapsed_ms = (time.perf_counter() - start) * 1000.0
+        logger.log(level, "END   %s | %.2f ms %s", operation, elapsed_ms, (extra if extra else ""))
 
 
 class VkrQuestionValidator:
@@ -16,9 +28,24 @@ class VkrQuestionValidator:
         Args:
             vkr_text: Полный текст ВКР
         """
-        self.vkr_text = vkr_text.lower()
-        self.stopwords = set(stopwords.words('russian'))
-        self.keywords = self._extract_keywords()
+        self.logger = logging.getLogger(__name__)
+
+        with timed(self.logger, "validator_init"):
+            self.vkr_text = vkr_text.lower()
+
+            with timed(self.logger, "validator_load_stopwords"):
+                self.stopwords = set(stopwords.words('russian'))
+
+            with timed(self.logger, "validator_extract_keywords_total"):
+                self.keywords = self._extract_keywords()
+
+        self.logger.info(
+            "Validator ready: stopwords=%d theme=%d goals=%d methodology=%d",
+            len(self.stopwords),
+            len(self.keywords.get("theme", set())),
+            len(self.keywords.get("goals", set())),
+            len(self.keywords.get("methodology", set())),
+        )
 
     def _extract_keywords(self) -> Dict[str, Set[str]]:
         """
@@ -28,34 +55,35 @@ class VkrQuestionValidator:
             Словарь с категориями ключевых слов
         """
         keywords = {
-            'theme': set(),  # Тематические слова
-            'goals': set(),  # Слова, связанные с целями
+            'theme': set(),       # Тематические слова
+            'goals': set(),       # Слова, связанные с целями
             'methodology': set()  # Методологические термины
         }
 
-        # Извлечение ключевых слов из введения
-        intro_section = self._extract_introduction()
-        keywords['theme'] = self._tokenize_and_filter(intro_section)
+        with timed(self.logger, "extract_introduction"):
+            intro_section = self._extract_introduction()
+        with timed(self.logger, "tokenize_filter_intro", intro_len=len(intro_section)):
+            keywords['theme'] = self._tokenize_and_filter(intro_section)
 
-        # Извлечение целей из соответствующего раздела
-        goals_section = self._extract_goals_section()
-        keywords['goals'] = self._tokenize_and_filter(goals_section)
+        with timed(self.logger, "extract_goals_section"):
+            goals_section = self._extract_goals_section()
+        with timed(self.logger, "tokenize_filter_goals", goals_len=len(goals_section)):
+            keywords['goals'] = self._tokenize_and_filter(goals_section)
 
-        # Извлечение методологических терминов
-        meth_section = self._extract_methodology_section()
-        keywords['methodology'] = self._tokenize_and_filter(meth_section)
+        with timed(self.logger, "extract_methodology_section"):
+            meth_section = self._extract_methodology_section()
+        with timed(self.logger, "tokenize_filter_methodology", meth_len=len(meth_section)):
+            keywords['methodology'] = self._tokenize_and_filter(meth_section)
 
+        self.logger.info(
+            "Keywords extracted: theme=%d goals=%d methodology=%d",
+            len(keywords["theme"]), len(keywords["goals"]), len(keywords["methodology"])
+        )
         return keywords
 
     def _tokenize_and_filter(self, text: str) -> Set[str]:
         """
         Токенизация и фильтрация текста для получения ключевых слов
-
-        Args:
-            text: Исходный текст для обработки
-
-        Returns:
-            Множество отфильтрованных токенов
         """
         tokens = word_tokenize(text.lower())
         filtered_tokens = [
@@ -67,110 +95,61 @@ class VkrQuestionValidator:
         return set(filtered_tokens)
 
     def _extract_introduction(self) -> str:
-        """
-        Извлечение введения из текста ВКР
-
-        Returns:
-            Текст введения
-        """
         intro_pattern = r'введение.*?(?=глава|раздел)'
         match = re.search(intro_pattern, self.vkr_text, re.DOTALL)
         return match.group(0) if match else ""
 
     def _extract_goals_section(self) -> str:
-        """
-        Извлечение раздела с целями и задачами
-
-        Returns:
-            Текст раздела с целями
-        """
         goals_pattern = r'(цель|задачи).*?(?=глава|раздел)'
         match = re.search(goals_pattern, self.vkr_text, re.DOTALL)
         return match.group(0) if match else ""
 
     def _extract_methodology_section(self) -> str:
-        """
-        Извлечение методологического раздела
-
-        Returns:
-            Текст методологического раздела
-        """
         meth_pattern = r'(методология|методы).*?(?=глава|раздел)'
         match = re.search(meth_pattern, self.vkr_text, re.DOTALL)
         return match.group(0) if match else ""
 
     def check_relevance(self, question: str) -> bool:
-        """
-        Проверка релевантности вопроса
+        with timed(self.logger, "validator_check_relevance", q_len=len(question)):
+            score = 0
 
-        Args:
-            question: Проверяемый вопрос
+            theme_match = len(set(question.lower().split()) &
+                              set(self.keywords['theme']))
+            if theme_match > 0:
+                score += 1
 
-        Returns:
-            True если вопрос релевантен, False если нет
-        """
-        score = 0
+            actuality_score = self._calculate_actuality_score(question)
+            score += actuality_score
 
-        # Проверка соответствия теме
-        theme_match = len(set(question.lower().split()) &
-                          set(self.keywords['theme']))
-        if theme_match > 0:
-            score += 1
+            goal_match = len(set(question.lower().split()) &
+                             set(self.keywords['goals']))
+            if goal_match > 0:
+                score += 1
 
-        # Проверка актуальности
-        actuality_score = self._calculate_actuality_score(question)
-        score += actuality_score
+            result = score >= 2
 
-        # Проверка связи с целями
-        goal_match = len(set(question.lower().split()) &
-                         set(self.keywords['goals']))
-        if goal_match > 0:
-            score += 1
-
-        return score >= 2
+        self.logger.info("relevance=%s score=%d q=%r", result, score, question)
+        return result
 
     def _calculate_actuality_score(self, question: str) -> int:
-        """
-        Расчёт актуальности вопроса
-
-        Args:
-            question: Анализируемый вопрос
-
-        Returns:
-            Оценка актуальности (0 или 1)
-        """
         current_year = datetime.now().year
         year_mentions = [int(word) for word in question.split()
                          if word.isdigit() and 1900 <= int(word) <= current_year]
         return max(0, min(1, len(year_mentions)))
 
     def check_completeness(self, questions_list: List[str]) -> bool:
-        """
-        Проверка полноты набора вопросов
+        with timed(self.logger, "validator_check_completeness", total=len(questions_list)):
+            coverage = {
+                'theoretical': self._check_theory_coverage(questions_list),
+                'practical': self._check_practice_coverage(questions_list),
+                'analysis_levels': self._check_analysis_depth(questions_list)
+            }
+            result = all(value >= 0.7 for value in coverage.values())
 
-        Args:
-            questions_list: Список проверяемых вопросов
-
-        Returns:
-            True если набор полный, False если нет
-        """
-        coverage = {
-            'theoretical': self._check_theory_coverage(questions_list),
-            'practical': self._check_practice_coverage(questions_list),
-            'analysis_levels': self._check_analysis_depth(questions_list)
-        }
-        return all(value >= 0.7 for value in coverage.values())
+        self.logger.info("completeness=%s coverage=%s", result, coverage)
+        return result
 
     def _check_theory_coverage(self, questions: List[str]) -> float:
-        """
-        Проверка теоретического охвата вопросами
-
-        Args:
-            questions: Список вопросов для анализа
-
-        Returns:
-            Значение от 0 до 1, показывающее степень покрытия
-        """
         theoretical_terms = {'теория', 'модель', 'концепция', 'принцип'}
         total_questions = len(questions)
         theory_questions = sum(
@@ -180,15 +159,6 @@ class VkrQuestionValidator:
         return theory_questions / total_questions if total_questions > 0 else 0
 
     def _check_practice_coverage(self, questions: List[str]) -> float:
-        """
-        Проверка практического охвата вопросами
-
-        Args:
-            questions: Список вопросов для анализа
-
-        Returns:
-            Значение от 0 до 1, показывающее степень покрытия
-        """
         practical_terms = {'применение', 'реализация', 'использование', 'результаты'}
         total_questions = len(questions)
         practice_questions = sum(
@@ -198,15 +168,6 @@ class VkrQuestionValidator:
         return practice_questions / total_questions if total_questions > 0 else 0
 
     def _check_analysis_depth(self, questions: List[str]) -> float:
-        """
-        Проверка глубины анализа в вопросах
-
-        Args:
-            questions: Список вопросов для анализа
-
-        Returns:
-            Значение от 0 до 1, показывающее глубину анализа
-        """
         depth_indicators = {
             'поверхностный': {'что', 'какой'},
             'средний': {'почему', 'как'},
@@ -228,34 +189,19 @@ class VkrQuestionValidator:
         return sum(depths) / (len(depths) * 2) if depths else 0
 
     def check_clarity(self, question: str) -> bool:
-        """
-        Проверка ясности формулировки вопроса
+        with timed(self.logger, "validator_check_clarity", q_len=len(question)):
+            metrics = {
+                'length': self._check_length(question),
+                'complexity': self._calculate_complexity(question),
+                'ambiguity': self._check_ambiguity(question)
+            }
+            result = all(value >= 0.7 for value in metrics.values())
 
-        Args:
-            question: Проверяемый вопрос
-
-        Returns:
-            True если формулировка ясная, False если нет
-        """
-        metrics = {
-            'length': self._check_length(question),
-            'complexity': self._calculate_complexity(question),
-            'ambiguity': self._check_ambiguity(question)
-        }
-        return all(value >= 0.7 for value in metrics.values())
+        self.logger.info("clarity=%s metrics=%s q=%r", result, metrics, question)
+        return result
 
     def _check_length(self, question: str) -> float:
-        """
-        Проверка длины вопроса
-
-        Args:
-            question: Проверяемый вопрос
-
-        Returns:
-            Нормализованное значение от 0 до 1
-        """
         words = len(question.split())
-        # Оптимальная длина вопроса считается 7-15 слов
         if words < 7:
             return 0.5 * (words / 7)
         elif words > 15:
@@ -263,68 +209,34 @@ class VkrQuestionValidator:
         return 1.0
 
     def _calculate_complexity(self, question: str) -> float:
-        """
-        Оценка сложности вопроса
-
-        Args:
-            question: Анализируемый вопрос
-
-        Returns:
-            Значение от 0 до 1, показывающее сложность
-        """
         words = question.split()
         unique_words = set(words)
         return min(1.0, len(unique_words) / len(words))
 
     def _check_ambiguity(self, question: str) -> float:
-        """
-        Проверка наличия двусмысленностей в вопросе
-
-        Args:
-            question: Проверяемый вопрос
-
-        Returns:
-            Значение от 0 до 1, где 1 - нет двусмысленностей
-        """
         ambiguous_terms = {
             'или', 'и', 'при этом', 'однако', 'тем не менее',
             'с другой стороны', 'в то же время'
         }
         ambiguity_score = 1.0
-
         for term in ambiguous_terms:
             if term in question.lower():
                 ambiguity_score -= 0.2
-
         return max(0.0, ambiguity_score)
 
     def check_difficulty(self, question: str) -> bool:
-        """
-        Проверка уровня сложности вопроса
+        with timed(self.logger, "validator_check_difficulty", q_len=len(question)):
+            difficulty_metrics = {
+                'abstraction_level': self._assess_abstraction(question),
+                'question_type': self._identify_question_type(question),
+                'student_level_match': self._match_student_level(question)
+            }
+            result = all(value == 'optimal' for value in difficulty_metrics.values())
 
-        Args:
-            question: Проверяемый вопрос
-
-        Returns:
-            True если уровень сложности оптимальный, False если нет
-        """
-        difficulty_metrics = {
-            'abstraction_level': self._assess_abstraction(question),
-            'question_type': self._identify_question_type(question),
-            'student_level_match': self._match_student_level(question)
-        }
-        return all(value == 'optimal' for value in difficulty_metrics.values())
+        self.logger.info("difficulty=%s metrics=%s q=%r", result, difficulty_metrics, question)
+        return result
 
     def _assess_abstraction(self, question: str) -> str:
-        """
-        Оценка уровня абстракции вопроса
-
-        Args:
-            question: Анализируемый вопрос
-
-        Returns:
-            'optimal', 'too_high', 'too_low'
-        """
         abstract_terms = {
             'концепция', 'модель', 'теория', 'абстракция',
             'парадигма', 'методология'
@@ -346,15 +258,6 @@ class VkrQuestionValidator:
         return 'optimal'
 
     def _identify_question_type(self, question: str) -> str:
-        """
-        Определение типа вопроса
-
-        Args:
-            question: Анализируемый вопрос
-
-        Returns:
-            'optimal', 'too_simple', 'too_complex'
-        """
         question_types = {
             'descriptive': {'описать', 'рассказать', 'характеризовать'},
             'analytical': {'анализировать', 'сравнить', 'оценить'},
@@ -375,15 +278,6 @@ class VkrQuestionValidator:
         return 'too_complex'
 
     def _match_student_level(self, question: str) -> str:
-        """
-        Проверка соответствия вопроса уровню студента
-
-        Args:
-            question: Анализируемый вопрос
-
-        Returns:
-            'optimal', 'too_hard', 'too_easy'
-        """
         advanced_terms = {
             'методология', 'парадигма', 'теоретическая модель',
             'эмпирический анализ', 'статистическая обработка'
