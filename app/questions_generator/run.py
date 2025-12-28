@@ -3,7 +3,7 @@ import os
 import argparse
 import logging
 import time
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 
 from docx import Document
 import nltk
@@ -53,6 +53,27 @@ def timed(logger: logging.Logger, operation: str, level: int = logging.INFO, **e
         logger.log(level, "END   %s | %.2f ms %s", operation, elapsed_ms, (extra if extra else ""))
 
 
+@contextmanager
+def suppress_console_logs():
+    """
+    Временно отключает вывод логов в консоль (StreamHandler на stdout/stderr),
+    при этом FileHandler продолжает писать в файл.
+    """
+    root = logging.getLogger()
+    saved_levels = []
+
+    for h in root.handlers:
+        if isinstance(h, logging.StreamHandler) and getattr(h, "stream", None) in (sys.stdout, sys.stderr):
+            saved_levels.append((h, h.level))
+            h.setLevel(logging.CRITICAL + 1)  # выше CRITICAL, чтобы ничего не проходило
+
+    try:
+        yield
+    finally:
+        for h, lvl in saved_levels:
+            h.setLevel(lvl)
+
+
 def load_vkr_text(path: str) -> str:
     logger = logging.getLogger(__name__)
 
@@ -81,6 +102,11 @@ def parse_args() -> argparse.Namespace:
         nargs="?",
         default="vkr_examples/VKR1.docx",
         help="Путь к .docx файлу с текстом ВКР (по умолчанию: vkr_examples/VKR1.docx)",
+    )
+    parser.add_argument(
+        "--no-overflow-logs",
+        action="store_true",
+        help="Отключить вывод логов в консоль во время печати вопросов/результатов (логи в файл сохраняются).",
     )
     return parser.parse_args()
 
@@ -123,39 +149,42 @@ def main():
     ok_count = 0
     fail_count = 0
 
-    with timed(logger, "validate_all_questions", total=len(questions)):
-        for idx, q in enumerate(questions, start=1):
-            # маркер-разделитель (ваш текстовый разделитель)
-            if q.strip().startswith("---"):
-                logger.info("Separator encountered at %d: %s", idx, q.strip())
-                print(f"\n{q}")
-                continue
+    quiet_ctx = suppress_console_logs() if args.no_overflow_logs else nullcontext()
 
-            with timed(logger, "validate_question", index=idx):
-                with timed(logger, "check_relevance", index=idx):
-                    rel = validator.check_relevance(q)
-                with timed(logger, "check_clarity", index=idx):
-                    clr = validator.check_clarity(q)
-                with timed(logger, "check_difficulty", index=idx):
-                    diff = validator.check_difficulty(q)
+    with quiet_ctx:
+        with timed(logger, "validate_all_questions", total=len(questions)):
+            for idx, q in enumerate(questions, start=1):
+                # маркер-разделитель (ваш текстовый разделитель)
+                if q.strip().startswith("---"):
+                    logger.info("Separator encountered at %d: %s", idx, q.strip())
+                    print(f"\n{q}")
+                    continue
 
-            passed = (int(rel) + int(clr) + int(diff) >= 2)
-            status = "✔ OK" if passed else "✖ FAIL"
+                with timed(logger, "validate_question", index=idx):
+                    with timed(logger, "check_relevance", index=idx):
+                        rel = validator.check_relevance(q)
+                    with timed(logger, "check_clarity", index=idx):
+                        clr = validator.check_clarity(q)
+                    with timed(logger, "check_difficulty", index=idx):
+                        diff = validator.check_difficulty(q)
 
-            if passed:
-                ok_count += 1
-            else:
-                fail_count += 1
+                passed = (int(rel) + int(clr) + int(diff) >= 2)
+                status = "✔ OK" if passed else "✖ FAIL"
 
-            logger.info(
-                "Question %d status=%s rel=%s clr=%s diff=%s text=%r",
-                idx, ("OK" if passed else "FAIL"), rel, clr, diff, q
-            )
+                if passed:
+                    ok_count += 1
+                else:
+                    fail_count += 1
 
-            print(f"\n[{status}] {q}")
-            print(f"  - relevance: {rel}")
-            print(f"  - clarity:   {clr}")
-            print(f"  - difficulty:{diff}")
+                logger.info(
+                    "Question %d status=%s rel=%s clr=%s diff=%s text=%r",
+                    idx, ("OK" if passed else "FAIL"), rel, clr, diff, q
+                )
+
+                print(f"\n[{status}] {q}")
+                print(f"  - relevance: {rel}")
+                print(f"  - clarity:   {clr}")
+                print(f"  - difficulty:{diff}")
 
     logger.info("Validation summary: ok=%d fail=%d total=%d", ok_count, fail_count, len(questions))
     logger.info("=== RUN END ===")
