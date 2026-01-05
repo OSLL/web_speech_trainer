@@ -127,6 +127,7 @@ def main():
             logger.info("NLTK punkt_tab not found. Downloading...")
             print("Загрузка необходимых данных NLTK...")
             nltk.download("punkt_tab")
+            nltk.download("stopwords")
 
     print(f"=== Загрузка текста ВКР из '{vkr_path}' ===")
     text = load_vkr_text(vkr_path)

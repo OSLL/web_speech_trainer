@@ -1,17 +1,14 @@
 services:
   init:
-    build:
-      context: .
-      target: init
+    build: .
+    entrypoint: ["/usr/local/bin/init-volumes.sh"]
     volumes:
       - rut5_model:/app/question_generator/rut5-base
       - nltk_data:/nltk_data
     restart: "no"
 
   app:
-    build:
-      context: .
-      target: app
+    build: .
     depends_on:
       init:
         condition: service_completed_successfully
@@ -20,7 +17,8 @@ services:
     volumes:
       - rut5_model:/app/question_generator/rut5-base
       - nltk_data:/nltk_data
-      - ./vkr_examples:/app/vkr_examples  # монтируется для интерактивного запуска с файлами из этой папки (папка рядом с композом)
+      - ./vkr_examples:/app/vkr_examples
+    command: ["bash", "-lc", "sleep infinity"]
 
 volumes:
   rut5_model:
