@@ -3,6 +3,8 @@ import logging
 import time
 from contextlib import contextmanager
 from typing import List, Dict
+import csv
+from pathlib import Path
 
 from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.corpus import stopwords
@@ -33,7 +35,11 @@ class VkrQuestionGenerator:
         "Приложения": r"Приложения.*?(?=\n[A-ZА-Я][^\n]*\n)",
     }
 
-    def __init__(self, vkr_text: str, model_path: str = "ai-forever/rut5-base-multitask"):
+    def __init__(self,
+                 vkr_text: str,
+                 model_path: str = "ai-forever/rut5-base-multitask",
+                 heuristic_csv_path: str = "heuristic_questions.csv"):
+
         self.logger = logging.getLogger(__name__)
 
         with timed(self.logger, "generator_init"):
@@ -52,15 +58,27 @@ class VkrQuestionGenerator:
             with timed(self.logger, "load_model", model_path=model_path):
                 self.model = AutoModelForSeq2SeqLM.from_pretrained(model_path)
 
+            with timed(self.logger, "load_heuristic_questions", path=heuristic_csv_path):
+                self.heuristic_templates: List[Dict[str, str]] = []
+                with Path(heuristic_csv_path).open(encoding="utf-8") as f:
+                    reader = csv.DictReader(f, delimiter="|")
+                    for row in reader:
+                        self.heuristic_templates.append(row)
+
         self.logger.info(
             "Generator ready: sentences=%d stopwords=%d model_path=%s",
             len(self.sentences), len(self.stopwords), model_path
         )
 
     def extract_section(self, title: str) -> str:
-        """Извлекает раздел по шаблону заголовка."""
-        pattern = self.SECTION_PATTERNS.get(title, rf"{title}.*?(?=\n[A-ZА-Я][^\n]*\n)")
-        m = re.search(pattern, self.vkr_text, re.DOTALL | re.IGNORECASE)
+        """Извлекает раздел по заголовку (устойчиво к нумерации и регистру)."""
+        pattern = rf"""
+            (?im)
+            ^\s*(\d+(\.\d+)*\.?\s*)?{re.escape(title)}\s*$
+            (.*?)
+            (?=^\s*(\d+(\.\d+)*\.?\s*[А-ЯA-Z]|$\Z))
+        """
+        m = re.search(pattern, self.vkr_text, re.DOTALL | re.VERBOSE)
         return m.group(0) if m else ""
 
     def extract_intro(self) -> str:
@@ -95,59 +113,23 @@ class VkrQuestionGenerator:
         return decoded
 
     def heuristic_questions(self) -> List[str]:
-        """Эвристики, завязанные на структуру ВКР."""
+        """Эвристики, завязанные на структуру ВКР (загружаются из CSV)."""
         with timed(self.logger, "heuristic_questions_total"):
-            intro = self.extract_intro()
-            overview = self.extract_section("Обзор предметной области")
-            objectives = self.extract_section("Постановка задачи")
-            method = self.extract_section("Метод решения")
-            research = self.extract_section("Исследования")
-            conc = self.extract_conclusion()
-            apps = self.extract_section("Приложения")
-
             q: List[str] = []
 
-            # Введение ↔ Заключение
-            if intro and conc:
-                q.append(
-                    "Как цель и задачи, сформулированные во введении, отражены в итоговых выводах заключения?"
-                )
+            for item in self.heuristic_templates:
+                sections = item["section"]
+                question = item["question"]
 
-            # Обзор предметной области
-            if overview:
-                q.append(
-                    "Какие термины и подходы из обзора предметной области легли в основу формальной постановки задачи?"
-                )
-
-            # Постановка задачи
-            if objectives:
-                q.append(
-                    "В каких требованиях к решению, указанных в постановке задачи, находят отражение цели работы?"
-                )
-
-            # Метод решения
-            if method:
-                q.append(
-                    "Как архитектура и алгоритмы, описанные в разделе «Метод решения», обеспечивают достижение поставленных требований?"
-                )
-
-            # Исследования
-            if research:
-                q.append(
-                    "Какие количественные или качественные свойства решения подтверждены в разделе «Исследования» и как они связаны с задачами введения?"
-                )
-
-            # Приложения
-            if apps:
-                q.append(
-                    "Какие дополнительные материалы из приложений необходимы для проверки воспроизводимости результатов?"
-                )
-
-            # Обязательные общие вопросы
-            q.extend([
-                "Как практическая значимость работы следует из задач и результатов исследования?",
-                "Какие ограничения метода решения указаны в тексте и как они влияют на достижение цели?",
-            ])
+                # пустой sections == обязательный общий вопрос
+                if not sections:
+                    q.append(question)
+                    continue
+                # for x in sections.split(','):
+                #     a = self.extract_section(x)
+                #     self.logger.info(x, a, question, sections)
+                if all([self.extract_section(x) for x in sections.split(",")]):  # если нет всех нужных секций для вопроса, то не добавляем его
+                    q.append(question)
 
         self.logger.info("Heuristic questions created: %d", len(q))
         return q
