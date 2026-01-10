@@ -23,7 +23,7 @@ from app.mongo_models import (AudioToRecognize, Consumers, Criterion, CriterionP
                               RecognizedAudioToProcess,
                               RecognizedPresentationsToProcess, Sessions,
                               TaskAttempts, TaskAttemptsToPassBack, Tasks,
-                              Trainings, TrainingsToProcess, StorageMeta, InterviewAvatars)
+                              Trainings, TrainingsToProcess, StorageMeta, InterviewAvatars, Questions)
 from app.status import (AudioStatus, PassBackStatus, PresentationStatus,
                         TrainingStatus)
 from app.utils import remove_blank_and_none
@@ -955,17 +955,17 @@ class CriterionPackDBManager:
 class QuestionsDBManager:
 
     def add_question(self, session_id: str, text: str):
-        question = Question(session_id=session_id, text=text)
+        question = Questions(session_id=session_id, text=text)
         return question.save()
 
     def get_questions_by_session(self, session_id: str):
-        return Question.objects.raw({"session_id": session_id})
+        return Questions.objects.raw({"session_id": session_id})
 
     def remove_question(self, question_id):
-        return Question.objects.get({"_id": question_id}).delete()
+        return Questions.objects.get({"_id": question_id}).delete()
 
     def get_all(self):
-        return Question.objects.all()
+        return Questions.objects.all()
 
 class InterviewAvatarsDBManager:
     def __new__(cls):

@@ -10,13 +10,14 @@ logger = get_root_logger()
 
 @routes_interview.route('/interview/', methods=['GET'])
 def interview_page():
-    user_session = check_auth()
-    if not user_session:
-        return {}, 404
-
-    session_id = session.get('session_id')
-    if not session_id:
-        return {}, 404
+    # user_session = check_auth()
+    # if not user_session:
+    #     return "User session not found", 404
+    #
+    # session_id = session.get('session_id')
+    # if not session_id:
+    #     return "Session id not found", 404
+    session_id = "hello, bro"
 
     avatar_record = InterviewAvatarsDBManager().get_avatar_record(session_id)
     has_avatar = avatar_record is not None
@@ -24,6 +25,7 @@ def interview_page():
     return render_template(
         'interview.html',
         has_avatar=has_avatar,
+        session_id=session_id
     ), 200
 
 

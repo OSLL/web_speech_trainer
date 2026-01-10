@@ -6,33 +6,46 @@
 {% block content %}
 <div class="interview-container">
 
-    <div class="top-center text-center">
-        <div class="placeholder-photo" id="avatar-container" style="width:640px; height:480px;">
-            {% if has_avatar %}
-                <video id="avatar-video" class="avatar-stream" autoplay loop muted playsinline
-                       src="{{ url_for('routes_interview.avatar_video') }}">
-                </video>
-            {% else %}
-                <div id="avatar-placeholder" class="avatar-placeholder"></div>
-            {% endif %}
-        </div>
-        <div class="mt-3">
-            <button id="start-btn" class="btn btn-success px-4 py-2">Начать</button>
-        </div>
-        <div class="mic-circle-wrapper">
-             <i class="bi bi-mic-fill"></i>
-        </div>
+  <div class="top-center text-center">
+    <div class="placeholder-photo" id="avatar-container" style="width:640px; height:480px;">
+      {% if has_avatar %}
+        <video id="avatar-video" class="avatar-stream" autoplay loop muted playsinline
+               src="{{ url_for('routes_interview.avatar_video') }}">
+        </video>
+      {% else %}
+        <div id="avatar-placeholder" class="avatar-placeholder"></div>
+      {% endif %}
     </div>
 
-    <div class="timer-section">
-        <h3 id="timer">00:00</h3>
-        <h3 class="mt-3">Вопрос № <span id="question-number">1</span></h3>
-        <p id="question-text" class="mt-2">
-            Расскажите о своем опыте работы с Python.
-        </p>
-    </div>
+    <div id="status" class="mt-2"></div>
 
-    <button id="stop-btn" class="btn btn-danger stop-btn">Прервать сессию</button>
-    <script src="{{ url_for('static', filename='js/interview.js') }}"></script>
+    <div class="controls-center">
+     <div class="btn-row">
+      <button id="main-btn" class="interview-btn interview-btn-main">Начать</button>
+      <button id="end-answer-btn" class="interview-btn interview-btn-end" style="display:none;">Закончить ответ</button>
+      <button id="next-btn" class="interview-btn interview-btn-next" style="display:none;">Следующий вопрос</button>
+     </div>
+
+      <div class="mic-circle-wrapper" id="mic-indicator" style="opacity:0.35;">
+      <i class="bi bi-mic-fill"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="timer-section">
+    <h3 id="timer">00:00</h3>
+    <h3 class="mt-3">Вопрос № <span id="question-number">1</span></h3>
+    <p id="question-text" class="mt-2"></p>
+  </div>
+
+  <button id="stop-btn" class="btn btn-danger stop-btn">Прервать сессию</button>
+
+  <div id="recordings-panel" class="recordings-panel">
+    <div class="recordings-title">Записи</div>
+      <div id="recordings" class="recordings-list"></div>
+  </div>
+
+
+  <script src="{{ url_for('static', filename='js/interview.js') }}"></script>
 </div>
 {% endblock %}

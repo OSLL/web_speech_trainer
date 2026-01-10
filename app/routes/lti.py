@@ -104,4 +104,4 @@ def lti_interview():
         return {}, 404
 
     username = ctx["username"]
-    return redirect(url_for('routes_interview.interview_page', session_id=username))
+    return redirect(url_for('routes_interview.interview_page'), )

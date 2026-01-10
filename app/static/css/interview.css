@@ -119,3 +119,157 @@
     font-size: 2.2rem;
     margin-top: 5px;
 }
+
+.controls-center {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-top: 16px;
+}
+
+.btn-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.interview-btn {
+    border: none;
+    border-radius: 14px;
+    padding: 14px 34px;
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: 0.2px;
+    cursor: pointer;
+    min-width: 240px;
+    text-align: center;
+
+    box-shadow: 0 10px 22px rgba(0,0,0,0.18);
+    transform: translateY(0);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease, opacity 0.15s ease;
+}
+
+.interview-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 14px 26px rgba(0,0,0,0.22);
+    filter: brightness(1.03);
+}
+
+.interview-btn:active {
+    transform: translateY(1px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.16);
+}
+
+.interview-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+    box-shadow: none;
+}
+
+/* ===== Цвета под разные действия ===== */
+.interview-btn-main {
+    background: linear-gradient(135deg, #2e7dff, #6a5cff);
+    color: #fff;
+}
+
+.interview-btn-end {
+    background: linear-gradient(135deg, #ffb020, #ff7a18);
+    color: #1f1f1f;
+}
+
+.interview-btn-next {
+    background: linear-gradient(135deg, #1fcf7a, #19a866);
+    color: #fff;
+}
+
+.mic-circle-wrapper {
+    width: 66px;
+    height: 66px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0;
+    cursor: default;
+    transition: transform 0.2s, opacity 0.2s;
+}
+
+.mic-circle-wrapper i {
+    font-size: 1.7rem;
+}
+
+@media (max-width: 520px) {
+    .btn-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+    .interview-btn {
+        min-width: 280px;
+        width: 90%;
+        max-width: 340px;
+    }
+}
+
+.recordings-panel{
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  width: 360px;
+  max-width: calc(100vw - 32px);
+
+  max-height: 45vh;
+  display: flex;
+  flex-direction: column;
+
+  background: rgba(255,255,255,0.96);
+  border: 1px solid rgba(0,0,0,0.15);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+  z-index: 9999;
+
+  overflow: hidden;
+}
+
+.recordings-title{
+  padding: 10px 12px;
+  font-weight: 600;
+  border-bottom: 1px solid rgba(0,0,0,0.10);
+  background: rgba(0,0,0,0.03);
+}
+
+.recordings-list{
+  padding: 10px 12px;
+  overflow-y: auto;
+}
+
+.recordings-list .border.rounded{
+  margin-top: 10px !important;
+  padding: 10px !important;
+}
+
+@media (max-width: 520px){
+  .recordings-panel{
+    right: 10px;
+    left: 10px;
+    width: auto;
+    bottom: 10px;
+    max-height: 50vh;
+  }
+}
+
+#mic-indicator.speaking {
+  opacity: 1 !important;
+  box-shadow: 0 0 0 6px rgba(0, 200, 0, 0.20), 0 0 18px rgba(0, 200, 0, 0.55);
+  transform: scale(1.06);
+  transition: transform 80ms linear, box-shadow 120ms linear, opacity 120ms linear;
+}
+
+
+#mic-indicator {
+  transition: transform 120ms linear, box-shadow 120ms linear, opacity 120ms linear;
+}
