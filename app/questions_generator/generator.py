@@ -25,16 +25,6 @@ def timed(logger: logging.Logger, operation: str, level: int = logging.INFO, **e
 class VkrQuestionGenerator:
     """Гибридный генератор вопросов по ВКР: NLTK + rut5-base-multitask."""
 
-    SECTION_PATTERNS: Dict[str, str] = {
-        "Введение": r"Введение.*?(?=\n[A-ZА-Я][^\n]*\n)",
-        "Обзор предметной области": r"Обзор предметной области.*?(?=\n[A-ZА-Я][^\n]*\n)",
-        "Постановка задачи": r"Постановка задачи.*?(?=\n[A-ZА-Я][^\n]*\n)",
-        "Метод решения": r"Метод решения.*?(?=\n[A-ZА-Я][^\n]*\n)",
-        "Исследования": r"Исследования.*?(?=\n[A-ZА-Я][^\n]*\n)",
-        "Заключение": r"Заключение.*?(?=\n[A-ZА-Я][^\n]*\n)",
-        "Приложения": r"Приложения.*?(?=\n[A-ZА-Я][^\n]*\n)",
-    }
-
     def __init__(self,
                  vkr_text: str,
                  model_path: str = "ai-forever/rut5-base-multitask",
@@ -81,12 +71,6 @@ class VkrQuestionGenerator:
         m = re.search(pattern, self.vkr_text, re.DOTALL | re.VERBOSE)
         return m.group(0) if m else ""
 
-    def extract_intro(self) -> str:
-        return self.extract_section("Введение")
-
-    def extract_conclusion(self) -> str:
-        return self.extract_section("Заключение")
-
     def extract_keywords(self, text: str) -> List[str]:
         """Извлекает ключевые слова из текста."""
         with timed(self.logger, "extract_keywords", text_len=len(text)):
@@ -125,9 +109,7 @@ class VkrQuestionGenerator:
                 if not sections:
                     q.append(question)
                     continue
-                # for x in sections.split(','):
-                #     a = self.extract_section(x)
-                #     self.logger.info(x, a, question, sections)
+
                 if all([self.extract_section(x) for x in sections.split(",")]):  # если нет всех нужных секций для вопроса, то не добавляем его
                     q.append(question)
 

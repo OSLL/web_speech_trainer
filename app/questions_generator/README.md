@@ -1,5 +1,5 @@
 ## Запуск (контейнер вечно крутится)
-`docker-compose up` - ВАЖНО: Первый раз ОЧЕНЬ ДОЛГО билдится (30-40 минут)!!!
+`docker-compose up` - ВАЖНО: Первый раз ОЧЕНЬ ДОЛГО билдится (30-40 минут)
 
 ## Использование (интерактивное)
 `docker compose exec app python run.py /app/vkr_examples/VKR1.docx --no-overflow-logs` - папка `vkr_examples` локальная, лежит рядом с композом
@@ -21,16 +21,6 @@
   - clarity:   True
   - difficulty:False
 
-[✖ FAIL] Какие количественные или качественные свойства решения подтверждены в разделе «Исследования» и как они связаны с задачами введения?
-  - relevance: True
-  - clarity:   False
-  - difficulty:False
-
-[✔ OK] Какие дополнительные материалы из приложений необходимы для проверки воспроизводимости результатов?
-  - relevance: True
-  - clarity:   True
-  - difficulty:False
-
 [✔ OK] Как практическая значимость работы следует из задач и результатов исследования?
   - relevance: True
   - clarity:   True
@@ -41,10 +31,7 @@
   - clarity:   True
   - difficulty:False
 
-[✖ FAIL] --- rut5-base-multitask вопросы ---
-  - relevance: False
-  - clarity:   False
-  - difficulty:False
+--- rut5-base-multitask вопросы ---
 
 [✖ FAIL] Что такое ЛЭТИ?
   - relevance: False

@@ -16,6 +16,6 @@ RUN pip install --no-cache-dir -r requirements.txt \
 
 COPY . .
 
-COPY --chmod=755 docker/init-volumes.sh /usr/local/bin/init-volumes.sh
+COPY --chmod=755 init-volumes.sh /usr/local/bin/init-volumes.sh
 
 CMD ["bash"]
