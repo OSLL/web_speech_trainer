@@ -1,196 +1,100 @@
-import sys
-import os
 import argparse
 import logging
-import time
-from contextlib import contextmanager, nullcontext
+import os
+import sys
+from contextlib import nullcontext
 
-from docx import Document
 import nltk
+from docx import Document
 
 from generator import VkrQuestionGenerator
 from validator import VkrQuestionValidator
-
-
-LOG_PATH = os.environ.get("VKR_LOG_PATH", "logs/vkr_question_generator.log")
-
-
-def setup_logging() -> None:
-    os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
-
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-
-    # чтобы не дублировать хендлеры при повторном запуске в том же процессе
-    if any(isinstance(h, logging.FileHandler) for h in logger.handlers):
-        return
-
-    fmt = logging.Formatter(
-        fmt="%(asctime)s | %(levelname)s | %(name)s:%(lineno)d | %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-
-    fh = logging.FileHandler(LOG_PATH, encoding="utf-8")
-    fh.setLevel(logging.INFO)
-    fh.setFormatter(fmt)
-
-    sh = logging.StreamHandler(sys.stdout)
-    sh.setLevel(logging.INFO)
-    sh.setFormatter(fmt)
-
-    logger.addHandler(fh)
-    logger.addHandler(sh)
-
-
-@contextmanager
-def timed(logger: logging.Logger, operation: str, level: int = logging.INFO, **extra):
-    start = time.perf_counter()
-    logger.log(level, "START %s %s", operation, (extra if extra else ""))
-    try:
-        yield
-    finally:
-        elapsed_ms = (time.perf_counter() - start) * 1000.0
-        logger.log(level, "END   %s | %.2f ms %s", operation, elapsed_ms, (extra if extra else ""))
-
-
-@contextmanager
-def suppress_console_logs():
-    """
-    Временно отключает вывод логов в консоль (StreamHandler на stdout/stderr),
-    при этом FileHandler продолжает писать в файл.
-    """
-    root = logging.getLogger()
-    saved_levels = []
-
-    for h in root.handlers:
-        if isinstance(h, logging.StreamHandler) and getattr(h, "stream", None) in (sys.stdout, sys.stderr):
-            saved_levels.append((h, h.level))
-            h.setLevel(logging.CRITICAL + 1)  # выше CRITICAL, чтобы ничего не проходило
-
-    try:
-        yield
-    finally:
-        for h, lvl in saved_levels:
-            h.setLevel(lvl)
+from logging_utils import (
+    setup_logging,
+    log_timed,
+    suppress_console_logs,
+)
 
 
 def load_vkr_text(path: str) -> str:
     logger = logging.getLogger(__name__)
 
     if not os.path.exists(path):
-        logger.error("Файл '%s' не найден.", path)
-        print(f"[ERROR] Файл '{path}' не найден.")
+        logger.error("Файл не найден: %s", path)
         sys.exit(1)
 
-    with timed(logger, "parse_docx", path=path):
-        document = Document(path)
-        text = []
-        for paragraph in document.paragraphs:
-            text.append(paragraph.text)
-        result = "\n".join(text)
+    with log_timed(logger, "чтение DOCX", путь=path):
+        doc = Document(path)
+        text = "\n".join(p.text for p in doc.paragraphs)
 
-    logger.info("DOCX parsed: chars=%d, paragraphs=%d", len(result), len(document.paragraphs))
-    return result
-
-
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Генерация экзаменационных вопросов по тексту ВКР"
+    logger.info(
+        "DOCX обработан: символов=%d абзацев=%d",
+        len(text),
+        len(doc.paragraphs),
     )
-    parser.add_argument(
-        "vkr_path",
-        nargs="?",
-        default="vkr_examples/VKR1.docx",
-        help="Путь к .docx файлу с текстом ВКР (по умолчанию: vkr_examples/VKR1.docx)",
-    )
-    parser.add_argument(
-        "--no-overflow-logs",
-        action="store_true",
-        help="Отключить вывод логов в консоль во время печати вопросов/результатов (логи в файл сохраняются).",
-    )
-    return parser.parse_args()
+    return text
 
 
 def main():
     setup_logging()
     logger = logging.getLogger(__name__)
 
-    args = parse_args()
-    vkr_path = args.vkr_path
+    parser = argparse.ArgumentParser()
+    parser.add_argument("vkr_path")
+    parser.add_argument("--no-overflow-logs", action="store_true")
+    args = parser.parse_args()
 
-    logger.info("=== RUN START === vkr_path=%s log_path=%s", vkr_path, LOG_PATH)
+    logger.info("Запуск генерации: файл=%s", args.vkr_path)
 
-    with timed(logger, "nltk_check_download"):
+    with log_timed(logger, "проверка NLTK"):
         try:
             nltk.data.find("tokenizers/punkt_tab/english")
         except LookupError:
-            logger.info("NLTK punkt_tab not found. Downloading...")
-            print("Загрузка необходимых данных NLTK...")
+            logger.info("Загрузка данных NLTK")
             nltk.download("punkt_tab")
             nltk.download("stopwords")
 
-    print(f"=== Загрузка текста ВКР из '{vkr_path}' ===")
-    text = load_vkr_text(vkr_path)
+    text = load_vkr_text(args.vkr_path)
 
-    print("=== Инициализация генератора ===")
-    with timed(logger, "init_generator"):
-        gen = VkrQuestionGenerator(text, model_path="/app/question_generator/rut5-base", heuristic_csv_path="static/heuristic_questions.csv")
+    with log_timed(logger, "инициализация генератора"):
+        gen = VkrQuestionGenerator(text)
 
-    print("=== Инициализация валидатора ===")
-    with timed(logger, "init_validator"):
+    with log_timed(logger, "инициализация валидатора"):
         validator = VkrQuestionValidator(text)
 
-    print("=== Генерация вопросов ===")
-    with timed(logger, "generate_all_questions"):
+    with log_timed(logger, "генерация вопросов"):
         questions = gen.generate_all()
 
-    logger.info("Questions generated: total=%d", len(questions))
+    logger.info("Сгенерировано вопросов: %d", len(questions))
 
-    print("\n=== Результаты ===")
-    ok_count = 0
-    fail_count = 0
+    quiet = suppress_console_logs() if args.no_overflow_logs else nullcontext()
 
-    quiet_ctx = suppress_console_logs() if args.no_overflow_logs else nullcontext()
+    with quiet:
+        for idx, q in enumerate(questions, 1):
+            if q.startswith("---"):
+                print(f"\n{q}")
+                continue
 
-    with quiet_ctx:
-        with timed(logger, "validate_all_questions", total=len(questions)):
-            for idx, q in enumerate(questions, start=1):
-                # маркер-разделитель (ваш текстовый разделитель)
-                if q.strip().startswith("---"):
-                    logger.info("Separator encountered at %d: %s", idx, q.strip())
-                    print(f"\n{q}")
-                    continue
+            rel = validator.check_relevance(q)
+            clr = validator.check_clarity(q)
+            diff = validator.check_difficulty(q)
 
-                with timed(logger, "validate_question", index=idx):
-                    with timed(logger, "check_relevance", index=idx):
-                        rel = validator.check_relevance(q)
-                    with timed(logger, "check_clarity", index=idx):
-                        clr = validator.check_clarity(q)
-                    with timed(logger, "check_difficulty", index=idx):
-                        diff = validator.check_difficulty(q)
+            passed = (int(rel) + int(clr) + int(diff) >= 2)
+            status = "✔ OK" if passed else "✖ FAIL"
 
-                passed = (int(rel) + int(clr) + int(diff) >= 2)
-                status = "✔ OK" if passed else "✖ FAIL"
+            logger.info(
+                "Вопрос %d статус=%s релевантность=%s ясность=%s сложность=%s",
+                idx,
+                "OK" if passed else "FAIL",
+                rel,
+                clr,
+                diff,
+            )
 
-                if passed:
-                    ok_count += 1
-                else:
-                    fail_count += 1
-
-                logger.info(
-                    "Question %d status=%s rel=%s clr=%s diff=%s text=%r",
-                    idx, ("OK" if passed else "FAIL"), rel, clr, diff, q
-                )
-
-                print(f"\n[{status}] {q}")
-                print(f"  - relevance: {rel}")
-                print(f"  - clarity:   {clr}")
-                print(f"  - difficulty:{diff}")
-
-    logger.info("Validation summary: ok=%d fail=%d total=%d", ok_count, fail_count, len(questions))
-    logger.info("=== RUN END ===")
-
-    print("\n=== Готово ===")
+            print(f"\n[{status}] {q}")
+            print(f"  - релевантность: {rel}")
+            print(f"  - ясность:   {clr}")
+            print(f"  - сложность:{diff}")
 
 
 if __name__ == "__main__":

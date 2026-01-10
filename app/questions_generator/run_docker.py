@@ -1,26 +1,26 @@
-import os
-import sys
 import argparse
+import logging
+import os
 import subprocess
+import sys
+
+from logging_utils import setup_logging
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Запуск генератора вопросов по ВКР внутри Docker"
-    )
-    parser.add_argument(
-        "vkr_path",
-        help="Путь к .docx файлу с текстом ВКР (на хосте)",
-    )
+    setup_logging()
+    logger = logging.getLogger(__name__)
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("vkr_path")
     args = parser.parse_args()
 
     host_path = os.path.abspath(args.vkr_path)
 
     if not os.path.exists(host_path):
-        print(f"[ERROR] Файл не найден: {host_path}")
+        logger.error("Файл не найден: %s", host_path)
         sys.exit(1)
 
-    # Путь внутри контейнера — фиксированный, один и тот же для всех ОС
     container_path = "/app/questions_generator/static/vkr_examples/vkr.docx"
 
     cmd = [
@@ -32,13 +32,16 @@ def main():
         "python", "run.py", container_path,
     ]
 
-    print(">> Запускаю команду:")
-    print(" ".join(cmd))
+    logger.info("Запуск Docker команды: %s", " ".join(cmd))
+
     try:
         subprocess.run(cmd, check=True)
-    except subprocess.CalledProcessError as e:
-        print(f"[ERROR] docker run завершился с ошибкой: {e.returncode}")
-        sys.exit(e.returncode)
+    except subprocess.CalledProcessError as exc:
+        logger.exception(
+            "Docker завершился с ошибкой, код=%d",
+            exc.returncode,
+        )
+        sys.exit(exc.returncode)
 
 
 if __name__ == "__main__":
