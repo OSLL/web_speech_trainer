@@ -27,8 +27,8 @@ class VkrQuestionGenerator:
 
     def __init__(self,
                  vkr_text: str,
-                 model_path: str = "ai-forever/rut5-base-multitask",
-                 heuristic_csv_path: str = "heuristic_questions.csv"):
+                 model_path: str = "/app/question_generator/rut5-base",
+                 heuristic_csv_path: str = "static/heuristic_questions.csv"):
 
         self.logger = logging.getLogger(__name__)
 

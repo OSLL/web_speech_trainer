@@ -17,7 +17,7 @@ services:
     volumes:
       - rut5_model:/app/question_generator/rut5-base
       - nltk_data:/nltk_data
-      - ./vkr_examples:/app/vkr_examples
+      - ./static/vkr_examples:/app/static/vkr_examples
     command: ["bash", "-lc", "sleep infinity"]
 
 volumes:

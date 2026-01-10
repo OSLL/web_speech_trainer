@@ -134,7 +134,7 @@ def main():
 
     print("=== Инициализация генератора ===")
     with timed(logger, "init_generator"):
-        gen = VkrQuestionGenerator(text, model_path="/app/question_generator/rut5-base")
+        gen = VkrQuestionGenerator(text, model_path="/app/question_generator/rut5-base", heuristic_csv_path="static/heuristic_questions.csv")
 
     print("=== Инициализация валидатора ===")
     with timed(logger, "init_validator"):

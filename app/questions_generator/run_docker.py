@@ -21,7 +21,7 @@ def main():
         sys.exit(1)
 
     # Путь внутри контейнера — фиксированный, один и тот же для всех ОС
-    container_path = "/app/questions_generator/vkr_examples/vkr.docx"
+    container_path = "/app/questions_generator/static/vkr_examples/vkr.docx"
 
     cmd = [
         "docker", "run", "-it", "--rm",
