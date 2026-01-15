@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-MODEL_DIR="/app/question_generator/rut5-base"
+MODEL_DIR="/models/rut5"
 
 echo "MODEL_DIR=${MODEL_DIR}"
 

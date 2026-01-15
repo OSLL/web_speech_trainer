@@ -6,7 +6,8 @@ from typing import List, Dict
 
 from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.corpus import stopwords
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+# from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+import requests
 
 from logging_utils import log_timed
 
@@ -17,13 +18,15 @@ class VkrQuestionGenerator:
     def __init__(
         self,
         vkr_text: str,
-        model_path: str = "/app/question_generator/rut5-base",
+        # model_path: str = "/app/question_generator/rut5-base",
         heuristic_csv_path: str = "static/heuristic_questions.csv",
+        llm_url: str = "http://llm:8000"
     ):
         self.logger = logging.getLogger(__name__)
 
         with log_timed(self.logger, "инициализация генератора"):
             self.vkr_text = vkr_text
+            self.llm_url = llm_url
 
             with log_timed(self.logger, "токенизация предложений"):
                 self.sentences = sent_tokenize(vkr_text)
@@ -31,13 +34,13 @@ class VkrQuestionGenerator:
             with log_timed(self.logger, "загрузка стоп-слов"):
                 self.stopwords = set(stopwords.words("russian"))
 
-            with log_timed(self.logger, "загрузка токенизатора", путь=model_path):
-                self.tokenizer = AutoTokenizer.from_pretrained(
-                    model_path, use_fast=False
-                )
-
-            with log_timed(self.logger, "загрузка модели", путь=model_path):
-                self.model = AutoModelForSeq2SeqLM.from_pretrained(model_path)
+            # with log_timed(self.logger, "загрузка токенизатора", путь=model_path):
+            #     self.tokenizer = AutoTokenizer.from_pretrained(
+            #         model_path, use_fast=False
+            #     )
+            #
+            # with log_timed(self.logger, "загрузка модели", путь=model_path):
+            #     self.model = AutoModelForSeq2SeqLM.from_pretrained(model_path)
 
             with log_timed(
                 self.logger,
@@ -49,12 +52,12 @@ class VkrQuestionGenerator:
                     reader = csv.DictReader(f, delimiter="|")
                     self.heuristic_templates.extend(reader)
 
-        self.logger.info(
-            "Генератор готов: предложений=%d стоп-слов=%d модель=%s",
-            len(self.sentences),
-            len(self.stopwords),
-            model_path,
-        )
+        # self.logger.info(
+        #     "Генератор готов: предложений=%d стоп-слов=%d модель=%s",
+        #     len(self.sentences),
+        #     len(self.stopwords),
+        #     model_path,
+        # )
 
     def extract_section(self, title: str) -> str:
         pattern = rf"""
@@ -80,21 +83,17 @@ class VkrQuestionGenerator:
     def llm_generate_question(self, text_fragment: str) -> str:
         prompt = f"ask: {text_fragment}"
 
-        with log_timed(
-            self.logger,
-            "генерация вопроса LLM",
-            длина_фрагмента=len(text_fragment),
-        ):
-            enc = self.tokenizer(prompt, return_tensors="pt", truncation=True)
-            out = self.model.generate(
-                **enc,
-                max_length=64,
-                num_beams=5,
-                early_stopping=True,
-            )
-            decoded = self.tokenizer.decode(out[0], skip_special_tokens=True)
-
-        return decoded
+        resp = requests.post(
+            f"{self.llm_url}/generate",
+            json={
+                "prompt": prompt,
+                "max_length": 96,
+                "num_beams": 5,
+            },
+            timeout=60,
+        )
+        resp.raise_for_status()
+        return resp.json()["text"].strip()
 
     def heuristic_questions(self) -> List[str]:
         with log_timed(self.logger, "эвристическая генерация вопросов"):
@@ -179,7 +178,7 @@ class VkrQuestionGenerator:
             result.append("--- rut5-base-multitask вопросы ---")
 
             with log_timed(self.logger, "LLM блок"):
-                result.extend(self.generate_llm_questions(count=10))
+                result.extend(self.generate_llm_questions(count=5))
 
             deduped = list(dict.fromkeys(result))
 

@@ -1,21 +1,26 @@
 services:
-  init:
-    build: .
+  init-llm:
+    build: ./llm_service
     entrypoint: ["/usr/local/bin/init-volumes.sh"]
     volumes:
-      - rut5_model:/app/question_generator/rut5-base
-      - nltk_data:/nltk_data
+      - rut5_model:/models/rut5
     restart: "no"
+
+  llm:
+    build: ./llm_service
+    depends_on:
+      init-llm:
+        condition: service_completed_successfully
+    volumes:
+      - rut5_model:/models/rut5
+    ports:
+      - "8000:8000"
 
   app:
     build: .
-    depends_on:
-      init:
-        condition: service_completed_successfully
     stdin_open: true
     tty: true
     volumes:
-      - rut5_model:/app/question_generator/rut5-base
       - nltk_data:/nltk_data
       - ./static/vkr_examples:/app/static/vkr_examples
     command: ["bash", "-lc", "sleep infinity"]

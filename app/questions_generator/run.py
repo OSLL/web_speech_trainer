@@ -6,19 +6,13 @@ from contextlib import nullcontext
 
 import nltk
 from docx import Document
-
 from generator import VkrQuestionGenerator
 from validator import VkrQuestionValidator
-from logging_utils import (
-    setup_logging,
-    log_timed,
-    suppress_console_logs,
-)
+from logging_utils import setup_logging, log_timed, suppress_console_logs
 
 
 def load_vkr_text(path: str) -> str:
     logger = logging.getLogger(__name__)
-
     if not os.path.exists(path):
         logger.error("Файл не найден: %s", path)
         sys.exit(1)
@@ -27,11 +21,7 @@ def load_vkr_text(path: str) -> str:
         doc = Document(path)
         text = "\n".join(p.text for p in doc.paragraphs)
 
-    logger.info(
-        "DOCX обработан: символов=%d абзацев=%d",
-        len(text),
-        len(doc.paragraphs),
-    )
+    logger.info("DOCX обработан: символов=%d абзацев=%d", len(text), len(doc.paragraphs))
     return text
 
 

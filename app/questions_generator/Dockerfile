@@ -11,11 +11,10 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_DEFAULT_TIMEOUT=120
 
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt \
-        "huggingface_hub[cli]"
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-COPY --chmod=755 init-volumes.sh /usr/local/bin/init-volumes.sh
+# COPY --chmod=755 init-volumes.sh /usr/local/bin/init-volumes.sh
 
 CMD ["bash"]
