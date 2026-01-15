@@ -30,3 +30,18 @@ def generate(req: GenerateRequest):
         )
     text = tokenizer.decode(output[0], skip_special_tokens=True)
     return {"text": text}
+
+
+class TokenizeRequest(BaseModel):
+    text: str
+
+
+@app.post("/tokenize")
+def tokenize(req: TokenizeRequest):
+    tokens = tokenizer.tokenize(req.text)
+    return {"tokens": tokens, "length": len(tokens)}
+
+
+@app.get("/max_tokens")
+def max_tokens():
+    return {"max_tokens": tokenizer.model_max_length}
