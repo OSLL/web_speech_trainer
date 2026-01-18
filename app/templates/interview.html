@@ -44,8 +44,19 @@
     <div class="recordings-title">Записи</div>
       <div id="recordings" class="recordings-list"></div>
   </div>
-
-
+  <script>
+      window.INTERVIEW_DATA = {
+        sessionId: "{{ session_id }}",
+        questions: [
+          {% for q in questions %}
+            {
+              id: "{{ q.id }}",
+              text: {{ q.text | tojson }}
+            }{% if not loop.last %},{% endif %}
+          {% endfor %}
+        ]
+      };
+</script>
   <script src="{{ url_for('static', filename='js/interview.js') }}"></script>
 </div>
 {% endblock %}

@@ -1,17 +1,8 @@
-// static/js/interview.js
-
-const QUESTIONS = [
-  { text: "Расскажите о своем опыте работы с Python.", answerLimitSec: 90 },
-  { text: "Какие библиотеки Python вы используете чаще всего и почему?", answerLimitSec: 90 },
-  { text: "Опишите задачу, где вы оптимизировали производительность кода.", answerLimitSec: 120 },
-];
-
-// Фиксированный лимит ответа: 1 минута (обратный отсчёт)
+const QUESTIONS = window.INTERVIEW_DATA?.questions || [];
 const ANSWER_LIMIT_SEC = 60;
 
-// Voice Activity Detection (подстрой порог под микрофон)
-const VAD_THRESHOLD = 0.03; // 0.02–0.06 обычно
-const VAD_HANG_MS = 250;    // задержка "гашения", чтобы не мигало
+const VAD_THRESHOLD = 0.03;
+const VAD_HANG_MS = 250;
 
 const timerElement = document.getElementById("timer");
 const mainBtn = document.getElementById("main-btn");
@@ -30,7 +21,6 @@ let questionIndex = 0;
 // state: idle -> asking -> ready -> recording -> recorded
 let state = "idle";
 
-// ===== Mic indicator state (armed = идет запись, speaking = говорит) =====
 let micArmed = false;
 let micSpeaking = false;
 
@@ -58,7 +48,6 @@ function setMicSpeaking(active) {
   applyMicIndicator();
 }
 
-// ===== Timer (countdown) =====
 let remainingSec = 0;
 let timer = null;
 
@@ -101,16 +90,13 @@ function startCountdown(limitSec = ANSWER_LIMIT_SEC) {
       remainingSec = 0;
       updateTimer();
 
-      // Таймаут только во время записи
       if (state === "recording") {
-        // Вызов из setInterval — не await, без падения промиса
         finishAnswer("timeout").catch(() => {});
       }
     }
   }, 1000);
 }
 
-// ===== UI helpers =====
 function setStatus(text) {
   if (statusEl) statusEl.textContent = text || "";
 }
@@ -148,17 +134,14 @@ function speak(text) {
   });
 }
 
-// ===== Recording =====
 let mediaStream = null;
 let recorder = null;
 let chunks = [];
 let currentMimeType = null;
 
-// защита от "старых" onstop после abort/reset
 let sessionToken = 0;
 
-// мета текущей записи (объект сохраняется в замыкании onstop)
-let currentRecordingMeta = null; // { qIndex, session, endedBy: "manual"|"timeout"|null }
+let currentRecordingMeta = null;
 
 function pickSupportedMimeType() {
   const candidates = [
@@ -183,7 +166,7 @@ async function startRecording() {
   await ensureMic();
   chunks = [];
 
-  const meta = currentRecordingMeta; // замыкание
+  const meta = currentRecordingMeta;
 
   currentMimeType = pickSupportedMimeType();
   recorder = currentMimeType
@@ -195,7 +178,6 @@ async function startRecording() {
   };
 
   recorder.onstop = () => {
-    // если сессия уже сброшена — игнорируем
     if (!meta || meta.session !== sessionToken) return;
 
     const blob = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
@@ -251,7 +233,6 @@ function addRecording(qIndex, blob, meta = {}) {
   recordingsEl.appendChild(card);
 }
 
-// ===== Voice Activity Detection (Web Audio API) =====
 const VAD = {
   audioCtx: null,
   analyser: null,
@@ -262,7 +243,7 @@ const VAD = {
 };
 
 async function startVoiceActivity() {
-  if (VAD.rafId) return; // уже запущено
+  if (VAD.rafId) return;
   await ensureMic();
 
   const AC = window.AudioContext || window.webkitAudioContext;
@@ -275,7 +256,6 @@ async function startVoiceActivity() {
     } catch (_) {}
   }
 
-  // чистим старые узлы
   try { VAD.source?.disconnect(); } catch (_) {}
   try { VAD.analyser?.disconnect(); } catch (_) {}
 
@@ -291,10 +271,9 @@ async function startVoiceActivity() {
 
     VAD.analyser.getByteTimeDomainData(VAD.data);
 
-    // RMS по тайм-домену
     let sum = 0;
     for (let i = 0; i < VAD.data.length; i++) {
-      const x = (VAD.data[i] - 128) / 128; // [-1..1]
+      const x = (VAD.data[i] - 128) / 128;
       sum += x * x;
     }
     const rms = Math.sqrt(sum / VAD.data.length);
@@ -306,7 +285,6 @@ async function startVoiceActivity() {
 
     const speaking = now < VAD.speakingUntil;
 
-    // Подсветка имеет смысл только во время записи
     if (state === "recording") setMicSpeaking(speaking);
     else setMicSpeaking(false);
 
@@ -331,12 +309,9 @@ function stopVoiceActivity() {
   VAD.speakingUntil = 0;
 }
 
-// ===== Flow =====
 async function startInterview() {
-  // новая "сессия" — защищаемся от старых onstop
   sessionToken++;
 
-  // стопаем все активные процессы
   if (window.speechSynthesis) window.speechSynthesis.cancel();
   stopTimer();
   stopVoiceActivity();
@@ -373,7 +348,6 @@ async function askCurrentQuestion() {
   setStatus("Вопрос завершён. Нажмите «Ответить», чтобы начать запись.");
   setButtons({ mainText: "Ответить", mainEnabled: true, showEndAnswer: false, showNext: false });
 
-  // превью таймера (01:00)
   stopTimer();
   setTimerValue(ANSWER_LIMIT_SEC);
 }
@@ -383,8 +357,6 @@ async function beginAnswer() {
   setStatus("Запись ответа идёт…");
   setMic(true);
   setButtons({ mainText: "Идёт запись…", mainEnabled: false, showEndAnswer: true, showNext: false });
-
-  // мета для текущей записи
   currentRecordingMeta = { qIndex: questionIndex, session: sessionToken, endedBy: null };
 
   startCountdown(ANSWER_LIMIT_SEC);
@@ -393,7 +365,6 @@ async function beginAnswer() {
     await startVoiceActivity();
     await startRecording();
   } catch (e) {
-    // откат в ready
     state = "ready";
     stopVoiceActivity();
     setMic(false);
@@ -412,14 +383,12 @@ async function beginAnswer() {
 async function finishAnswer(reason = "manual") {
   if (state !== "recording") return;
 
-  // отметка причины завершения
   if (currentRecordingMeta) currentRecordingMeta.endedBy = reason;
 
   stopTimer();
   stopVoiceActivity();
   setMic(false);
 
-  // дождаться добавления карточки (onstop)
   await stopRecordingAsync();
 
   state = "recorded";
@@ -457,7 +426,6 @@ function nextQuestion() {
 function abortSession() {
   if (window.speechSynthesis) window.speechSynthesis.cancel();
 
-  // если шла запись — остановим, но "старые" onstop будут проигнорированы (sessionToken)
   stopRecording();
 
   stopTimer();
@@ -469,11 +437,9 @@ function abortSession() {
   startInterview();
 }
 
-// ===== Events =====
 mainBtn?.addEventListener("click", async () => {
   const txt = (mainBtn.textContent || "").toLowerCase();
 
-  // обработаем "заново" раньше state==="idle"
   if (txt.includes("заново")) {
     if (recordingsEl) recordingsEl.innerHTML = "";
     await startInterview();
@@ -503,5 +469,4 @@ stopBtn?.addEventListener("click", () => {
   if (confirm("Вы уверены, что хотите прервать сессию?")) abortSession();
 });
 
-// init
 startInterview();

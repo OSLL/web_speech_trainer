@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, session, request, Response
 
 from app.root_logger import get_root_logger
 from app.lti_session_passback.auth_checkers import check_auth
-from app.mongo_odm import InterviewAvatarsDBManager
+from app.mongo_odm import InterviewAvatarsDBManager, QuestionsDBManager
 
 routes_interview = Blueprint('routes_interview', __name__)
 logger = get_root_logger()
@@ -10,22 +10,25 @@ logger = get_root_logger()
 
 @routes_interview.route('/interview/', methods=['GET'])
 def interview_page():
-    # user_session = check_auth()
-    # if not user_session:
-    #     return "User session not found", 404
-    #
-    # session_id = session.get('session_id')
-    # if not session_id:
-    #     return "Session id not found", 404
-    session_id = "hello, bro"
+    user_session = check_auth()
+    if not user_session:
+        return "User session not found", 404
+
+    session_id = session.get('session_id')
+    if not session_id:
+        return "Session id not found", 404
 
     avatar_record = InterviewAvatarsDBManager().get_avatar_record(session_id)
     has_avatar = avatar_record is not None
+    logger.info("session_id" + session_id)
+    questions = QuestionsDBManager().get_questions_by_session(session_id)
+    logger.info(f"Questions count: {len(list(questions))}")
 
     return render_template(
         'interview.html',
         has_avatar=has_avatar,
-        session_id=session_id
+        session_id=session_id,
+        questions=list(questions)
     ), 200
 
 
