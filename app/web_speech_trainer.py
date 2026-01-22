@@ -14,7 +14,7 @@ from app.api.sessions import api_sessions
 from app.api.task_attempts import api_task_attempts
 from app.api.trainings import api_trainings
 from app.api.version import api_version
-from app.config import Config, VersionCache
+from app.config import Config
 from app.criteria import CRITERIONS, check_criterions
 from app.criteria.preconfigured_criterions import \
     add_preconfigured_criterions_to_db
@@ -34,7 +34,7 @@ from app.routes.version import routes_version
 from app.routes.capacity import routes_capacity
 from app.status import PassBackStatus, TrainingStatus
 from app.training_manager import TrainingManager
-from app.utils import ALLOWED_EXTENSIONS, DEFAULT_EXTENSION, versioned_url
+from app.utils import ALLOWED_EXTENSIONS, DEFAULT_EXTENSION, versioned_url, calc_static_hash
 
 app = Flask(__name__)
 app.register_blueprint(api_audio)
@@ -58,6 +58,7 @@ app.register_blueprint(routes_task_attempts)
 app.register_blueprint(routes_version)
 app.register_blueprint(routes_capacity)
 app.jinja_env.globals['versioned_url'] = versioned_url
+app.config["STATIC_VERSION"] = calc_static_hash(app.static_folder)
 
 logger = get_root_logger(service_name='web')
 

@@ -7,13 +7,15 @@ from threading import Timer
 
 import fitz
 from bson import ObjectId
-from flask import json, url_for
+from flask import json, url_for, current_app
 import magic
 import pymorphy2
 from nltk.corpus import stopwords
 from pydub import AudioSegment
 import subprocess
-from app.config import Config, VersionCache
+from app.config import Config
+import hashlib
+from pathlib import Path
 
 PDF_HEX_START = ['25', '50', '44', '46']
 SECONDS_PER_MINUTE = 60
@@ -208,9 +210,18 @@ def delete_punctuation(text: str) -> str:
     return text.translate(str.maketrans('', '', string.punctuation + "\t\n\r\v\f"))
 
 
+def calc_static_hash(static_dir):
+    md5 = hashlib.md5()
+    for path in sorted(Path(static_dir).rglob("*")):
+        if path.is_file():
+            md5.update(path.read_bytes())
+    return md5.hexdigest()
+
+
 def versioned_url(filename):
-    v = VersionCache().get_version()
-    return url_for('static', filename=filename) + f'?v={v}'
+    v = current_app.config["STATIC_VERSION"]
+    return url_for("static", filename=filename, v=v)
+
 
 class RepeatedTimer:
     """
