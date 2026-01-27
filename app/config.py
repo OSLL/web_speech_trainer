@@ -1,4 +1,3 @@
-import os
 from configparser import ConfigParser
 from collections import OrderedDict
 
