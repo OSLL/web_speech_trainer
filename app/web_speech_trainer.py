@@ -62,7 +62,6 @@ app.config["STATIC_VERSION"] = calc_static_hash(app.static_folder)
 
 logger = get_root_logger(service_name='web')
 
-
 class ReverseProxied(object):
     def __init__(self, app):
         self.app = app

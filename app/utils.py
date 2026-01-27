@@ -220,6 +220,8 @@ def calc_static_hash(static_dir):
 
 def versioned_url(filename):
     v = current_app.config["STATIC_VERSION"]
+    if not v:
+        return url_for("static", filename=filename)
     return url_for("static", filename=filename, v=v)
 
 
