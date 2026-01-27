@@ -1,11 +1,22 @@
-(function () {
-    // враппер над логами
-    window.logWrapper = function (...args) {
-        // стандартное логирование
-        console.log(...args);
+function getTrainingIdFromUrl() {
+    // попытка URL с id: /trainings/<training_id>/, /trainings/statistics/<training_id>/
+    const match = window.location.pathname.match(/\/trainings(?:\/statistics)?\/([0-9a-fA-F]{24})\//);
+    return match ? match[1] : null;
+}
 
-        // отправка на роут
-        try {
+(function () {
+
+    // const trainingId =
+    //     window.APP_CONTEXT?.trainingId ?? null;
+
+    class Logger {
+
+        log(...args) {
+
+            const trainingId = getTrainingIdFromUrl();
+
+            console.log(...args);
+
             fetch('/logs', {
                 method: 'POST',
                 headers: {
@@ -13,11 +24,12 @@
                 },
                 body: JSON.stringify({
                     timestamp: new Date().toISOString(),
-                    message: args.map(a => a.toString()).join(' ')
+                    message: args.join(' '),
+                    trainingId: trainingId
                 })
             });
-        } catch (e) {
-            console.error('Log send error', e);
         }
     }
+
+    window.logger = new Logger();
 })();

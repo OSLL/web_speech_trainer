@@ -835,7 +835,7 @@ class LogsDBManager:
             cls.init_done = True
         return cls.instance
 
-    def add_log(self, timestamp, serviceName, levelname, levelno, message, pathname, filename, funcName, lineno):
+    def add_log(self, timestamp, serviceName, levelname, levelno, message, pathname, filename, funcName, lineno, trainingId=None):
         return Logs(
             timestamp=timestamp,
             serviceName=serviceName,
@@ -846,6 +846,7 @@ class LogsDBManager:
             filename=filename,
             funcName=funcName,
             lineno=lineno,
+            trainingId=ObjectId(trainingId) if trainingId else None,
         ).save()
 
     def get_logs_filtered(self, filters=None, limit=None, offset=None, ordering=None):

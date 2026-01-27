@@ -6,9 +6,9 @@ let gumStream,
     timer;
 
 function startRecording() {
-    logWrapper("call startRecording(). Try to call navigator.mediaDevices.getUserMedia");
-    logWrapper("navigator", navigator);
-    logWrapper("navigator.mediaDevices", navigator.mediaDevices);
+    logger.log("call startRecording(). Try to call navigator.mediaDevices.getUserMedia");
+    logger.log("navigator", navigator);
+    logger.log("navigator.mediaDevices", navigator.mediaDevices);
     $("#alert").hide()
     $("#record-contain").show();
     navigator.mediaDevices.getUserMedia({audio: true, video: false}).then(function (stream) {
@@ -82,8 +82,8 @@ function startRecording() {
         $("#record")[0].disabled = true;
         $("#done")[0].disabled = false;
     }).catch( err => {
-        logWrapper('Error on calling avigator.mediaDevices.getUserMedia')
-        logWrapper(err)
+        logger.log('Error on calling avigator.mediaDevices.getUserMedia')
+        logger.log(err)
         $("#alert").show();
         $("#error-text").html("Микрофон не доступен!");
     });

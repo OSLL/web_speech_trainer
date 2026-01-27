@@ -40,12 +40,12 @@
                         window.location.reload();
                     }
                     else{
-                        logWrapper(data["message"]);
+                        logger.log(data["message"]);
                         alert('{{ t("Ошибка создания архива.")}}' + '\n' + data["message"])
                     }
                 })
                 .catch(error => {
-                    logWrapper(error);
+                    logger.log(error);
                     alert('{{ t("Ошибка создания архива.") + t("Попробуйте позже или обратитесь к администратору") }}')
                 });
     })

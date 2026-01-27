@@ -8,6 +8,24 @@ let pdfDoc,
     trainingId,
     currentPage;
 
+function waitForLogger(callback, timeout = 3000) {
+    const start = Date.now();
+
+    (function check() {
+        if (typeof window.logger === 'object' && typeof window.logger.log === 'function') {
+            callback();
+            return;
+        }
+
+        if (Date.now() - start > timeout) {
+            console.error('Logger not loaded');
+            return;
+        }
+
+        setTimeout(check, 50);
+    })();
+}
+
 function renderPage(num) {
   pageRendering = true;
   pdfDoc.getPage(num).then(function(page) {
@@ -52,6 +70,7 @@ function onNextPage() {
     return;
   }
   pageNum++;
+  waitForLogger(() => logger.log('[TRAINING] slide_changed', `to=${pageNum}`));
   callShowPage();
   queueRenderPage(pageNum);
 }
@@ -64,12 +83,20 @@ function setPage(pageNum){
     return;
   }
   currentPage = pageNum;
+  waitForLogger(() => logger.log('[TRAINING] slide_set', `to=${pageNum}`));
   changeURLByParam('page', currentPage);
   queueRenderPage(pageNum);
 }
 
 function setupPresentationViewer(trainingId_) {
     trainingId = trainingId_;
+
+    // logger.setTrainingId(trainingId_);
+    waitForLogger(() => {
+        logger.log('[TRAINING] presentation_viewer_initialized');
+    });
+
+
     let loadingTask = pdfjsLib.getDocument(`/api/files/presentations/by-training/${trainingId_}/`);
     loadingTask.promise.then(function(pdfDoc_) {
       pdfDoc = pdfDoc_;
@@ -87,6 +114,9 @@ $(document).ready(function() {
     scale = 1.1;
     canvas = $("#the-canvas")[0];
     ctx = canvas.getContext("2d");
-    $("#done").click(callShowPage);
+    $("#done").click(function () {
+        waitForLogger(() => logger.log('[TRAINING] done_clicked'));
+        callShowPage();
+    });
     $("#next").click(onNextPage);
 });

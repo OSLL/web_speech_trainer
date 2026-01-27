@@ -99,7 +99,8 @@ def create_log():
     Expected JSON:
     {
         "timestamp": "...",
-        "message": "..."
+        "message": "...",
+        "trainingId": "..."
     }
     """
     # logger.info("Received client log")
@@ -116,6 +117,7 @@ def create_log():
 
         timestamp = data.get("timestamp")
         message = data.get("message")
+        training_id = data.get("trainingId")
 
         if message is None:
             return {"message": "message field is required"}, 400
@@ -135,7 +137,8 @@ def create_log():
             pathname=pathname,
             filename=filename,
             funcName=funcName,
-            lineno=lineno
+            lineno=lineno,
+            trainingId=training_id,
         )
 
         return {"message": "log received"}, 201
