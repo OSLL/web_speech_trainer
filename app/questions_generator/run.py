@@ -88,12 +88,43 @@ def main():
             print(f"  - сложность:{diff}")
 
 
+def recursive_collect_chapter(chapter, depth=0, indent='  '):
+    """
+    Рекурсивно собирает текст главы и всех её детей (включая вложенных),
+    а также строит строковое представление структуры с указанием глубины,
+    текста и количества детей на каждом уровне.
+
+    :param chapter: Словарь главы {'text': str, 'child': list of dicts}
+    :param depth: Текущая глубина рекурсии (начинается с 0)
+    :param indent: Строка для отступа (по умолчанию два пробела)
+    :return: (collected_text: str, structure: str)
+    """
+    # Собираем текст текущей главы
+    text = chapter['text']
+
+    # Строим строку структуры для текущего уровня
+    structure = indent * depth + f'Depth {depth}: "{chapter["text"]}" (children: {len(chapter.get("child", []))})'
+
+    # Рекурсивно обрабатываем детей
+    for child in chapter.get('child', []):
+        child_text, child_structure = recursive_collect_chapter(child, depth + 1, indent)
+        text += '\n' + child_text
+        structure += '\n' + child_structure
+
+    return text, structure
+
+
 def main2():
     uploader = docx_uploader.DocxUploader()
     uploader.upload("/app/static/vkr_examples/VKR1.docx")
     uploader.parse()
-    uploader.print_info()
-    uploader.parse_effective_styles()
+    chapters = uploader.make_chapters('VKR')
+    for i, ch in enumerate(chapters):
+        text, structure = recursive_collect_chapter(ch)
+        print(f'\nГлава {i + 1} текст:')
+        print(text)
+        print(f'Глава {i + 1} структура:')
+        print(structure)
 
 
 if __name__ == "__main__":
