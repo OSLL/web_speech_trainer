@@ -1,7 +1,8 @@
 services:
   init-llm:
     build: ./llm_service
-    entrypoint: ["/usr/local/bin/init-volumes.sh"]
+    entrypoint: [ "/bin/sh", "-c" ]
+    command: [ "/usr/local/bin/init-volumes.sh" ]
     volumes:
       - rut5_model:/models/rut5
     restart: "no"

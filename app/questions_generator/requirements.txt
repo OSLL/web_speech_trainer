@@ -1,3 +1,6 @@
 nltk==3.9.2
 python-docx==1.2.0
 requests==2.32.3
+pandas==2.3.3
+python-docx==1.2.0
+pymupdf==1.26.0

@@ -9,6 +9,7 @@ from docx import Document
 from generator import VkrQuestionGenerator
 from validator import VkrQuestionValidator
 from logging_utils import setup_logging, log_timed, suppress_console_logs
+from document_parsers.docx_uploader import docx_uploader
 
 
 def load_vkr_text(path: str) -> str:
@@ -87,5 +88,13 @@ def main():
             print(f"  - сложность:{diff}")
 
 
+def main2():
+    uploader = docx_uploader.DocxUploader()
+    uploader.upload("/app/static/vkr_examples/VKR1.docx")
+    uploader.parse()
+    uploader.print_info()
+    uploader.parse_effective_styles()
+
+
 if __name__ == "__main__":
-    main()
+    main2()
