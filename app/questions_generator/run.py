@@ -88,30 +88,29 @@ def main():
             print(f"  - сложность:{diff}")
 
 
-def recursive_collect_chapter(chapter, depth=0, indent='  '):
+def get_full_chapter_text(chapter):
     """
-    Рекурсивно собирает текст главы и всех её детей (включая вложенных),
-    а также строит строковое представление структуры с указанием глубины,
-    текста и количества детей на каждом уровне.
+    Собирает полный текст главы + всех её прямых детей (подразделов/параграфов).
 
-    :param chapter: Словарь главы {'text': str, 'child': list of dicts}
-    :param depth: Текущая глубина рекурсии (начинается с 0)
-    :param indent: Строка для отступа (по умолчанию два пробела)
-    :return: (collected_text: str, structure: str)
+    Возвращает строку с текстом, разделённым переносами строк.
     """
-    # Собираем текст текущей главы
-    text = chapter['text']
+    lines = [chapter["text"].strip()]
 
-    # Строим строку структуры для текущего уровня
-    structure = indent * depth + f'Depth {depth}: "{chapter["text"]}" (children: {len(chapter.get("child", []))})'
+    for child in chapter.get("child", []):
+        child_text = child["text"].strip()
+        if child_text:  # пропускаем пустые
+            lines.append(child_text)
 
-    # Рекурсивно обрабатываем детей
-    for child in chapter.get('child', []):
-        child_text, child_structure = recursive_collect_chapter(child, depth + 1, indent)
-        text += '\n' + child_text
-        structure += '\n' + child_structure
+    return "\n".join(lines)
 
-    return text, structure
+
+def make_chapters(chapters):
+    out = []
+    for item in chapters:
+        full_text = get_full_chapter_text(item)
+        if not (full_text.strip() == (item.get("text") or "").strip()):  # если заголовок совпадает с полным текстом, значит это просто глобальный заголовок и, неожиданно, внутри него самого нет текста
+            out.append(full_text)
+    return out
 
 
 def main2():
@@ -119,12 +118,9 @@ def main2():
     uploader.upload("/app/static/vkr_examples/VKR1.docx")
     uploader.parse()
     chapters = uploader.make_chapters('VKR')
-    for i, ch in enumerate(chapters):
-        text, structure = recursive_collect_chapter(ch)
-        print(f'\nГлава {i + 1} текст:')
-        print(text)
-        print(f'Глава {i + 1} структура:')
-        print(structure)
+    chapters = make_chapters(chapters)
+    for item in chapters:
+        print(item, end="\n\n\n\n\n")
 
 
 if __name__ == "__main__":
