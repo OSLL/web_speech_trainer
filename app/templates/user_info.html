@@ -1,5 +1,5 @@
 {% block header %}
-<link rel="stylesheet" href="/static/css/header.css">
+<link rel="stylesheet" href="{{ versioned_url('css/header.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -11,7 +11,7 @@
 </div>
 
 
-<script src="/static/js/libraries/jquery.min.js"></script>
-<script src="/static/js/user_info.js"></script>
+<script src="{{ versioned_url('js/libraries/jquery.min.js') }}"></script>
+<script src="{{ versioned_url('js/user_info.js') }}"></script>
 
 {% endblock %}

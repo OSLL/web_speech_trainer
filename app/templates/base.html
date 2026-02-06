@@ -2,7 +2,8 @@
 <html>
 {% block header %}
 {% include "header.html" %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/libraries/bootstrap.min.css') }}">
+{% include "selenium_error_aggregator.html" %}
+<link rel="stylesheet" href="{{ versioned_url('css/libraries/bootstrap.min.css') }}">
 {% endblock %}
 
 {% include "user_info.html" %}
@@ -16,7 +17,7 @@
     {% block content %}  {% endblock %}
     <!--{% include "bug_reports.html" %}-->
     {% block footer %} {% include "footer.html" %} {% endblock %}
-    <script src="{{ url_for('static', filename='js/base.js') }}"></script>
+    <script src="{{ versioned_url('js/base.js') }}"></script>
 </body>
 
 </html>
