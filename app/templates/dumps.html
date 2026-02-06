@@ -28,7 +28,7 @@
     <label for="createDump">{{ t("Используйте с осторожностью! Может заблокировать сервис из-за активной работы с БД") }}</i>
 </div>
 
-<script src="{{ url_for('static', filename='js/libraries/jquery.min.js') }}"></script>
+<script src="{{ versioned_url('js/libraries/jquery.min.js') }}"></script>
 <script type="text/javascript">
     $(".createDumpButton").click(function(){
         $(this).text('{{ t("Создание...")}}')

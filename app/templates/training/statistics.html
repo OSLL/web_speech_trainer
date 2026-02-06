@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
 
 {% block header %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/training_statistics.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+<link rel="stylesheet" href="{{ versioned_url('css/training_statistics.css') }}">
+<link rel="stylesheet" href="{{ versioned_url('css/index.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -65,12 +65,12 @@
 
     <table class="table transcription-table" id="per-slide-audio-transcription-table"></table>
 </div>
-<script src="{{ url_for('static', filename='js/libraries/jquery.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/libraries/pdf.js/build/pdf.js') }}"></script>
-<script src="{{ url_for('static', filename='js/training.js') }}"></script>
-<script src="{{ url_for('static', filename='js/utils.js') }}"></script>
-<script src="{{ url_for('static', filename='js/changeURL.js') }}"></script>
-<script src="{{ url_for('static', filename='js/training_statistics.js') }}"></script>
+<script src="{{ versioned_url('js/libraries/jquery.min.js') }}"></script>
+<script src="{{ versioned_url('js/libraries/pdf.js/build/pdf.js') }}"></script>
+<script src="{{ versioned_url('js/training.js') }}"></script>
+<script src="{{ versioned_url('js/utils.js') }}"></script>
+<script src="{{ versioned_url('js/changeURL.js') }}"></script>
+<script src="{{ versioned_url('js/training_statistics.js') }}"></script>
 <script type="text/javascript">
     setVerdict("{{ verdict }}");
     setPerSlideAudioTranscriptionTable("{{ training_id }}");
