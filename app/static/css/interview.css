@@ -115,6 +115,11 @@
     font-weight: bold;
 }
 
+#question-total {
+    font-size: 2.2rem;
+    font-weight: bold;
+}
+
 #question-text {
     font-size: 2.2rem;
     margin-top: 5px;
@@ -272,4 +277,15 @@
 
 #mic-indicator {
   transition: transform 120ms linear, box-shadow 120ms linear, opacity 120ms linear;
+}
+
+.headphones-hint-fixed {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.2rem;
+    line-height: 1.2;
+    color: #2f2f2f;
+    border-radius: 10px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.15);
 }

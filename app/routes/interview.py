@@ -1,8 +1,12 @@
 from flask import Blueprint, render_template, session, request, Response
-
+import json
+from flask import jsonify
+from app.mongo_odm import DBManager
+from datetime import datetime, timezone
 from app.root_logger import get_root_logger
 from app.lti_session_passback.auth_checkers import check_auth
 from app.mongo_odm import InterviewAvatarsDBManager, QuestionsDBManager
+from app.mongo_models import InterviewRecording
 
 routes_interview = Blueprint('routes_interview', __name__)
 logger = get_root_logger()
@@ -118,3 +122,50 @@ def avatar_video():
         return '', 404
 
     return _partial_response_file(grid_out)
+
+@routes_interview.route("/api/interview/recording", methods=["POST"])
+def save_interview_recording():
+    """
+    multipart/form-data:
+      - audio: Blob
+      - session_id: str
+      - segments: JSON string
+      - duration: float (optional)
+    """
+    logger.info("Interview record saving started")
+
+    audio_file = request.files.get("audio")
+    session_id = request.form.get("session_id")
+    segments_raw = request.form.get("segments")
+    duration = request.form.get("duration")
+
+    if not audio_file or not session_id or not segments_raw:
+        return jsonify({"error": "audio, session_id and segments are required"}), 400
+
+    try:
+        segments = json.loads(segments_raw)
+    except Exception:
+        return jsonify({"error": "segments must be valid JSON"}), 400
+
+    storage = DBManager()
+    audio_file_id = storage.add_file(
+        audio_file,
+        filename=f"interview_{session_id}.webm"
+    )
+
+    recording = InterviewRecording(
+        session_id=session_id,
+        audio_file_id=audio_file_id,
+        duration=float(duration) if duration else None,
+        question_segments=segments,
+        status="recorded",
+        created_at=datetime.now(timezone.utc),
+    ).save()
+
+    logger.info(f"Interview recording saved {session_id} {segments}")
+
+    return jsonify({
+        "recording_id": str(recording.pk),
+        "audio_file_id": str(audio_file_id),
+        "segments_count": len(segments),
+    }), 201

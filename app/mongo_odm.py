@@ -23,7 +23,7 @@ from app.mongo_models import (AudioToRecognize, Consumers, Criterion, CriterionP
                               RecognizedAudioToProcess,
                               RecognizedPresentationsToProcess, Sessions,
                               TaskAttempts, TaskAttemptsToPassBack, Tasks,
-                              Trainings, TrainingsToProcess, StorageMeta, InterviewAvatars, Questions)
+                              Trainings, TrainingsToProcess, StorageMeta, InterviewAvatars, Questions, InterviewRecording)
 from app.status import (AudioStatus, PassBackStatus, PresentationStatus,
                         TrainingStatus)
 from app.utils import remove_blank_and_none
@@ -1025,3 +1025,57 @@ class InterviewAvatarsDBManager:
 
         avatar.delete()
         logger.info('Avatar deleted for session_id = {}.'.format(session_id))
+
+class InterviewRecordingDBManager:
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super().__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
+        return cls.instance
+
+    def create(
+        self,
+        session_id: str,
+        file_obj,
+        duration: float | None = None,
+        filename: str | None = None,
+        metadata: dict | None = None,
+    ):
+        storage = DBManager()
+        file_id = storage.add_file(file_obj, filename)
+
+        rec = InterviewRecording(
+            session_id=session_id,
+            audio_file_id=file_id,
+            duration=duration,
+            metadata=metadata or {},
+        ).save()
+
+        return rec
+
+    def append_segment(
+        self,
+        session_id: str,
+        question_id,
+        order: int,
+        start: float,
+        end: float,
+    ):
+        InterviewRecording.objects.model._mongometa.collection.update_one(
+            {"session_id": session_id},
+            {"$push": {
+                "question_segments": {
+                    "question_id": question_id,
+                    "order": order,
+                    "start": start,
+                    "end": end,
+                }
+            }}
+        )
+
+    def get_by_session(self, session_id: str):
+        try:
+            return InterviewRecording.objects.get({"session_id": session_id})
+        except InterviewRecording.DoesNotExist:
+            return None

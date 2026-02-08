@@ -179,3 +179,27 @@ class InterviewAvatars(MongoModel):
     def save(self):
         self.last_update = datetime.now(timezone.utc)
         return super().save()
+
+class InterviewRecording(MongoModel):
+    session_id = fields.CharField()
+    audio_file_id = fields.ObjectIdField()
+
+    duration = fields.FloatField(blank=True)
+
+    # [{question_id, order, start, end}]
+    question_segments = fields.ListField(
+        fields.DictField(),
+        blank=True,
+        default=[]
+    )
+
+    status = fields.CharField(default="recorded")
+
+    created_at = fields.DateTimeField(default=datetime.now(timezone.utc))
+    last_update = fields.DateTimeField(default=datetime.now(timezone.utc))
+
+    metadata = fields.DictField(blank=True, default={})
+
+    def save(self):
+        self.last_update = datetime.now(timezone.utc)
+        return super().save()
