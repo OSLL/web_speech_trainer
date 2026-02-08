@@ -6,18 +6,36 @@ from flask import Blueprint, request, session, redirect, url_for
 
 from app.lti_session_passback.lti_module import utils
 from app.lti_session_passback.lti_module.check_request import check_request
-from app.mongo_odm import ConsumersDBManager, PresentationFilesDBManager, SessionsDBManager, TasksDBManager
-from app.utils import ALLOWED_EXTENSIONS, DEFAULT_EXTENSION, check_argument_is_convertible_to_object_id
+from app.mongo_odm import (
+    ConsumersDBManager,
+    PresentationFilesDBManager,
+    SessionsDBManager,
+    TasksDBManager,
+)
+from app.utils import (
+    ALLOWED_EXTENSIONS,
+    DEFAULT_EXTENSION,
+    check_argument_is_convertible_to_object_id,
+)
 
 routes_lti = Blueprint('routes_lti', __name__)
 logger = get_root_logger()
 
 
-def _handle_lti_common():
+@routes_lti.route('/lti', methods=['POST'])
+def lti():
+    """
+    Route that is an entry point for LTI (тренировки).
+
+    :return: Redirects to training_greeting or interview page, or
+        an empty dictionary with 404 HTTP return code if access was denied.
+    """
+
     params = request.form
 
     consumer_key = params.get('oauth_consumer_key', '')
     consumer_secret = ConsumersDBManager().get_secret(consumer_key)
+
     request_info = dict(
         headers=dict(request.headers),
         data=params,
@@ -25,11 +43,14 @@ def _handle_lti_common():
         secret=consumer_secret,
     )
     if not check_request(request_info):
-        return None
+        return {}, 404
 
     full_name = utils.get_person_name(params)
     username = utils.get_username(params)
     custom_params = utils.get_custom_params(params)
+
+    mode = custom_params.get('mode', 'training')
+
     task_id = custom_params.get('task_id', '')
     task_description = custom_params.get('task_description', '')
     attempt_count = int(custom_params.get('attempt_count', 1))
@@ -41,9 +62,19 @@ def _handle_lti_common():
     feedback_evaluator_id = int(custom_params.get('feedback_evaluator_id', 1))
     role = utils.get_role(params)
     params_for_passback = utils.extract_passback_params(params)
-    pres_formats = list(set(custom_params.get('formats', '').split(',')) & ALLOWED_EXTENSIONS) or [DEFAULT_EXTENSION]
+    pres_formats = (
+        list(set(custom_params.get('formats', '').split(',')) & ALLOWED_EXTENSIONS)
+        or [DEFAULT_EXTENSION]
+    )
 
-    SessionsDBManager().add_session(username, consumer_key, task_id, params_for_passback, role, pres_formats)
+    SessionsDBManager().add_session(
+        username,
+        consumer_key,
+        task_id,
+        params_for_passback,
+        role,
+        pres_formats,
+    )
 
     session['session_id'] = username
     session['task_id'] = task_id
@@ -67,41 +98,6 @@ def _handle_lti_common():
         presentation_id,
     )
 
-    return {
-        "username": username,
-        "task_id": task_id,
-        "full_name": full_name,
-        "criteria_pack_id": criteria_pack_id,
-        "feedback_evaluator_id": feedback_evaluator_id,
-        "presentation_id": presentation_id,
-        "attempt_count": attempt_count,
-        "required_points": required_points,
-    }
-
-
-@routes_lti.route('/lti', methods=['POST'])
-def lti():
-    """
-    Route that is an entry point for LTI (тренировки).
-
-    :return: Redirects to training_greeting page, or
-        an empty dictionary with 404 HTTP return code if access was denied.
-    """
-    ctx = _handle_lti_common()
-    if ctx is None:
-        return {}, 404
-
+    if mode == 'interview':
+        return redirect(url_for('routes_interview.interview_page'))
     return redirect(url_for('routes_trainings.view_training_greeting'))
-
-
-@routes_lti.route('/lti_interview', methods=['POST'])
-def lti_interview():
-    """
-    LTI entry point для интервью.
-    """
-    ctx = _handle_lti_common()
-    if ctx is None:
-        return {}, 404
-
-    username = ctx["username"]
-    return redirect(url_for('routes_interview.interview_page'), )
