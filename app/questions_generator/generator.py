@@ -8,56 +8,70 @@ from nltk.tokenize import sent_tokenize
 import requests
 
 from logging_utils import log_timed
+from document_parsers.docx_uploader import DocxUploader
+
+
+def get_full_chapter_text(chapter):
+    """
+    Собирает полный текст главы + всех её прямых детей (подразделов/параграфов).
+
+    Возвращает строку с текстом, разделённым переносами строк.
+    """
+    lines = [chapter["text"].strip()]
+
+    for child in chapter.get("child", []):
+        child_text = child["text"].strip()
+        if child_text:  # пропускаем пустые
+            lines.append(child_text)
+
+    return "\n".join(lines)
+
+
+def make_chapters(chapters):
+    out = []
+    for item in chapters:
+        full_text = get_full_chapter_text(item)
+        if not (full_text.strip() == (item.get("text") or "").strip()):  # если заголовок совпадает с полным текстом, значит это просто глобальный заголовок и, неожиданно, внутри него самого нет текста
+            out.append(full_text)
+    return out
 
 
 class VkrQuestionGenerator:
-    """Гибридный генератор вопросов по ВКР: NLTK + rut5-base-multitask."""
-
-    SECTION_RE = re.compile(
-        r"(?im)^\s*(\d+(\.\d+)*\.?\s+)?([А-Я][А-ЯA-Z\s]{3,})\s*$"
-    )
+    """Гибридный генератор вопросов по ВКР: DocxUploader + rut5-base-multitask"""
 
     def __init__(
         self,
-        vkr_text: str,
+        docx_path: str,
         heuristic_csv_path: str = "static/heuristic_questions.csv",
         llm_url: str = "http://llm:8000"
     ):
         self.logger = logging.getLogger(__name__)
 
         with log_timed(self.logger, "инициализация генератора"):
-            self.vkr_text = vkr_text
-            self.sentences = sent_tokenize(vkr_text)
+
             self.llm_url = llm_url
+            self.docx_path = docx_path
+
+            self.uploader = DocxUploader()
+            self.uploader.upload(docx_path)
+            self.uploader.parse()
+
+            raw_chapters = self.uploader.make_chapters('VKR')
+            self.chapter_titles = {
+                ch["text"].strip().lower()
+                for ch in raw_chapters
+            }
+            self.sections = make_chapters(raw_chapters)
 
             self.heuristic_templates: List[Dict[str, str]] = []
             with Path(heuristic_csv_path).open(encoding="utf-8") as f:
                 reader = csv.DictReader(f, delimiter="|")
                 self.heuristic_templates.extend(reader)
 
-        self.logger.info("Генератор готов")
-
-    def _split_into_sections(self) -> List[tuple[str, str]]:
-        """Разбивает текст ВКР на логические разделы.
-        Возвращает список (section_title, section_text)."""
-        matches = list(VkrQuestionGenerator.SECTION_RE.finditer(self.vkr_text))
-
-        if not matches:
-            return [("ОСНОВНОЙ ТЕКСТ", self.vkr_text)]
-
-        sections = []
-
-        for i, match in enumerate(matches):
-            start = match.end()
-            end = matches[i + 1].start() if i + 1 < len(matches) else len(self.vkr_text)
-
-            title = match.group(0).strip()
-            body = self.vkr_text[start:end].strip()
-
-            if body:
-                sections.append((title, body))
-
-        return sections
+        self.logger.info(
+            "Генератор готов. Глав найдено: %d",
+            len(self.sections)
+        )
 
     def _chunk_section(
             self,
@@ -94,32 +108,6 @@ class VkrQuestionGenerator:
 
         return chunks
 
-    def _sections_from_introduction(
-            self,
-            sections: List[tuple[str, str]],
-    ) -> List[tuple[str, str]]:
-        """Оставляет только разделы начиная с 'ВВЕДЕНИЕ' (включая его).
-        Если введение не найдено — возвращает исходный список."""
-        result = []
-        found_intro = False
-
-        for title, text in sections:
-            normalized = title.upper()
-
-            if "ВВЕДЕНИЕ" in normalized:
-                found_intro = True
-
-            if found_intro:
-                result.append((title, text))
-
-        if not result:
-            self.logger.warning(
-                "Раздел 'ВВЕДЕНИЕ' не найден — используется весь текст"
-            )
-            return sections
-
-        return result
-
     def llm_generate_question(self, text_fragment: str) -> str:
         prompt = f"ask: {text_fragment}"
 
@@ -141,20 +129,17 @@ class VkrQuestionGenerator:
 
         resp = requests.get(f"{self.llm_url}/max_tokens", timeout=5)
         resp.raise_for_status()
-        data = resp.json()
-        max_tokens = data["max_tokens"] - 32  # резервируем 32 токена для safety
-
-        sections = self._split_into_sections()
-        sections = self._sections_from_introduction(sections)
+        max_tokens = resp.json()["max_tokens"] - 32  # резервируем 32 токена для safety
 
         self.logger.info(
-            "LLM генерация: разделов=%d требуется=%d",
-            len(sections),
+            "LLM генерация: глав=%d требуется=%d",
+            len(self.sections),
             count,
         )
 
         with log_timed(self.logger, "LLM генерация всех вопросов", количество=count):
-            for section_index, (section_title, section_text) in enumerate(sections):
+
+            for section_index, section_text in enumerate(self.sections):
                 if len(questions) >= count:
                     break
 
@@ -174,8 +159,7 @@ class VkrQuestionGenerator:
 
                         if len(q) < 15 or not q.endswith("?") or q.lower() in seen:
                             self.logger.info(
-                                "LLM вопрос отклонён: section='%s', chunk_index=%d, длина=%d",
-                                section_title,
+                                "LLM вопрос отклонён: chunk_index=%d, длина=%d",
                                 chunk_index,
                                 len(q),
                             )
@@ -184,16 +168,15 @@ class VkrQuestionGenerator:
                         questions.append(q)
                         seen.add(q.lower())
                         self.logger.info(
-                            "LLM вопрос принят: section='%s', номер=%d, длина=%d",
-                            section_title,
+                            "LLM вопрос принят: номер=%d, длина=%d",
                             len(questions),
                             len(q),
                         )
 
                     except Exception as exc:
                         self.logger.exception(
-                            "Ошибка LLM генерации: section='%s', chunk_index=%d, error=%s",
-                            section_title,
+                            "Ошибка LLM генерации: section_index=%d, chunk_index=%d, error=%s",
+                            section_index,
                             chunk_index,
                             exc,
                         )
@@ -208,14 +191,22 @@ class VkrQuestionGenerator:
         questions: List[str] = []
 
         for item in self.heuristic_templates:
-            sections = item["section"]
+            required_sections = item["section"]
             question = item["question"]
 
-            if not sections:
+            if not required_sections:
                 questions.append(question)
                 continue
 
-            if all(re.search(s, self.vkr_text, re.I) for s in sections.split(",")):
+            required_list = [
+                s.strip().lower()
+                for s in required_sections.split(",")
+            ]
+
+            if all(
+                    any(req in title for title in self.chapter_titles)
+                    for req in required_list
+            ):
                 questions.append(question)
 
         return questions

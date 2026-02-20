@@ -1,0 +1,10 @@
+FROM python:3.10-slim
+
+WORKDIR /app
+
+RUN pip install --no-cache-dir huggingface_hub[cli]
+
+COPY init-volumes.sh /usr/local/bin/init-volumes.sh
+RUN chmod +x /usr/local/bin/init-volumes.sh
+
+ENTRYPOINT ["/bin/sh", "-c"]

@@ -6,7 +6,7 @@ RUN pip install --no-cache-dir \
     sentencepiece \
     fastapi \
     uvicorn \
-    huggingface_hub[cli]
+    protobuf
 
 WORKDIR /app
 
@@ -14,7 +14,5 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_DEFAULT_TIMEOUT=120
 
 COPY app.py .
-COPY init-volumes.sh /usr/local/bin/init-volumes.sh
-RUN chmod +x /usr/local/bin/init-volumes.sh
 
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]

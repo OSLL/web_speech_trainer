@@ -9,7 +9,6 @@ from docx import Document
 from generator import VkrQuestionGenerator
 from validator import VkrQuestionValidator
 from logging_utils import setup_logging, log_timed, suppress_console_logs
-from document_parsers.docx_uploader import docx_uploader
 
 
 def load_vkr_text(path: str) -> str:
@@ -48,7 +47,7 @@ def main():
     text = load_vkr_text(args.vkr_path)
 
     with log_timed(logger, "инициализация генератора"):
-        gen = VkrQuestionGenerator(text)
+        gen = VkrQuestionGenerator(args.vkr_path)
 
     with log_timed(logger, "инициализация валидатора"):
         validator = VkrQuestionValidator(text)
@@ -88,40 +87,5 @@ def main():
             print(f"  - сложность:{diff}")
 
 
-def get_full_chapter_text(chapter):
-    """
-    Собирает полный текст главы + всех её прямых детей (подразделов/параграфов).
-
-    Возвращает строку с текстом, разделённым переносами строк.
-    """
-    lines = [chapter["text"].strip()]
-
-    for child in chapter.get("child", []):
-        child_text = child["text"].strip()
-        if child_text:  # пропускаем пустые
-            lines.append(child_text)
-
-    return "\n".join(lines)
-
-
-def make_chapters(chapters):
-    out = []
-    for item in chapters:
-        full_text = get_full_chapter_text(item)
-        if not (full_text.strip() == (item.get("text") or "").strip()):  # если заголовок совпадает с полным текстом, значит это просто глобальный заголовок и, неожиданно, внутри него самого нет текста
-            out.append(full_text)
-    return out
-
-
-def main2():
-    uploader = docx_uploader.DocxUploader()
-    uploader.upload("/app/static/vkr_examples/VKR1.docx")
-    uploader.parse()
-    chapters = uploader.make_chapters('VKR')
-    chapters = make_chapters(chapters)
-    for item in chapters:
-        print(item, end="\n\n\n\n\n")
-
-
 if __name__ == "__main__":
-    main2()
+    main()

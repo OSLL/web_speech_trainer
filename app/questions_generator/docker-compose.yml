@@ -1,8 +1,10 @@
 services:
   init-llm:
-    build: ./llm_service
-    entrypoint: [ "/bin/sh", "-c" ]
-    command: [ "/usr/local/bin/init-volumes.sh" ]
+    build:
+      context: ./llm_service
+      dockerfile: Dockerfile.init
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["/usr/local/bin/init-volumes.sh"]
     volumes:
       - rut5_model:/models/rut5
     restart: "no"
