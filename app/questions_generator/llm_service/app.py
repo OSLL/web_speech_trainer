@@ -14,7 +14,7 @@ model.eval()
 class GenerateRequest(BaseModel):
     prompt: str
     max_length: int = 96
-    num_beams: int = 5
+    num_beams: int = 2
 
 
 @app.post("/generate")

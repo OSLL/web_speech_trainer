@@ -69,19 +69,15 @@ def main():
             clr = validator.check_clarity(q)
             diff = validator.check_difficulty(q)
 
-            passed = (int(rel) + int(clr) + int(diff) >= 2)
-            status = "✔ OK" if passed else "✖ FAIL"
-
             logger.info(
-                "Вопрос %d статус=%s релевантность=%s ясность=%s сложность=%s",
+                "Вопрос %d релевантность=%s ясность=%s сложность=%s",
                 idx,
-                "OK" if passed else "FAIL",
                 rel,
                 clr,
                 diff,
             )
 
-            print(f"\n[{status}] {q}")
+            print(f"\n {q}")
             print(f"  - релевантность: {rel}")
             print(f"  - ясность:   {clr}")
             print(f"  - сложность:{diff}")

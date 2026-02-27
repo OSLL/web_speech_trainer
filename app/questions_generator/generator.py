@@ -2,13 +2,15 @@ import re
 import logging
 import csv
 from pathlib import Path
-from typing import List, Dict, Iterable
+from typing import List, Dict
+import random
 
 from nltk.tokenize import sent_tokenize
 import requests
 
 from logging_utils import log_timed
 from document_parsers.docx_uploader import DocxUploader
+from validator import VkrQuestionValidator
 
 
 def get_full_chapter_text(chapter):
@@ -62,6 +64,9 @@ class VkrQuestionGenerator:
                 for ch in raw_chapters
             }
             self.sections = make_chapters(raw_chapters)
+
+            full_text = "\n".join(self.sections)
+            self.validator = VkrQuestionValidator(full_text)
 
             self.heuristic_templates: List[Dict[str, str]] = []
             with Path(heuristic_csv_path).open(encoding="utf-8") as f:
@@ -137,54 +142,69 @@ class VkrQuestionGenerator:
             count,
         )
 
+        all_chunks: List[tuple[int, int, str]] = []
+
+        for section_index, section_text in enumerate(self.sections):
+            chunks = self._chunk_section(section_text, max_tokens)
+            for chunk_index, chunk in enumerate(chunks):
+                all_chunks.append((section_index, chunk_index, chunk))
+
+        random.shuffle(all_chunks)
+
         with log_timed(self.logger, "LLM генерация всех вопросов", количество=count):
 
-            for section_index, section_text in enumerate(self.sections):
+            for section_index, chunk_index, chunk in all_chunks:
                 if len(questions) >= count:
                     break
 
-                chunks = self._chunk_section(section_text, max_tokens)
+                try:
+                    with log_timed(
+                            self.logger,
+                            "LLM вопрос",
+                            индекс=f"{section_index}.{chunk_index}",
+                    ):
+                        q = self.llm_generate_question(chunk)
 
-                for chunk_index, chunk in enumerate(chunks):
-                    if len(questions) >= count:
-                        break
+                    rel = self.validator.check_relevance(q)
+                    clr = self.validator.check_clarity(q)
+                    diff = self.validator.check_difficulty(q)
 
-                    try:
-                        with log_timed(
-                                self.logger,
-                                "LLM вопрос",
-                                индекс=f"{section_index}.{chunk_index}",
-                        ):
-                            q = self.llm_generate_question(chunk)
+                    score = int(rel) + int(clr) + int(diff)
 
-                        if len(q) < 15 or not q.endswith("?") or q.lower() in seen:
-                            self.logger.info(
-                                "LLM вопрос отклонён: chunk_index=%d, длина=%d",
-                                chunk_index,
-                                len(q),
-                            )
-                            continue
-
-                        questions.append(q)
-                        seen.add(q.lower())
+                    if (
+                            score < 2
+                            or len(q) < 15
+                            or not q.endswith("?")
+                            or q.lower() in seen
+                    ):
                         self.logger.info(
-                            "LLM вопрос принят: номер=%d, длина=%d",
-                            len(questions),
+                            "LLM вопрос отклонён: chunk_index=%d, длина=%d",
+                            chunk_index,
                             len(q),
                         )
+                        continue
 
-                    except Exception as exc:
-                        self.logger.exception(
-                            "Ошибка LLM генерации: section_index=%d, chunk_index=%d, error=%s",
-                            section_index,
-                            chunk_index,
-                            exc,
-                        )
+                    questions.append(q)
+                    seen.add(q.lower())
+                    self.logger.info(
+                        "LLM вопрос принят: номер=%d, длина=%d",
+                        len(questions),
+                        len(q),
+                    )
+
+                except Exception as exc:
+                    self.logger.exception(
+                        "Ошибка LLM генерации: section_index=%d, chunk_index=%d, error=%s",
+                        section_index,
+                        chunk_index,
+                        exc,
+                    )
 
         self.logger.info(
             "LLM вопросы сформированы: всего=%d",
             len(questions),
         )
+
         return questions
 
     def heuristic_questions(self) -> List[str]:
