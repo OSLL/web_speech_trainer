@@ -159,3 +159,47 @@ class Logs(MongoModel):
 
 class StorageMeta(MongoModel):
     used_size = fields.IntegerField()
+
+
+class Questions(MongoModel):
+    session_id = fields.CharField()
+    text = fields.CharField()
+    order = fields.IntegerField(blank=True, default=0)
+    created_at = fields.DateTimeField(default=datetime.now(timezone.utc))
+    attributes = fields.DictField(blank=True, default={})
+    generation_metadata = fields.DictField(blank=True, default={})
+
+class InterviewAvatars(MongoModel):
+    session_id = fields.CharField()
+    file_id = fields.ObjectIdField()
+
+    created_at = fields.DateTimeField(default=datetime.now(timezone.utc))
+    last_update = fields.DateTimeField(default=datetime.now(timezone.utc))
+
+    def save(self):
+        self.last_update = datetime.now(timezone.utc)
+        return super().save()
+
+class InterviewRecording(MongoModel):
+    session_id = fields.CharField()
+    audio_file_id = fields.ObjectIdField()
+
+    duration = fields.FloatField(blank=True)
+
+    # [{question_id, order, start, end}]
+    question_segments = fields.ListField(
+        fields.DictField(),
+        blank=True,
+        default=[]
+    )
+
+    status = fields.CharField(default="recorded")
+
+    created_at = fields.DateTimeField(default=datetime.now(timezone.utc))
+    last_update = fields.DateTimeField(default=datetime.now(timezone.utc))
+
+    metadata = fields.DictField(blank=True, default={})
+
+    def save(self):
+        self.last_update = datetime.now(timezone.utc)
+        return super().save()

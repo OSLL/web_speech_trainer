@@ -23,7 +23,7 @@ from app.mongo_models import (AudioToRecognize, Consumers, Criterion, CriterionP
                               RecognizedAudioToProcess,
                               RecognizedPresentationsToProcess, Sessions,
                               TaskAttempts, TaskAttemptsToPassBack, Tasks,
-                              Trainings, TrainingsToProcess, StorageMeta)
+                              Trainings, TrainingsToProcess, StorageMeta, InterviewAvatars, Questions, InterviewRecording)
 from app.status import (AudioStatus, PassBackStatus, PresentationStatus,
                         TrainingStatus)
 from app.utils import remove_blank_and_none
@@ -119,6 +119,28 @@ class DBManager:
             total_size += file_doc['length']
         self.set_used_storage_size(total_size)
         logger.info(f"Storage size recalculated: {total_size/BYTES_PER_MB:.2f} MB")
+
+    def delete_file(self, file_id):
+        try:
+            oid = ObjectId(file_id)
+        except InvalidId as e:
+            logger.warning('Invalid file_id = {}: {}.'.format(file_id, e))
+            return
+
+        db = _get_db()
+        file_doc = db.fs.files.find_one({'_id': oid})
+        if not file_doc:
+            logger.warning('No file doc for file_id = {}.'.format(file_id))
+            return
+
+        length = file_doc.get('length', 0)
+        try:
+            self.storage.delete(oid)
+        except (NoFile, ValidationError) as e:
+            logger.warning('Error deleting file_id = {}: {}.'.format(file_id, e))
+            return
+
+        self.update_storage_size(-length)
         
 
 class TrainingsDBManager:
@@ -929,3 +951,131 @@ class CriterionPackDBManager:
 
     def get_all_criterion_packs(self):
         return CriterionPack.objects.all().order_by([("name", pymongo.ASCENDING)])
+
+class QuestionsDBManager:
+
+    def add_question(self, session_id: str, text: str):
+        question = Questions(session_id=session_id, text=text)
+        return question.save()
+
+    def get_questions_by_session(self, session_id: str):
+        return Questions.objects.raw({"session_id": session_id})
+
+    def remove_question(self, question_id):
+        return Questions.objects.get({"_id": question_id}).delete()
+
+    def get_all(self):
+        return Questions.objects.all()
+
+class InterviewAvatarsDBManager:
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super(InterviewAvatarsDBManager, cls).__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
+        return cls.instance
+
+    def get_by_session_id(self, session_id: str):
+        try:
+            return InterviewAvatars.objects.get({'session_id': session_id})
+        except InterviewAvatars.DoesNotExist:
+            return None
+
+    def add_or_update_avatar(self, session_id: str, file_obj, filename: str | None = None):
+        storage = DBManager()
+        if filename is None:
+            filename = str(uuid.uuid4())
+        avatar_file_id = storage.add_file(file_obj, filename)
+        avatar = self.get_by_session_id(session_id)
+        if avatar is None:
+            avatar = InterviewAvatars(session_id=session_id, file_id=avatar_file_id)
+        else:
+            try:
+                storage.delete_file(avatar.file_id)
+            except Exception:
+                logger.warning('Failed to delete old avatar file for session_id = {}.'.format(session_id))
+            avatar.file_id = avatar_file_id
+
+        saved = avatar.save()
+        logger.info('Avatar saved for session_id = {}, file_id = {}.'.format(session_id, avatar_file_id))
+        return saved
+
+    def get_avatar_record(self, session_id: str) -> Union[InterviewAvatars, None]:
+        return self.get_by_session_id(session_id)
+
+    def get_avatar_file(self, session_id: str):
+        avatar = self.get_by_session_id(session_id)
+        if avatar is None:
+            logger.info('No avatar for session_id = {}.'.format(session_id))
+            return None
+
+        storage = DBManager()
+        return storage.get_file(avatar.file_id)
+
+    def delete_avatar(self, session_id: str):
+        avatar = self.get_by_session_id(session_id)
+        if avatar is None:
+            return
+
+        storage = DBManager()
+        try:
+            storage.delete_file(avatar.file_id)
+        except Exception as e:
+            logger.warning('Error deleting avatar file for session_id = {}: {}.'.format(session_id, e))
+
+        avatar.delete()
+        logger.info('Avatar deleted for session_id = {}.'.format(session_id))
+
+class InterviewRecordingDBManager:
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super().__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
+        return cls.instance
+
+    def create(
+        self,
+        session_id: str,
+        file_obj,
+        duration: float | None = None,
+        filename: str | None = None,
+        metadata: dict | None = None,
+    ):
+        storage = DBManager()
+        file_id = storage.add_file(file_obj, filename)
+
+        rec = InterviewRecording(
+            session_id=session_id,
+            audio_file_id=file_id,
+            duration=duration,
+            metadata=metadata or {},
+        ).save()
+
+        return rec
+
+    def append_segment(
+        self,
+        session_id: str,
+        question_id,
+        order: int,
+        start: float,
+        end: float,
+    ):
+        InterviewRecording.objects.model._mongometa.collection.update_one(
+            {"session_id": session_id},
+            {"$push": {
+                "question_segments": {
+                    "question_id": question_id,
+                    "order": order,
+                    "start": start,
+                    "end": end,
+                }
+            }}
+        )
+
+    def get_by_session(self, session_id: str):
+        try:
+            return InterviewRecording.objects.get({"session_id": session_id})
+        except InterviewRecording.DoesNotExist:
+            return None
