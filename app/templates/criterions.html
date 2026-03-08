@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
 
 {% block header %}
-<link rel="stylesheet" href="/static/css/danger-alert.css">
-<link rel="stylesheet" href="/static/css/libraries/codemirror.min.css">
-<link rel="stylesheet" href="/static/css/spinner.css">
+<link rel="stylesheet" href="{{ versioned_url('css/danger-alert.css') }}">
+<link rel="stylesheet" href="{{ versioned_url('css/libraries/codemirror.min.css') }}">
+<link rel="stylesheet" href="{{ versioned_url('css/spinner.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -56,8 +56,8 @@
     <textarea id="criterion_parameters" rows=5>{{ data['info'] }} </textarea>
 </form>
 
-<script src="/static/js/libraries/jquery.min.js"></script>
-<script src="/static/js/libraries/codemirror.min.js"></script>
-<script src="/static/js/criterion.js"></script>
+<script src="{{ versioned_url('js/libraries/jquery.min.js') }}"></script>
+<script src="{{ versioned_url('js/libraries/codemirror.min.js') }}"></script>
+<script src="{{ versioned_url('js/criterion.js') }}"></script>
 
 {% endblock %}

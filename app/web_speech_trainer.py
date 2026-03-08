@@ -35,7 +35,7 @@ from app.routes.capacity import routes_capacity
 from app.routes.interview import routes_interview
 from app.status import PassBackStatus, TrainingStatus
 from app.training_manager import TrainingManager
-from app.utils import ALLOWED_EXTENSIONS, DEFAULT_EXTENSION
+from app.utils import ALLOWED_EXTENSIONS, DEFAULT_EXTENSION, versioned_url, calc_static_hash
 
 app = Flask(__name__)
 app.register_blueprint(api_audio)
@@ -59,9 +59,10 @@ app.register_blueprint(routes_task_attempts)
 app.register_blueprint(routes_version)
 app.register_blueprint(routes_capacity)
 app.register_blueprint(routes_interview)
+app.jinja_env.globals['versioned_url'] = versioned_url
+app.config["STATIC_VERSION"] = calc_static_hash(app.static_folder)
 
 logger = get_root_logger(service_name='web')
-
 
 class ReverseProxied(object):
     def __init__(self, app):
