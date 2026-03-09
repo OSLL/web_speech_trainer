@@ -6,12 +6,14 @@ from flask import Blueprint, render_template, session, request, Response
 from flask import Blueprint, render_template, session, request, Response, jsonify
 from flask import jsonify
 
-from app.interview_evaluation import evaluate_interview_recording
 from app.mongo_models import InterviewRecording
 from app.mongo_odm import DBManager
 from app.mongo_odm import InterviewAvatarsDBManager, QuestionsDBManager, InterviewFeedbackDBManager
 from app.root_logger import get_root_logger
 from app.status import AudioStatus
+from bson import ObjectId
+from flask import url_for
+from app.interview_evaluation import evaluate_interview_recording, build_interview_results_data
 
 routes_interview = Blueprint('routes_interview', __name__)
 logger = get_root_logger()
@@ -19,14 +21,14 @@ logger = get_root_logger()
 
 @routes_interview.route('/interview/', methods=['GET'])
 def interview_page():
-    # user_session = check_auth()
-    # if not user_session:
-    #     return "User session not found", 404
-    #
-    # session_id = session.get('session_id')
-    # if not session_id:
-    #     return "Session id not found", 404
-    session_id = "hello, bro"
+    user_session = check_auth()
+    if not user_session:
+        return "User session not found", 404
+
+    session_id = session.get('session_id')
+    if not session_id:
+        return "Session id not found", 404
+    # session_id = "hello, bro"
     session['session_id'] = session_id
 
     avatar_record = InterviewAvatarsDBManager().get_avatar_record(session_id)
@@ -116,9 +118,9 @@ def _partial_response_file(grid_out):
 
 @routes_interview.route('/avatar_video')
 def avatar_video():
-    # user_session = check_auth()
-    # if not user_session:
-    #     return '', 404
+    user_session = check_auth()
+    if not user_session:
+        return '', 404
 
     session_id = session.get('session_id')
     if not session_id:
@@ -144,9 +146,9 @@ def _calculate_duration_from_segments(segments):
 
 @routes_interview.route("/api/interview/recording", methods=["POST"])
 def save_interview_recording():
-    # user_session = check_auth()
-    # if not user_session:
-    #     return jsonify({"error": "User session not found"}), 404
+    user_session = check_auth()
+    if not user_session:
+        return jsonify({"error": "User session not found"}), 404
 
     real_session_id = session.get("session_id")
     if not real_session_id:
@@ -218,14 +220,15 @@ def save_interview_recording():
         "audio_file_id": str(audio_file_id),
         "segments_count": len(segments),
         "feedback": feedback_payload,
+        "results_url": url_for("routes_interview.interview_results_page", recording_id=str(recording.pk)),
     }), 201
 
 
 @routes_interview.route("/api/interview/feedback/<recording_id>", methods=["GET"])
 def get_interview_feedback(recording_id):
-    # user_session = check_auth()
-    # if not user_session:
-    #     return jsonify({"error": "User session not found"}), 404
+    user_session = check_auth()
+    if not user_session:
+        return jsonify({"error": "User session not found"}), 404
 
     feedback = InterviewFeedbackDBManager().get_feedback_by_recording_id(recording_id)
     if feedback is None:
@@ -239,3 +242,23 @@ def get_interview_feedback(recording_id):
         "verdict": feedback.verdict,
         "criteria_results": feedback.criteria_results,
     }), 200
+
+@routes_interview.route("/interview/results/<recording_id>/", methods=["GET"])
+def interview_results_page(recording_id):
+    try:
+        recording = InterviewRecording.objects.get({"_id": ObjectId(recording_id)})
+    except Exception:
+        return "Recording not found", 404
+
+    questions = list(QuestionsDBManager().get_questions_by_session(recording.session_id))
+    results_payload = build_interview_results_data(recording, questions)
+
+    return render_template(
+        "results.html",
+        total_score=results_payload["total_score"],
+        max_score=results_payload["max_score"],
+        verdict=results_payload["verdict"],
+        questions=results_payload["questions"],
+        results=results_payload["criteria"],
+        question_totals=results_payload["question_totals"],
+    ), 200

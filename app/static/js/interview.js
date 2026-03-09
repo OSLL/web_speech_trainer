@@ -384,14 +384,16 @@ async function sendSessionToBackend(blob) {
 
     if (!resp.ok) {
       console.warn("Ошибка отправки записи:", resp.status, data);
-      setStatus("Не удалось сохранить интервью");
+      setStatus(data?.error || "Не удалось сохранить интервью");
       return;
     }
 
-    if (data.feedback) {
-      renderFeedback(data.feedback);
-      setStatus("Интервью завершено, оценка рассчитана");
+    if (data.results_url) {
+      window.location.href = data.results_url;
+      return;
     }
+
+    setStatus("Интервью завершено, но не удалось открыть страницу результатов");
   } catch (err) {
     console.error("Ошибка при fetch:", err);
     setStatus("Ошибка при отправке интервью");
