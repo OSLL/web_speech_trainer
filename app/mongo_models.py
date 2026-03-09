@@ -1,5 +1,8 @@
 from datetime import datetime, timezone
 from pymodm import EmbeddedMongoModel, MongoModel, fields
+from datetime import datetime, timezone
+from pymodm import MongoModel, fields
+from app.status import AudioStatus
 
 
 class Criterion(MongoModel):
@@ -183,23 +186,43 @@ class InterviewAvatars(MongoModel):
 class InterviewRecording(MongoModel):
     session_id = fields.CharField()
     audio_file_id = fields.ObjectIdField()
-
     duration = fields.FloatField(blank=True)
-
-    # [{question_id, order, start, end}]
+    recognized_audio_id = fields.ObjectIdField(blank=True)
+    audio_status = fields.CharField(default=AudioStatus.NEW)
+    transcript = fields.CharField(blank=True)
+    words = fields.ListField(
+        fields.DictField(),
+        blank=True,
+        default=[]
+    )
+    segments = fields.ListField(
+        fields.DictField(),
+        blank=True,
+        default=[]
+    )
     question_segments = fields.ListField(
         fields.DictField(),
         blank=True,
         default=[]
     )
-
     status = fields.CharField(default="recorded")
-
-    created_at = fields.DateTimeField(default=datetime.now(timezone.utc))
-    last_update = fields.DateTimeField(default=datetime.now(timezone.utc))
-
+    created_at = fields.DateTimeField(default=lambda: datetime.now(timezone.utc))
+    last_update = fields.DateTimeField(default=lambda: datetime.now(timezone.utc))
     metadata = fields.DictField(blank=True, default={})
 
     def save(self):
         self.last_update = datetime.now(timezone.utc)
         return super().save()
+
+class InterviewFeedback(MongoModel):
+    session_id = fields.CharField()
+    recording_id = fields.ObjectIdField()
+
+    criteria_pack_id = fields.CharField(blank=True, default="INTERVIEW_SIMPLE_V1")
+    feedback_evaluator_id = fields.IntegerField(blank=True, default=0)
+
+    criteria_results = fields.DictField(blank=True, default={})
+    score = fields.FloatField(blank=True)
+    verdict = fields.CharField(blank=True)
+
+    created_at = fields.DateTimeField(default=lambda: datetime.now(timezone.utc))

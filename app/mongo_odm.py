@@ -15,6 +15,9 @@ from pymodm.errors import ValidationError, DoesNotExist
 from pymodm.files import GridFSStorage
 from pymongo import ReturnDocument
 from pymongo.errors import CollectionInvalid
+from bson import ObjectId
+from pymodm.errors import DoesNotExist
+from app.mongo_models import InterviewFeedback
 
 from app.config import Config
 from app.mongo_models import (AudioToRecognize, Consumers, Criterion, CriterionPack, Logs,
@@ -958,8 +961,10 @@ class QuestionsDBManager:
         question = Questions(session_id=session_id, text=text)
         return question.save()
 
-    def get_questions_by_session(self, session_id: str):
-        return Questions.objects.raw({"session_id": session_id})
+    def get_questions_by_session(self, session_id):
+        return Questions.objects.raw({"session_id": session_id}).order_by(
+            [("order", 1), ("created_at", 1)]
+        )
 
     def remove_question(self, question_id):
         return Questions.objects.get({"_id": question_id}).delete()
@@ -1079,3 +1084,43 @@ class InterviewRecordingDBManager:
             return InterviewRecording.objects.get({"session_id": session_id})
         except InterviewRecording.DoesNotExist:
             return None
+
+
+class InterviewFeedbackDBManager:
+    def __init__(self):
+        pass
+
+    def get_feedback_by_recording_id(self, recording_id):
+        try:
+            if not isinstance(recording_id, ObjectId):
+                recording_id = ObjectId(recording_id)
+            return InterviewFeedback.objects.get({"recording_id": recording_id})
+        except DoesNotExist:
+            return None
+
+    def upsert_feedback(
+        self,
+        session_id,
+        recording_id,
+        criteria_pack_id,
+        feedback_evaluator_id,
+        criteria_results,
+        score,
+        verdict,
+    ):
+        feedback = self.get_feedback_by_recording_id(recording_id)
+
+        if feedback is None:
+            feedback = InterviewFeedback(
+                session_id=session_id,
+                recording_id=recording_id,
+            )
+
+        feedback.criteria_pack_id = criteria_pack_id
+        feedback.feedback_evaluator_id = feedback_evaluator_id
+        feedback.criteria_results = criteria_results
+        feedback.score = score
+        feedback.verdict = verdict
+        feedback.save()
+
+        return feedback

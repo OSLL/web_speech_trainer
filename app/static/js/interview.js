@@ -7,6 +7,10 @@ const CONFIG = {
 
 const QUESTIONS = window.INTERVIEW_DATA?.questions || [];
 const SESSION_ID = window.INTERVIEW_DATA?.sessionId || null;
+const feedbackPanel = document.getElementById("feedback-panel");
+const feedbackScoreEl = document.getElementById("feedback-score");
+const feedbackVerdictEl = document.getElementById("feedback-verdict");
+const feedbackCriteriaEl = document.getElementById("feedback-criteria");
 
 const timerSection = document.querySelector(".timer-section");
 const timerElement = document.getElementById("timer");
@@ -26,7 +30,7 @@ const recordingsEl = document.getElementById("recordings");
 
 let state = "idle";
 let questionIndex = 0;
-
+let recordedDurationSec = 0;
 let sessionStartTs = null;
 let currentAnswerStartTs = null;
 let questionSegments = [];
@@ -106,6 +110,44 @@ function showInterviewUI() {
 
 function setStatus(text) {
   if (statusEl) statusEl.textContent = text || "";
+}
+
+function resetFeedback() {
+  if (feedbackPanel) feedbackPanel.style.display = "none";
+  if (feedbackScoreEl) feedbackScoreEl.textContent = "";
+  if (feedbackVerdictEl) feedbackVerdictEl.textContent = "";
+  if (feedbackCriteriaEl) feedbackCriteriaEl.innerHTML = "";
+}
+
+function renderFeedback(feedback) {
+  if (!feedback || !feedbackPanel) return;
+
+  feedbackPanel.style.display = "block";
+
+  if (feedbackScoreEl) {
+    feedbackScoreEl.textContent = Number(feedback.score || 0).toFixed(2);
+  }
+
+  if (feedbackVerdictEl) {
+    feedbackVerdictEl.textContent = feedback.verdict || "";
+  }
+
+  if (feedbackCriteriaEl) {
+    feedbackCriteriaEl.innerHTML = "";
+
+    const list = document.createElement("ul");
+    list.className = "mb-0";
+
+    for (const [name, value] of Object.entries(feedback.criteria_results || {})) {
+      const item = document.createElement("li");
+      const resultValue = Number(value?.result || 0).toFixed(2);
+      const verdict = value?.verdict ? ` — ${value.verdict}` : "";
+      item.textContent = `${name}: ${resultValue}${verdict}`;
+      list.appendChild(item);
+    }
+
+    feedbackCriteriaEl.appendChild(list);
+  }
 }
 
 function setButtons({ mainText, mainEnabled, showNext }) {
@@ -244,6 +286,8 @@ function closeCurrentAnswer() {
 async function startInterview() {
   showInterviewUI();
   recordingsEl.innerHTML = "";
+  resetFeedback();
+  recordedDurationSec = 0;
   questionIndex = 0;
   state = "running";
 
@@ -286,6 +330,11 @@ function nextQuestion() {
 
 function finishInterview() {
   closeCurrentAnswer();
+
+  recordedDurationSec = sessionStartTs == null
+    ? 0
+    : (performance.now() - sessionStartTs) / 1000;
+
   state = "finished";
   stopTimer();
   stopSessionRecording();
@@ -318,16 +367,34 @@ function addFullSessionRecording(blob) {
 
 async function sendSessionToBackend(blob) {
   if (!SESSION_ID) return;
+
   const form = new FormData();
-  form.append("audio", blob);
+  form.append("audio", blob, "interview_full.webm");
   form.append("session_id", SESSION_ID);
   form.append("segments", JSON.stringify(questionSegments));
+  form.append("duration", String(recordedDurationSec.toFixed(2)));
 
   try {
-    const resp = await fetch("/api/interview/recording", { method: "POST", body: form });
-    if (!resp.ok) console.warn("Ошибка отправки записи:", resp.status);
+    const resp = await fetch("/api/interview/recording", {
+      method: "POST",
+      body: form
+    });
+
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      console.warn("Ошибка отправки записи:", resp.status, data);
+      setStatus("Не удалось сохранить интервью");
+      return;
+    }
+
+    if (data.feedback) {
+      renderFeedback(data.feedback);
+      setStatus("Интервью завершено, оценка рассчитана");
+    }
   } catch (err) {
     console.error("Ошибка при fetch:", err);
+    setStatus("Ошибка при отправке интервью");
   }
 }
 
