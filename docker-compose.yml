@@ -91,6 +91,7 @@ services:
     restart: always
 
   celery_question_generator:
+    build: ./app/question_generator
     depends_on:
       - redis
       - db
