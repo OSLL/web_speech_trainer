@@ -86,6 +86,19 @@ services:
     volumes:
       - whisper_models:/root/.cache/whisper
 
+  redis:
+    image: redis:7
+    restart: always
+
+  celery_question_generator:
+    depends_on:
+      - redis
+      - db
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    command: celery -A celery_app.celery_app worker --loglevel=info
+#    --concurrency=1 флаг можно добавить в команду когда вернём ЛЛМ генерацию по идее, но может и не стоит
+
 volumes:
   whisper_models:
   nltk_data:

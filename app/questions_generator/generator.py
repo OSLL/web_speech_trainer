@@ -236,8 +236,8 @@ class VkrQuestionGenerator:
             result: List[str] = []
 
             result.extend(self.heuristic_questions())
-            result.append("--- rut5-base-multitask вопросы ---")
-            result.extend(self.generate_llm_questions(count=10))
+            # result.append("--- rut5-base-multitask вопросы ---")
+            # result.extend(self.generate_llm_questions(count=10))
 
             deduped = list(dict.fromkeys(result))
 
