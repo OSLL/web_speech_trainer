@@ -161,7 +161,7 @@ function buildAllTrainingsTable(trainingsJson) {
             allTrainingsTable.appendChild(currentTrainingRowElement);
         });
     })
-    .catch(err => console.log(err));
+    .catch(err => logger.log(err));
 }
 
 const REF_PAGE_COUNT = document.getElementById('ref-page-count');

@@ -58,7 +58,7 @@ function configureAudio(info) {
             if (this.currentTime > info[info.length-1])
                 setPage(info.length, info);
             changeURLByParam('time', this.currentTime.toFixed(1));
-            console.log(this.currentTime);
+            logger.log(this.currentTime);
         }
     )
 }
@@ -114,7 +114,7 @@ function setCriteriaResults(s) {
 }
 
 function setRecognizedInfo(slides){
-    console.log(slides)
+    logger.log(slides)
 }
 
 function renderPageButtons(info){
