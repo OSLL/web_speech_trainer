@@ -68,7 +68,7 @@ services:
       - db
 
   db:
-    image: "mongo:4.4.1"
+    image: "mongo:8-noble"
     restart: always
     command:
       - '--wiredTigerCacheSizeGB=2'
