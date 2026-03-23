@@ -1,82 +1,91 @@
-version: '2'
+version: '2.4'
+
+x-wst-service: &wst-service
+  build:
+    context: .
+  image: wst-image:v0.2
+  restart: always
 
 services:
   web:
-    image: wst-image:v0.2
-    command: bash -c "python3 ./db_versioning/db_versioning.py --mongo mongodb://db:27017 && python3 -m web_speech_trainer $APP_CONF" 
-    restart: always
+    <<: *wst-service
+    command: bash -c "python3 ./db_versioning/db_versioning.py --mongo mongodb://db:27017 && python3 -m web_speech_trainer $APP_CONF"
     ports:
-      - 5000:5000
+      - "5000:5000"
     depends_on:
       - db
       - training_processor
     volumes:
-      - ../database-dump:/app/dump/database-dump/
+      - ./database-dump:/app/dump/database-dump/
+      - ./app_conf:/project/app_conf
 
   audio_processor:
-    image: wst-image:v0.2
+    <<: *wst-service
     command: python3 -m audio_processor $APP_CONF
-    restart: always
     depends_on:
       - db
       - whisper
       - presentation_processor
+    volumes:
+      - ./app_conf:/project/app_conf
 
   recognized_audio_processor:
-    image: wst-image:v0.2
+    <<: *wst-service
     command: python3 -m recognized_audio_processor $APP_CONF
-    restart: always
     depends_on:
       - db
       - audio_processor
       - presentation_processor
+    volumes:
+      - ./app_conf:/project/app_conf
 
   presentation_processor:
-    image: wst-image:v0.2
-    build: .
+    <<: *wst-service
     command: python3 -m presentation_processor $APP_CONF
-    restart: always
     depends_on:
       - db
     volumes:
       - nltk_data:/root/nltk_data
+      - ./app_conf:/project/app_conf
 
   recognized_presentation_processor:
-    image: wst-image:v0.2
+    <<: *wst-service
     command: python3 -m recognized_presentation_processor $APP_CONF
-    restart: always
     depends_on:
       - db
       - presentation_processor
+    volumes:
+      - ./app_conf:/project/app_conf
 
   training_processor:
-    image: wst-image:v0.2
+    <<: *wst-service
     command: python3 -m training_processor $APP_CONF
-    restart: always
     depends_on:
       - db
       - recognized_audio_processor
       - recognized_presentation_processor
     volumes:
       - nltk_data:/root/nltk_data
+      - ./app_conf:/project/app_conf
 
   task_attempt_to_pass_back_processor:
-    image: wst-image:v0.2
+    <<: *wst-service
     command: python3 -m task_attempt_to_pass_back_processor $APP_CONF
-    restart: always
     depends_on:
       - db
+    volumes:
+      - ./app_conf:/project/app_conf
 
   db:
-    image: "mongo:4.4.1"
+    image: mongo:4.4.1
     restart: always
     command:
-      - '--wiredTigerCacheSizeGB=2'
+      - --wiredTigerCacheSizeGB=2
     volumes:
-      - ../mongo_data:/data/db
+      - mongo_data:/data/db
 
   whisper:
-    image: "onerahmet/openai-whisper-asr-webservice:v1.3.0"
+    image: onerahmet/openai-whisper-asr-webservice:v1.3.0
     environment:
       - ASR_MODEL=${WHISPER_ASR_MODEL:-tiny}
       - ASR_ENGINE=${WHISPER_ASR_ENGINE:-openai_whisper}
@@ -86,20 +95,7 @@ services:
     volumes:
       - whisper_models:/root/.cache/whisper
 
-  redis:
-    image: redis:7
-    restart: always
-
-  celery_question_generator:
-    build: ./app/question_generator
-    depends_on:
-      - redis
-      - db
-    environment:
-      REDIS_URL: redis://redis:6379/0
-    command: celery -A celery_app.celery_app worker --loglevel=info
-#    --concurrency=1 флаг можно добавить в команду когда вернём ЛЛМ генерацию по идее, но может и не стоит
-
 volumes:
   whisper_models:
   nltk_data:
+  mongo_data:
