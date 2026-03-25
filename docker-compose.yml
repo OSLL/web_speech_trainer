@@ -95,7 +95,17 @@ services:
     volumes:
       - whisper_models:/root/.cache/whisper
 
+  app:
+    build: ./app/questions_generator
+    stdin_open: true
+    tty: true
+    volumes:
+      - nltk_data:/nltk_data
+      - ./app/questions_generator/static/vkr_examples:/app/static/vkr_examples
+    command: [ "bash", "-lc", "sleep infinity" ]
+
 volumes:
   whisper_models:
   nltk_data:
   mongo_data:
+  rut5_model:
