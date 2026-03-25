@@ -5,7 +5,7 @@ import os
 from celery_app import celery_app
 
 from generator import VkrQuestionGenerator
-from db_manager import DBManager, QuestionsDBManager
+from app.mongo_odm import DBManager, QuestionsDBManager
 
 
 logger = logging.getLogger(__name__)

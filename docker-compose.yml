@@ -104,6 +104,25 @@ services:
       - ./app/questions_generator/static/vkr_examples:/app/static/vkr_examples
     command: [ "bash", "-lc", "sleep infinity" ]
 
+  redis:
+    image: redis:7
+    restart: always
+
+  celery_worker:
+    build:
+      context: .
+      dockerfile: ./app/questions_generator/Dockerfile_celery
+    command: celery -A celery_app.celery_app worker --loglevel=info
+    depends_on:
+      - redis
+      - db
+    volumes:
+      - .:/project
+      - nltk_data:/nltk_data
+      - ./app/questions_generator:/app
+    environment:
+      - PYTHONPATH=/project
+
 volumes:
   whisper_models:
   nltk_data:
