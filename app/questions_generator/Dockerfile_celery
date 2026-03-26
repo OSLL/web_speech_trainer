@@ -13,10 +13,6 @@ WORKDIR /app
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_DEFAULT_TIMEOUT=30
 
-RUN python -m pip install --upgrade pip
-RUN python -m pip install --upgrade setuptools wheel setuptools_scm
-RUN pip install --no-cache-dir vext==0.7.6
-
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
