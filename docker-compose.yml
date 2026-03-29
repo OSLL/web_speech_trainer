@@ -118,10 +118,13 @@ services:
       - db
     volumes:
       - .:/project
-      - nltk_data:/nltk_data
+      - nltk_data:/root/nltk_data
       - ./app/questions_generator:/app
+      - ./app_conf:/project/app_conf
     environment:
       - PYTHONPATH=/project
+      - APP_CONF=${APP_CONF}
+      - NLTK_DATA=/root/nltk_data
 
 volumes:
   whisper_models:

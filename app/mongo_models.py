@@ -226,3 +226,37 @@ class InterviewFeedback(MongoModel):
     verdict = fields.CharField(blank=True)
 
     created_at = fields.DateTimeField(default=lambda: datetime.now(timezone.utc))
+
+class InterviewExplanatoryNote(MongoModel):
+    session_id = fields.CharField()
+    file_id = fields.ObjectIdField()
+    filename = fields.CharField(blank=True)
+    content_type = fields.CharField(blank=True)
+
+    created_at = fields.DateTimeField(default=datetime.now(timezone.utc))
+    last_update = fields.DateTimeField(default=datetime.now(timezone.utc))
+
+    def save(self):
+        self.last_update = datetime.now(timezone.utc)
+        return super().save()
+
+class CeleryTask(MongoModel):
+    session_id = fields.CharField()
+    task_id = fields.CharField(blank=True, default='')
+    task_name = fields.CharField(blank=True, default='')
+    status = fields.CharField(blank=True, default='upload')
+
+    file_id = fields.ObjectIdField(blank=True)
+    filename = fields.CharField(blank=True, default='')
+    content_type = fields.CharField(blank=True, default='')
+
+    error_message = fields.CharField(blank=True, default='')
+    result_payload = fields.DictField(blank=True, default={})
+    metadata = fields.DictField(blank=True, default={})
+
+    created_at = fields.DateTimeField(default=lambda: datetime.now(timezone.utc))
+    last_update = fields.DateTimeField(default=lambda: datetime.now(timezone.utc))
+
+    def save(self):
+        self.last_update = datetime.now(timezone.utc)
+        return super().save()
