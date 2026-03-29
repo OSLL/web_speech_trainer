@@ -64,6 +64,12 @@ def _extract_task_error_message(task_payload: dict) -> str:
     return message or 'Не удалось сгенерировать вопросы. Попробуйте загрузить документ снова.'
 
 
+def _build_upload_redirect_url(error_message: str | None = None) -> str:
+    if error_message:
+        return url_for('routes_interview.interview_upload_page', error=error_message)
+    return url_for('routes_interview.interview_upload_page')
+
+
 def _render_upload_page(task_record=None, error_message: str | None = None, page_state: str = 'upload'):
     return render_template(
         'interview_upload.html',
@@ -74,14 +80,15 @@ def _render_upload_page(task_record=None, error_message: str | None = None, page
         poll_interval_ms=QUESTIONS_POLL_INTERVAL_MS,
         status_url=url_for('routes_interview.questions_generation_status'),
         interview_url=url_for('routes_interview.interview_page'),
+        upload_url=url_for('routes_interview.interview_upload_page'),
     )
 
 
 @routes_interview.route('/interview/upload/', methods=['GET', 'POST'])
 def interview_upload_page():
-    user_session = check_auth()
-    if not user_session:
-        return 'User session not found', 404
+    # user_session = check_auth()
+    # if not user_session:
+    #     return 'User session not found', 404
 
     session_id = session.get('session_id')
     if not session_id:
@@ -130,11 +137,11 @@ def interview_upload_page():
                 task_name=question_generation_task_service.task_name,
             )
             current_task = task_manager.get_task_record(session_id)
-        except Exception as exc:
+        except Exception:
             logger.exception('Failed to enqueue question generation task for session_id=%s', session_id)
             task_manager.mark_failure(
                 session_id=session_id,
-                error_message=str(exc),
+                error_message='Не удалось поставить задачу на генерацию вопросов. Попробуйте еще раз.',
                 cleanup_file=True,
             )
             current_task = task_manager.get_task_record(session_id)
@@ -156,8 +163,8 @@ def interview_upload_page():
     if current_task and (current_task.status or '').lower() == 'processing':
         return _render_upload_page(task_record=current_task, page_state='processing'), 200
 
-    error_message = None
-    if current_task and (current_task.status or '').lower() == 'failure':
+    error_message = request.args.get('error')
+    if not error_message and current_task and (current_task.status or '').lower() == 'failure':
         error_message = current_task.error_message or 'Не удалось сгенерировать вопросы. Загрузите документ заново.'
 
     return _render_upload_page(
@@ -169,29 +176,38 @@ def interview_upload_page():
 
 @routes_interview.route('/api/interview/questions-generation-status/', methods=['GET'])
 def questions_generation_status():
-    user_session = check_auth()
-    if not user_session:
-        return jsonify({'error': 'User session not found'}), 404
+    # user_session = check_auth()
+    # if not user_session:
+    #     return jsonify({'error': 'User session not found'}), 404
 
     session_id = session.get('session_id')
     if not session_id:
-        return jsonify({'error': 'Session id not found'}), 404
+        error_message = 'Session id not found'
+        return jsonify({
+            'status': 'failure',
+            'error': error_message,
+            'redirect_url': _build_upload_redirect_url(error_message),
+        }), 404
 
     task_manager = CeleryTaskDBManager()
     task_record = task_manager.get_task_record(session_id)
 
     if task_record is None:
+        error_message = 'Документ не найден. Загрузите файл заново.'
         return jsonify({
             'status': 'failure',
-            'error': 'Документ не найден. Загрузите файл заново.',
+            'error': error_message,
+            'redirect_url': _build_upload_redirect_url(error_message),
         }), 404
 
     generation_status = (task_record.status or 'upload').lower()
 
     if generation_status == 'failure':
+        error_message = task_record.error_message or 'Не удалось сгенерировать вопросы. Загрузите документ заново.'
         return jsonify({
             'status': 'failure',
-            'error': task_record.error_message or 'Не удалось сгенерировать вопросы. Загрузите документ заново.',
+            'error': error_message,
+            'redirect_url': _build_upload_redirect_url(error_message),
         }), 200
 
     if generation_status == 'success' and _count_questions_by_session(session_id) > 0:
@@ -202,9 +218,11 @@ def questions_generation_status():
 
     task_id = task_record.task_id
     if not task_id:
+        error_message = 'Идентификатор задачи не найден. Загрузите документ заново.'
         return jsonify({
             'status': 'failure',
-            'error': 'Идентификатор задачи не найден. Загрузите документ заново.',
+            'error': error_message,
+            'redirect_url': _build_upload_redirect_url(error_message),
         }), 400
 
     task_payload = question_generation_task_service.get_task_status(task_id)
@@ -244,6 +262,7 @@ def questions_generation_status():
             'status': 'failure',
             'task_status': task_status,
             'error': error_message,
+            'redirect_url': _build_upload_redirect_url(error_message),
         }), 200
 
     if task_status == 'FAILURE':
@@ -260,6 +279,7 @@ def questions_generation_status():
             'status': 'failure',
             'task_status': task_status,
             'error': error_message,
+            'redirect_url': _build_upload_redirect_url(error_message),
         }), 200
 
     return jsonify({
@@ -271,14 +291,14 @@ def questions_generation_status():
 
 @routes_interview.route('/interview/', methods=['GET'])
 def interview_page():
-    user_session = check_auth()
-    if not user_session:
-        return 'User session not found', 404
-
-    session_id = session.get('session_id')
-    if not session_id:
-        return 'Session id not found', 404
-    # session_id = "hello, bro"
+    # user_session = check_auth()
+    # if not user_session:
+    #     return 'User session not found', 404
+    #
+    # session_id = session.get('session_id')
+    # if not session_id:
+    #     return 'Session id not found', 404
+    session_id = "hello, bro4"
     session['session_id'] = session_id
 
     task_record = CeleryTaskDBManager().get_task_record(session_id)
@@ -378,9 +398,9 @@ def _partial_response_file(grid_out):
 
 @routes_interview.route('/avatar_video')
 def avatar_video():
-    user_session = check_auth()
-    if not user_session:
-        return '', 404
+    # user_session = check_auth()
+    # if not user_session:
+    #     return '', 404
 
     session_id = session.get('session_id')
     if not session_id:
@@ -408,9 +428,9 @@ def _calculate_duration_from_segments(segments):
 
 @routes_interview.route('/api/interview/recording', methods=['POST'])
 def save_interview_recording():
-    user_session = check_auth()
-    if not user_session:
-        return jsonify({'error': 'User session not found'}), 404
+    # user_session = check_auth()
+    # if not user_session:
+    #     return jsonify({'error': 'User session not found'}), 404
 
     real_session_id = session.get('session_id')
     if not real_session_id:
@@ -488,9 +508,9 @@ def save_interview_recording():
 
 @routes_interview.route('/api/interview/feedback/<recording_id>', methods=['GET'])
 def get_interview_feedback(recording_id):
-    user_session = check_auth()
-    if not user_session:
-        return jsonify({'error': 'User session not found'}), 404
+    # user_session = check_auth()
+    # if not user_session:
+    #     return jsonify({'error': 'User session not found'}), 404
 
     feedback = InterviewFeedbackDBManager().get_feedback_by_recording_id(recording_id)
     if feedback is None:

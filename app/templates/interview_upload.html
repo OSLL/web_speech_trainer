@@ -7,46 +7,64 @@
 {% block content %}
 <div class="interview-container upload-page-container">
   <div class="upload-card">
-    <div id="upload-mode" class="{% if page_state != 'upload' %}ui-hidden{% endif %}">
+    <div id="upload-mode" class="{% if page_state == 'processing' %}ui-hidden{% endif %}">
       <div class="upload-icon">
         <i class="bi bi-file-earmark-text"></i>
       </div>
 
       <div class="upload-title">Загрузите пояснительную записку</div>
       <div class="upload-subtitle">
-        Перед началом интервью загрузите текстовый документ. После успешной загрузки начнется генерация вопросов, а затем вы автоматически перейдете к интервью.
+        Перед началом интервью загрузите текстовый документ. После успешной загрузки вы автоматически перейдете к интервью.
       </div>
 
-      <div id="upload-error" class="upload-alert {% if not error_message %}ui-hidden{% endif %}">{{ error_message or '' }}</div>
+      <div
+        id="upload-error"
+        class="upload-alert {% if not error_message %}ui-hidden{% endif %}"
+      >
+        {{ error_message or '' }}
+      </div>
 
-      {% if current_document_name %}
-        <div class="current-document" id="current-document">
-          Текущий документ: <strong>{{ current_document_name }}</strong>
-        </div>
-      {% else %}
-        <div class="current-document ui-hidden" id="current-document"></div>
-      {% endif %}
+      <div
+        id="current-document"
+        class="current-document {% if not current_document_name %}ui-hidden{% endif %}"
+      >
+        Текущий документ: <strong>{{ current_document_name or '' }}</strong>
+      </div>
 
-      <form method="post" enctype="multipart/form-data" class="upload-form" id="upload-form">
+      <form id="upload-form" method="post" enctype="multipart/form-data" class="upload-form">
         <label class="upload-dropzone" for="document">
           <div class="upload-dropzone-icon"><i class="bi bi-cloud-arrow-up"></i></div>
           <div class="upload-dropzone-title">Выберите файл</div>
           <div class="upload-dropzone-text">Поддерживаются: .docx, .doc, .txt, .rtf, .odt, .md</div>
-          <div class="selected-file-name" id="selected-file-name"></div>
           <input id="document" name="document" type="file" accept=".docx,.doc,.txt,.rtf,.odt,.md" required>
         </label>
 
-        <button type="submit" class="interview-btn interview-btn-main upload-submit-btn" id="upload-submit-btn">Продолжить</button>
+        <div id="selected-file-name" class="selected-file-name"></div>
+
+        <button id="upload-submit-btn" type="submit" class="interview-btn interview-btn-main upload-submit-btn">
+          Продолжить
+        </button>
       </form>
     </div>
 
-    <div id="processing-mode" class="processing-mode {% if page_state != 'processing' %}ui-hidden{% endif %}">
-      <div class="processing-icon-wrap">
-        <div class="processing-spinner"></div>
+    <div id="processing-mode" class="{% if page_state != 'processing' %}ui-hidden{% endif %}">
+      <div class="upload-icon processing-icon">
+        <i class="bi bi-hourglass-split"></i>
       </div>
-      <div class="processing-title">Генерируем вопросы для интервью</div>
-      <div class="processing-subtitle" id="processing-status-text">
-        Пожалуйста, подождите. Мы анализируем документ и готовим вопросы.
+
+      <div class="upload-title">Готовим интервью</div>
+      <div id="processing-status-text" class="upload-subtitle">
+        Генерируем вопросы для интервью. Это может занять некоторое время...
+      </div>
+
+      {% if current_document_name %}
+        <div class="current-document">
+          Загруженный документ: <strong>{{ current_document_name }}</strong>
+        </div>
+      {% endif %}
+
+      <div class="processing-spinner-wrap">
+        <div class="processing-spinner"></div>
       </div>
     </div>
   </div>
@@ -54,12 +72,11 @@
 
 <script>
   window.INTERVIEW_UPLOAD_DATA = {
-    pageState: {{ page_state | tojson }},
-    isProcessing: {{ (page_state == 'processing') | tojson }},
-    taskId: {{ task_id | tojson }},
-    pollIntervalMs: {{ poll_interval_ms | tojson }},
-    statusUrl: {{ status_url | tojson }},
-    interviewUrl: {{ interview_url | tojson }}
+    isProcessing: {{ 'true' if page_state == 'processing' else 'false' }},
+    pollIntervalMs: {{ poll_interval_ms|int }},
+    statusUrl: {{ status_url|tojson }},
+    interviewUrl: {{ interview_url|tojson }},
+    uploadUrl: {{ upload_url|tojson }}
   };
 </script>
 <script src="{{ url_for('static', filename='js/interview_upload.js') }}"></script>

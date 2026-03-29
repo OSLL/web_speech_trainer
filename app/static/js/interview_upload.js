@@ -28,11 +28,13 @@
     if (!uploadError) {
       return;
     }
+
     if (message) {
       uploadError.textContent = message;
       showElement(uploadError);
       return;
     }
+
     uploadError.textContent = '';
     hideElement(uploadError);
   }
@@ -47,11 +49,6 @@
     hideElement(processingMode);
     setUploadError(message || '');
 
-    if (currentDocument) {
-      currentDocument.textContent = '';
-      hideElement(currentDocument);
-    }
-
     if (fileInput) {
       fileInput.value = '';
     }
@@ -64,14 +61,31 @@
       uploadSubmitBtn.disabled = false;
       uploadSubmitBtn.textContent = 'Продолжить';
     }
+
+    if (currentDocument && !currentDocument.textContent.trim()) {
+      hideElement(currentDocument);
+    }
   }
 
   function showProcessingState(message) {
     hideElement(uploadMode);
     showElement(processingMode);
+
     if (processingStatusText) {
-      processingStatusText.textContent = message || 'Пожалуйста, подождите. Мы анализируем документ и готовим вопросы.';
+      processingStatusText.textContent =
+        message || 'Пожалуйста, подождите. Мы анализируем документ и готовим вопросы.';
     }
+  }
+
+  function buildUploadRedirectUrl(errorMessage) {
+    const baseUrl = config.uploadUrl || '/interview/upload/';
+    const url = new URL(baseUrl, window.location.origin);
+
+    if (errorMessage) {
+      url.searchParams.set('error', errorMessage);
+    }
+
+    return url.toString();
   }
 
   async function pollStatus() {
@@ -81,7 +95,8 @@
         headers: {
           'Accept': 'application/json'
         },
-        credentials: 'same-origin'
+        credentials: 'same-origin',
+        cache: 'no-store'
       });
 
       let payload = {};
@@ -97,7 +112,8 @@
       }
 
       if (payload.status === 'failure') {
-        showUploadState(payload.error || 'Не удалось сгенерировать вопросы. Загрузите документ заново.');
+        window.location.href =
+          payload.redirect_url || buildUploadRedirectUrl(payload.error || 'Не удалось сгенерировать вопросы.');
         return;
       }
 
@@ -128,5 +144,7 @@
   if (config.isProcessing) {
     showProcessingState();
     pollStatus();
+  } else {
+    showUploadState(uploadError ? uploadError.textContent.trim() : '');
   }
 })();

@@ -1,7 +1,3 @@
-.ui-hidden {
-    display: none !important;
-}
-
 .upload-page-container {
     min-height: 100vh;
     padding: 40px 20px;
@@ -19,6 +15,10 @@
     text-align: center;
 }
 
+.ui-hidden {
+    display: none !important;
+}
+
 .upload-icon {
     width: 92px;
     height: 92px;
@@ -33,15 +33,17 @@
     box-shadow: 0 16px 32px rgba(46, 125, 255, 0.24);
 }
 
-.upload-title,
-.processing-title {
+.processing-icon {
+    background: linear-gradient(135deg, #2e7dff, #6a5cff);
+}
+
+.upload-title {
     font-size: 2rem;
     font-weight: 800;
     color: #1f2430;
 }
 
-.upload-subtitle,
-.processing-subtitle {
+.upload-subtitle {
     margin: 14px auto 0;
     max-width: 620px;
     font-size: 1.08rem;
@@ -105,17 +107,16 @@
     color: #616d82;
 }
 
-.selected-file-name {
-    margin-top: 14px;
-    min-height: 24px;
-    color: #274d8a;
-    font-weight: 700;
-}
-
 .upload-dropzone input[type="file"] {
     display: block;
     width: 100%;
     margin-top: 18px;
+}
+
+.selected-file-name {
+    margin-top: 14px;
+    font-weight: 600;
+    color: #3b4a66;
 }
 
 .upload-submit-btn {
@@ -123,30 +124,22 @@
     min-width: 280px;
 }
 
-.processing-mode {
-    padding: 20px 0 10px;
-}
-
-.processing-icon-wrap {
+.processing-spinner-wrap {
+    margin-top: 28px;
     display: flex;
     justify-content: center;
-    margin-bottom: 24px;
 }
 
 .processing-spinner {
-    width: 84px;
-    height: 84px;
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
-    border: 8px solid rgba(46, 125, 255, 0.16);
-    border-top-color: #3d67ff;
-    animation: upload-spin 0.95s linear infinite;
-    box-shadow: 0 14px 30px rgba(61, 103, 255, 0.15);
+    border: 6px solid rgba(46, 125, 255, 0.16);
+    border-top-color: #2e7dff;
+    animation: upload-spin 0.85s linear infinite;
 }
 
 @keyframes upload-spin {
-    from {
-        transform: rotate(0deg);
-    }
     to {
         transform: rotate(360deg);
     }
@@ -158,8 +151,7 @@
         border-radius: 22px;
     }
 
-    .upload-title,
-    .processing-title {
+    .upload-title {
         font-size: 1.6rem;
     }
 
