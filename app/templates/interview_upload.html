@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block header %}
+<link rel="stylesheet" href="/static/css/interview.css">
+<link rel="stylesheet" href="/static/css/interview_upload.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+{% endblock %}
+{% block content %}
+<div class="interview-container upload-page-container">
+  <div class="upload-card">
+    <div class="upload-icon">
+      <i class="bi bi-file-earmark-text"></i>
+    </div>
+
+    <div class="upload-title">Загрузите пояснительную записку</div>
+    <div class="upload-subtitle">
+      Перед началом интервью загрузите текстовый документ. После успешной загрузки вы автоматически перейдете к интервью.
+    </div>
+
+    {% if error_message %}
+      <div class="upload-alert">{{ error_message }}</div>
+    {% endif %}
+
+    {% if current_document_name %}
+      <div class="current-document">
+        Текущий документ: <strong>{{ current_document_name }}</strong>
+      </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" class="upload-form">
+      <label class="upload-dropzone" for="document">
+        <div class="upload-dropzone-icon"><i class="bi bi-cloud-arrow-up"></i></div>
+        <div class="upload-dropzone-title">Выберите файл</div>
+        <div class="upload-dropzone-text">Поддерживаются: .docx, .doc, .txt, .rtf, .odt, .md</div>
+        <input id="document" name="document" type="file" accept=".docx,.doc,.txt,.rtf,.odt,.md" required>
+      </label>
+
+      <button type="submit" class="interview-btn interview-btn-main upload-submit-btn">Продолжить</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

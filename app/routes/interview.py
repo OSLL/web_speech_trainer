@@ -2,21 +2,83 @@ import json
 import json
 from datetime import datetime, timezone
 from datetime import datetime, timezone
-from flask import Blueprint, render_template, session, request, Response
-from flask import Blueprint, render_template, session, request, Response, jsonify
-from flask import jsonify
+from flask import Blueprint, render_template, session, request, Response, jsonify, redirect, url_for
 
 from app.mongo_models import InterviewRecording
 from app.mongo_odm import DBManager
-from app.mongo_odm import InterviewAvatarsDBManager, QuestionsDBManager, InterviewFeedbackDBManager
+from app.mongo_odm import (
+    InterviewAvatarsDBManager,
+    InterviewExplanatoryNoteDBManager,
+    QuestionsDBManager,
+    InterviewFeedbackDBManager,
+)
 from app.root_logger import get_root_logger
 from app.status import AudioStatus
 from bson import ObjectId
-from flask import url_for
 from app.interview_evaluation import evaluate_interview_recording, build_interview_results_data
 
 routes_interview = Blueprint('routes_interview', __name__)
 logger = get_root_logger()
+
+
+ALLOWED_EXPLANATORY_NOTE_EXTENSIONS = {".docx", ".doc", ".txt", ".rtf", ".odt", ".md"}
+
+
+def _is_allowed_explanatory_note(filename: str | None) -> bool:
+    if not filename:
+        return False
+    filename = filename.lower()
+    return any(filename.endswith(ext) for ext in ALLOWED_EXPLANATORY_NOTE_EXTENSIONS)
+
+
+def _build_invalid_format_message() -> str:
+    allowed = ", ".join(sorted(ALLOWED_EXPLANATORY_NOTE_EXTENSIONS))
+    return f"Документ неверного формата. Допустимые форматы: {allowed}"
+
+
+@routes_interview.route('/interview/upload/', methods=['GET', 'POST'])
+def interview_upload_page():
+    # user_session = check_auth()
+    # if not user_session:
+    #     return "User session not found", 404
+
+    session_id = session.get('session_id')
+    if not session_id:
+        return "Session id not found", 404
+
+    note_manager = InterviewExplanatoryNoteDBManager()
+    current_note = note_manager.get_note_record(session_id)
+
+    if request.method == 'POST':
+        uploaded_file = request.files.get('document')
+
+        if uploaded_file is None or not uploaded_file.filename:
+            return render_template(
+                'interview_upload.html',
+                error_message=_build_invalid_format_message(),
+                current_document_name=current_note.filename if current_note else None,
+            ), 400
+
+        if not _is_allowed_explanatory_note(uploaded_file.filename):
+            return render_template(
+                'interview_upload.html',
+                error_message=_build_invalid_format_message(),
+                current_document_name=current_note.filename if current_note else None,
+            ), 400
+
+        note_manager.add_or_update_note(
+            session_id=session_id,
+            file_obj=uploaded_file,
+            filename=uploaded_file.filename,
+            content_type=uploaded_file.mimetype,
+        )
+        return redirect(url_for('routes_interview.interview_page'))
+
+    return render_template(
+        'interview_upload.html',
+        error_message=None,
+        current_document_name=current_note.filename if current_note else None,
+    ), 200
 
 
 @routes_interview.route('/interview/', methods=['GET'])
@@ -30,6 +92,10 @@ def interview_page():
         return "Session id not found", 404
     # session_id = "hello, bro"
     session['session_id'] = session_id
+
+    explanatory_note = InterviewExplanatoryNoteDBManager().get_note_record(session_id)
+    if explanatory_note is None:
+        return redirect(url_for('routes_interview.interview_upload_page'))
 
     avatar_record = InterviewAvatarsDBManager().get_avatar_record(session_id)
     has_avatar = avatar_record is not None

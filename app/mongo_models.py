@@ -226,3 +226,16 @@ class InterviewFeedback(MongoModel):
     verdict = fields.CharField(blank=True)
 
     created_at = fields.DateTimeField(default=lambda: datetime.now(timezone.utc))
+
+class InterviewExplanatoryNote(MongoModel):
+    session_id = fields.CharField()
+    file_id = fields.ObjectIdField()
+    filename = fields.CharField(blank=True)
+    content_type = fields.CharField(blank=True)
+
+    created_at = fields.DateTimeField(default=datetime.now(timezone.utc))
+    last_update = fields.DateTimeField(default=datetime.now(timezone.utc))
+
+    def save(self):
+        self.last_update = datetime.now(timezone.utc)
+        return super().save()

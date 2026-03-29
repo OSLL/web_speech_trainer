@@ -26,7 +26,8 @@ from app.mongo_models import (AudioToRecognize, Consumers, Criterion, CriterionP
                               RecognizedAudioToProcess,
                               RecognizedPresentationsToProcess, Sessions,
                               TaskAttempts, TaskAttemptsToPassBack, Tasks,
-                              Trainings, TrainingsToProcess, StorageMeta, InterviewAvatars, Questions, InterviewRecording)
+                              Trainings, TrainingsToProcess, StorageMeta, InterviewAvatars, Questions, InterviewRecording,
+                              InterviewExplanatoryNote)
 from app.status import (AudioStatus, PassBackStatus, PresentationStatus,
                         TrainingStatus)
 from app.utils import remove_blank_and_none
@@ -1124,3 +1125,76 @@ class InterviewFeedbackDBManager:
         feedback.save()
 
         return feedback
+
+class InterviewExplanatoryNoteDBManager:
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super(InterviewExplanatoryNoteDBManager, cls).__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
+        return cls.instance
+
+    def get_by_session_id(self, session_id: str):
+        try:
+            return InterviewExplanatoryNote.objects.get({'session_id': session_id})
+        except InterviewExplanatoryNote.DoesNotExist:
+            return None
+
+    def add_or_update_note(
+        self,
+        session_id: str,
+        file_obj,
+        filename: str | None = None,
+        content_type: str | None = None,
+    ):
+        storage = DBManager()
+        if filename is None:
+            filename = str(uuid.uuid4())
+
+        note_file_id = storage.add_file(file_obj, filename)
+        note = self.get_by_session_id(session_id)
+        if note is None:
+            note = InterviewExplanatoryNote(
+                session_id=session_id,
+                file_id=note_file_id,
+                filename=filename,
+                content_type=content_type or '',
+            )
+        else:
+            try:
+                storage.delete_file(note.file_id)
+            except Exception:
+                logger.warning('Failed to delete old explanatory note file for session_id = {}.'.format(session_id))
+            note.file_id = note_file_id
+            note.filename = filename
+            note.content_type = content_type or ''
+
+        saved = note.save()
+        logger.info('Explanatory note saved for session_id = {}, file_id = {}.'.format(session_id, note_file_id))
+        return saved
+
+    def get_note_record(self, session_id: str):
+        return self.get_by_session_id(session_id)
+
+    def get_note_file(self, session_id: str):
+        note = self.get_by_session_id(session_id)
+        if note is None:
+            logger.info('No explanatory note for session_id = {}.'.format(session_id))
+            return None
+
+        storage = DBManager()
+        return storage.get_file(note.file_id)
+
+    def delete_note(self, session_id: str):
+        note = self.get_by_session_id(session_id)
+        if note is None:
+            return
+
+        storage = DBManager()
+        try:
+            storage.delete_file(note.file_id)
+        except Exception as e:
+            logger.warning('Error deleting explanatory note file for session_id = {}: {}.'.format(session_id, e))
+
+        note.delete()
+        logger.info('Explanatory note deleted for session_id = {}.'.format(session_id))
