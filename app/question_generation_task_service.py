@@ -76,6 +76,7 @@ class QuestionGenerationTaskService:
             file_id,
             normalized_questions_count,
             self.task_name,
+
         )
 
         result = self.celery_app.send_task(
@@ -92,6 +93,7 @@ class QuestionGenerationTaskService:
             result.id,
             session_id,
         )
+
 
         return {
             "task_id": result.id,
