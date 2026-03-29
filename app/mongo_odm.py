@@ -27,14 +27,14 @@ from app.mongo_models import (AudioToRecognize, Consumers, Criterion, CriterionP
                               RecognizedPresentationsToProcess, Sessions,
                               TaskAttempts, TaskAttemptsToPassBack, Tasks,
                               Trainings, TrainingsToProcess, StorageMeta, InterviewAvatars, Questions, InterviewRecording,
-                              InterviewExplanatoryNote)
+                              InterviewExplanatoryNote, CeleryTask)
 from app.status import (AudioStatus, PassBackStatus, PresentationStatus,
                         TrainingStatus)
 from app.utils import remove_blank_and_none
 
 logger = get_root_logger()
 
-BYTES_PER_MB = 1024*1024    
+BYTES_PER_MB = 1024*1024
 
 class DBManager:
     def __new__(cls):
@@ -80,30 +80,30 @@ class DBManager:
         except (NoFile, ValidationError, InvalidId) as e:
             logger.warning('file_id = {}, {}.'.format(file_id, e))
             return None
-    
+
     def _get_or_create_storage_meta(self):
         try:
             return StorageMeta.objects.get({})
         except DoesNotExist:
             meta = StorageMeta(used_size=0).save()
             return meta
-    
+
     def get_used_storage_size(self):
         return self._get_or_create_storage_meta().used_size
-    
+
     def set_used_storage_size(self, size):
         meta = self._get_or_create_storage_meta()
         meta.used_size = size
         meta.save()
-        
+
     def update_storage_size(self, deltasize):
         meta = self._get_or_create_storage_meta()
         meta.used_size += deltasize
         meta.save()
-        
+
     def get_max_size(self):
         return self.max_size
-    
+
     # returns Bool variable - True if file can be stored else False
     def check_storage_limit(self, new_file_size):
         current_size = self.get_used_storage_size()
@@ -115,7 +115,7 @@ class DBManager:
         )
         logger.info(inf_msg)
         return False if current_size + new_file_size > self.max_size else True
-    
+
     def recalculate_used_storage_data(self):
         total_size = 0
         db = _get_db()
@@ -145,7 +145,7 @@ class DBManager:
             return
 
         self.update_storage_size(-length)
-        
+
 
 class TrainingsDBManager:
     def __new__(cls):
@@ -1198,3 +1198,143 @@ class InterviewExplanatoryNoteDBManager:
 
         note.delete()
         logger.info('Explanatory note deleted for session_id = {}.'.format(session_id))
+
+class CeleryTaskDBManager:
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super(CeleryTaskDBManager, cls).__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
+        return cls.instance
+
+    def get_by_session_id(self, session_id: str):
+        try:
+            return CeleryTask.objects.get({'session_id': session_id})
+        except CeleryTask.DoesNotExist:
+            return None
+
+    def get_task_record(self, session_id: str):
+        return self.get_by_session_id(session_id)
+
+    def add_or_update_task_file(
+        self,
+        session_id: str,
+        file_obj,
+        filename: str | None = None,
+        content_type: str | None = None,
+        task_name: str | None = None,
+        metadata: dict | None = None,
+    ):
+        storage = DBManager()
+        if filename is None:
+            filename = str(uuid.uuid4())
+
+        new_file_id = storage.add_file(file_obj, filename)
+        task_record = self.get_by_session_id(session_id)
+
+        if task_record is None:
+            task_record = CeleryTask(session_id=session_id)
+        else:
+            old_file_id = getattr(task_record, 'file_id', None)
+            if old_file_id:
+                try:
+                    storage.delete_file(old_file_id)
+                except Exception as e:
+                    logger.warning('Failed to delete old celery task file for session_id = {}: {}.'.format(session_id, e))
+
+        task_record.file_id = new_file_id
+        task_record.filename = filename or ''
+        task_record.content_type = content_type or ''
+        task_record.task_name = task_name or getattr(task_record, 'task_name', '') or ''
+        task_record.task_id = ''
+        task_record.status = 'upload'
+        task_record.error_message = ''
+        task_record.result_payload = {}
+        task_record.metadata = metadata or {}
+
+        saved = task_record.save()
+        logger.info('Celery task file saved for session_id = {}, file_id = {}.'.format(session_id, new_file_id))
+        return saved
+
+    def mark_processing(
+        self,
+        session_id: str,
+        task_id: str,
+        task_name: str | None = None,
+    ):
+        task_record = self.get_by_session_id(session_id)
+        if task_record is None:
+            return None
+
+        task_record.task_id = task_id or ''
+        if task_name:
+            task_record.task_name = task_name
+        task_record.status = 'processing'
+        task_record.error_message = ''
+        task_record.result_payload = {}
+        return task_record.save()
+
+    def mark_success(
+        self,
+        session_id: str,
+        task_id: str | None = None,
+        result_payload: dict | None = None,
+    ):
+        task_record = self.get_by_session_id(session_id)
+        if task_record is None:
+            return None
+
+        if task_id:
+            task_record.task_id = task_id
+        task_record.status = 'success'
+        task_record.error_message = ''
+        task_record.result_payload = result_payload or {}
+        return task_record.save()
+
+    def mark_failure(
+        self,
+        session_id: str,
+        error_message: str,
+        task_id: str | None = None,
+        result_payload: dict | None = None,
+        cleanup_file: bool = False,
+    ):
+        task_record = self.get_by_session_id(session_id)
+        if task_record is None:
+            return None
+
+        if cleanup_file:
+            storage = DBManager()
+            old_file_id = getattr(task_record, 'file_id', None)
+            if old_file_id:
+                try:
+                    storage.delete_file(old_file_id)
+                except Exception as e:
+                    logger.warning('Error deleting celery task file for session_id = {}: {}.'.format(session_id, e))
+            task_record.file_id = None
+            task_record.filename = ''
+            task_record.content_type = ''
+
+        if task_id:
+            task_record.task_id = task_id
+        task_record.status = 'failure'
+        task_record.error_message = error_message or ''
+        task_record.result_payload = result_payload or {}
+        return task_record.save()
+
+    def delete_task(self, session_id: str, cleanup_file: bool = False):
+        task_record = self.get_by_session_id(session_id)
+        if task_record is None:
+            return
+
+        if cleanup_file:
+            storage = DBManager()
+            old_file_id = getattr(task_record, 'file_id', None)
+            if old_file_id:
+                try:
+                    storage.delete_file(old_file_id)
+                except Exception as e:
+                    logger.warning('Error deleting celery task file for session_id = {}: {}.'.format(session_id, e))
+
+        task_record.delete()
+        logger.info('Celery task deleted for session_id = {}.'.format(session_id))
