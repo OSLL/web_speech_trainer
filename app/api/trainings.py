@@ -498,8 +498,6 @@ def get_all_trainings() -> (dict, int):
     else:
         count_items = int(count_items)
 
-    print(number_page, count_items)
-
     trainings = GetAllTrainingsFilterManager().query_with_filters(filters, number_page, count_items)
 
     trainings_json = {'trainings': [get_training_information(training) for training in trainings], 'message': 'OK'}

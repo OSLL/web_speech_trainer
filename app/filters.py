@@ -64,7 +64,7 @@ class GetAllTrainingsFilterManager():
                 # Полное совпадение
                 logger.info("ELSE ID: " + str(values[0]))
                 mongodb_query[key] = ObjectId(values[0])
-            elif key == "username" or key == "full_name":
+            elif key in ("criteria_pack_id", "username", "full_name"):
                 # Частичное совпадение без учета регистра
                 mongodb_query[key] = {
                     "$regex": regex.escape(values[0], literal_spaces=True),

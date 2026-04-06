@@ -852,6 +852,16 @@ let filtersData = {
 
         placeholder: "Полное совпадение"
     },
+    "criteria_pack_id": {
+        type: filterType.TEXT,
+        name: "Название набора критериев",
+        description: "Проверяется частичное совпадение с названием набора.",
+        validator: (value) => {
+            return true
+        },
+
+        placeholder: "Частичное совпадение"
+    },
     "username": {
         type: filterType.TEXT,
         name: "Логин",
