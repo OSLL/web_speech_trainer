@@ -20,7 +20,7 @@ function buildCurrentTrainingRow(trainingJson, isAdmin=false) {
     currentTrainingRowElement.appendChild(trainingIdElement);
 
     const trainingAttemptIdElement = document.createElement("td");
-    if(trainingJson["task_attempt_id"] !== "undefined" && trainingJson["message"] === "OK"){
+    if(trainingJson["task_attempt_id"] !== "undefined"){
         const trainingAttemptIdLink = document.createElement("a");
         trainingAttemptIdLink.href=`/task_attempts/${trainingJson["task_attempt_id"]}`;
         trainingAttemptIdLink.textContent = `...${(trainingJson["task_attempt_id"]).slice(-5)}`;
