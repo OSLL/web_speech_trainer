@@ -8,8 +8,8 @@ function get_time_string(timestamp){
     }
 }
 
-function buildCurrentTrainingRow(trainingId, trainingJson, isAdmin=false) {
-
+function buildCurrentTrainingRow(trainingJson, isAdmin=false) {
+    const trainingId = trainingJson.training_id;
     const currentTrainingRowElement = document.createElement("tr");
 
     const trainingIdElement = document.createElement("td");
@@ -38,6 +38,10 @@ function buildCurrentTrainingRow(trainingId, trainingJson, isAdmin=false) {
     const trainingFullNameElement = document.createElement("td");
     trainingFullNameElement.textContent = trainingJson["full_name"];
     currentTrainingRowElement.appendChild(trainingFullNameElement);
+
+    const trainingCritetiaIdElement = document.createElement("td");
+    trainingCritetiaIdElement.textContent = trainingJson["criteria_pack_id"];
+    currentTrainingRowElement.appendChild(trainingCritetiaIdElement);
 
     const presentationRecordDurationElement = document.createElement("td");
     presentationRecordDurationElement.textContent = trainingJson["presentation_record_duration"];
@@ -75,9 +79,7 @@ function buildCurrentTrainingRow(trainingId, trainingJson, isAdmin=false) {
     currentTrainingRowElement.appendChild(trainingPassBackStatusElement);
 
     const trainingScoreElement = document.createElement("td");
-    if (trainingJson["score"] != null) {
-        trainingScoreElement.textContent = trainingJson["score"].toFixed(2);
-    }
+    trainingScoreElement.textContent = trainingJson["score"];
     currentTrainingRowElement.appendChild(trainingScoreElement);
 
     const presentationFileIdElement = document.createElement("td");
@@ -125,6 +127,7 @@ function buildAllTrainingsTable(trainingsJson) {
         "id попытки",
         "Логин",
         "Имя",
+        "Набор критериев",
         "Длительность аудиозаписи",
         "Начало тренировки",
         "Начало обработки",
@@ -151,10 +154,9 @@ function buildAllTrainingsTable(trainingsJson) {
         const titleRow = buildTitleRow(titles);
         allTrainingsTable.appendChild(titleRow);
         
-        Object.keys(arrayTrainings).forEach(trainingId => {
+        Object.keys(arrayTrainings).forEach(index => {
             const currentTrainingRowElement = buildCurrentTrainingRow(
-                trainingId, 
-                arrayTrainings[trainingId], 
+                arrayTrainings[index], 
                 isAdmin
             );
             

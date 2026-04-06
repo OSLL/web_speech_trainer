@@ -1,12 +1,14 @@
 from app.root_logger import get_root_logger
+import csv
 import time
 import json
 import os
 import pytz
 from datetime import datetime
+from io import BytesIO, StringIO
 
 from bson import ObjectId
-from flask import Blueprint, session, request
+from flask import Blueprint, session, request, send_file
 
 from app.audio import Audio
 from app.check_access import check_access
@@ -21,7 +23,6 @@ from app.localisation import *
 
 api_trainings = Blueprint('api_trainings', __name__)
 logger = get_root_logger()
-
 
 
 @check_arguments_are_convertible_to_object_id
@@ -364,14 +365,14 @@ def get_training_information(current_training: Trainings) -> dict:
         presentation_record_file_id = current_training.presentation_record_file_id
 
         return {
-            'message': 'OK',
+            'training_id': str(_id),
             'task_attempt_id': str(task_attempt_id),
             'task_id': str(task_attempt.task_id),
-            'params_for_passback': task_attempt.params_for_passback,
-            "training_start_timestamp": ObjectId(str(_id)).generation_time.astimezone(pytz.timezone("Europe/Moscow")),
+            # 'params_for_passback': task_attempt.params_for_passback,
+            'training_start_timestamp': ObjectId(str(_id)).generation_time.astimezone(pytz.timezone("Europe/Moscow")).replace(tzinfo=None),
             'processing_start_timestamp': processing_start_timestamp,
             'processing_finish_timestamp': processing_finish_timestamp,
-            'score': current_training.feedback.get('score', None),
+            'score': f"{current_training.feedback.get('score', 0.0):.2f}".replace('.', ','),
             'username': current_training.username,
             'full_name': current_training.full_name,
             'pass_back_status': t(PassBackStatus.russian.get(pass_back_status)),
@@ -381,6 +382,7 @@ def get_training_information(current_training: Trainings) -> dict:
             'presentation_record_duration': presentation_record_duration,
             'presentation_file_id': str(presentation_file_id),
             'presentation_record_file_id': str(presentation_record_file_id),
+            'criteria_pack_id': current_training.criteria_pack_id
         }
     except Exception as e:
         return {'message': '{}: {}'.format(e.__class__, e)}
@@ -425,6 +427,51 @@ def get_count_page() -> (dict, int):
     return result, 200
 
 
+@api_trainings.route('/api/trainings/csv', methods=['GET'])
+def get_csv_all_trainings() -> tuple[dict, int]:
+    data, code = get_all_trainings()
+    if code != 200:
+        return data, code
+
+    fieldsname = [
+            "training_id",
+            "task_attempt_id",
+            "task_id",
+            "training_start_timestamp",
+            "processing_start_timestamp",
+            "processing_finish_timestamp",
+            "score",
+            "username",
+            "full_name",
+            "pass_back_status",
+            "training_status",
+            "audio_status",
+            "presentation_status",
+            "presentation_record_duration",
+            "presentation_file_id",
+            "presentation_record_file_id",
+            "criteria_pack_id",
+        ]
+
+    trainings = data['trainings']
+    print(trainings)
+    csv_data = StringIO()
+    cw = csv.DictWriter(
+        csv_data,
+        fieldnames=fieldsname,
+    )
+    cw.writeheader()
+    cw.writerows(trainings)
+
+    response_stream = BytesIO(csv_data.getvalue().encode())
+    return send_file(
+        response_stream,
+        mimetype="text/csv",
+        as_attachment=True,
+        download_name="export.csv",
+)
+
+
 @api_trainings.route('/api/trainings/', methods=['GET'])
 def get_all_trainings() -> (dict, int):
     """
@@ -432,9 +479,12 @@ def get_all_trainings() -> (dict, int):
     :return: Dictionary with information about all trainings and 'OK' message, or
         an empty dictionary with 404 HTTP code if access was denied.
     """
-
     filters = json.loads(request.args.get('filters', "{}"))
     username = filters.get('username')
+
+    authorized = check_auth() is not None
+    if not (check_admin(allow_access_token=True) or (authorized and [session.get('session_id')] == username)):
+        return {}, 404
 
     number_page = request.args.get('page')
     if not number_page:
@@ -450,14 +500,8 @@ def get_all_trainings() -> (dict, int):
 
     print(number_page, count_items)
 
-    if not (check_admin() or (is_logged_in() and [session.get('session_id')] == username)):
-        return {}, 404
-
     trainings = GetAllTrainingsFilterManager().query_with_filters(filters, number_page, count_items)
 
-    trainings_json = {'trainings': {}}
-    for current_training in trainings:
-        trainings_json['trainings'][str(current_training.pk)] = get_training_information(current_training)
-    trainings_json['message'] = 'OK'
+    trainings_json = {'trainings': [get_training_information(training) for training in trainings], 'message': 'OK'}
 
     return trainings_json, 200

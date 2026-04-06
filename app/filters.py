@@ -17,7 +17,7 @@ logger = get_root_logger()
 class GetAllTrainingsFilterManager():
     simple_filters = ["training_id", "task_attempt_id", "presentation_file_id", "username", "full_name",
                       "presentation_record_duration", "score", "processing_start_timestamp",
-                      "processing_finish_timestamp", "training_status", "audio_status", "presentation_status"]
+                      "processing_finish_timestamp", "training_status", "audio_status", "presentation_status", "criteria_pack_id"]
 
     complex_filters = ["pass_back_status","training_start_timestamp"]
 
@@ -42,6 +42,7 @@ class GetAllTrainingsFilterManager():
         return simple_filters, complex_filters
 
     def __apply_pagination(self, page: int, count: int, trainings: list) -> list:
+        # TODO: делать силами БД
         trainings_page = []
 
         end_index = (page + 1)*count
