@@ -3,6 +3,7 @@ version: '2'
 services:
   web:
     image: wst-image:v0.2
+    build: .
     command: bash -c "python3 ./db_versioning/db_versioning.py --mongo mongodb://db:27017 && python3 -m web_speech_trainer $APP_CONF" 
     environment:
     - APP_CONF=${APP_CONF}
@@ -30,17 +31,16 @@ services:
     restart: always
     depends_on:
       - db
-      - presentation_processor
+      # - presentation_processor
 
-  presentation_processor:
-    image: wst-image:v0.2
-    build: .
-    command: python3 -m presentation_processor $APP_CONF
-    restart: always
-    depends_on:
-      - db
-    volumes:
-      - nltk_data:/root/nltk_data
+  # presentation_processor:
+  #   image: wst-image:v0.2
+  #   command: python3 -m presentation_processor $APP_CONF
+  #   restart: always
+  #   depends_on:
+  #     - db
+  #   volumes:
+  #     - nltk_data:/root/nltk_data
 
   recognized_presentation_processor:
     image: wst-image:v0.2
@@ -48,7 +48,7 @@ services:
     restart: always
     depends_on:
       - db
-      - presentation_processor
+      # - presentation_processor
 
   training_processor:
     image: wst-image:v0.2
@@ -94,15 +94,26 @@ services:
       - "5672:5672"
       - "15672:15672"
 
-  celery_worker:
+  celery_worker_audio:
     image: wst-image:v0.2
-    command: celery -A app.celery_app worker --loglevel=info --concurrency=1
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=1 -Q audio
     environment:
     - APP_CONF=${APP_CONF}
     depends_on:
       - db
       - rabbitmq
       - whisper
+
+  celery_worker_presentation:
+    image: wst-image:v0.2
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=1 -Q presentation
+    environment:
+      - APP_CONF=${APP_CONF}
+    depends_on:
+      - db
+      - rabbitmq
+    volumes:
+      - nltk_data:/root/nltk_data   
 
 volumes:
   whisper_models:

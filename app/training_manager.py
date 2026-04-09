@@ -1,8 +1,9 @@
 from datetime import datetime
 
-from app.mongo_odm import TrainingsDBManager, PresentationsToRecognizeDBManager, AudioToRecognizeDBManager
+from app.mongo_odm import TrainingsDBManager
 from app.status import TrainingStatus, AudioStatus, PresentationStatus
 from app.tasks.audio_tasks import recognize_audio_task
+from app.tasks.presentation_tasks import recognize_presentation_task
 
 
 class TrainingManager:
@@ -15,7 +16,7 @@ class TrainingManager:
         training = TrainingsDBManager().get_training(training_id)
         presentation_file_id = training.presentation_file_id
         presentation_record_file_id = training.presentation_record_file_id
-        PresentationsToRecognizeDBManager().add_presentation_to_recognize(presentation_file_id, training_id)
+        recognize_presentation_task.delay(str(training_id), str(presentation_file_id))
         TrainingsDBManager().change_presentation_status(training_id, PresentationStatus.SENT_FOR_RECOGNITION)
         recognize_audio_task.delay(str(training_id), str(presentation_record_file_id))
         TrainingsDBManager().change_audio_status(training_id, AudioStatus.SENT_FOR_RECOGNITION)

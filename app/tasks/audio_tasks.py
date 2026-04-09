@@ -1,4 +1,3 @@
-import logging
 from app.celery_app import celery
 from app.audio_recognizer import WhisperAudioRecognizer
 from app.config import Config
