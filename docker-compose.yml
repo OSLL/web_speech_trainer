@@ -4,6 +4,8 @@ services:
   web:
     image: wst-image:v0.2
     command: bash -c "python3 ./db_versioning/db_versioning.py --mongo mongodb://db:27017 && python3 -m web_speech_trainer $APP_CONF" 
+    environment:
+    - APP_CONF=${APP_CONF}
     restart: always
     ports:
       - 5000:5000
@@ -13,14 +15,14 @@ services:
     volumes:
       - ../database-dump:/app/dump/database-dump/
 
-  audio_processor:
-    image: wst-image:v0.2
-    command: python3 -m audio_processor $APP_CONF
-    restart: always
-    depends_on:
-      - db
-      - whisper
-      - presentation_processor
+  # audio_processor:
+  #   image: wst-image:v0.2
+  #   command: python3 -m audio_processor $APP_CONF
+  #   restart: always
+  #   depends_on:
+  #     - db
+  #     - whisper
+  #     - presentation_processor
 
   recognized_audio_processor:
     image: wst-image:v0.2
@@ -28,7 +30,6 @@ services:
     restart: always
     depends_on:
       - db
-      - audio_processor
       - presentation_processor
 
   presentation_processor:
@@ -85,6 +86,23 @@ services:
     mem_limit: ${WHISPER_MEM_LIMIT:-5g}
     volumes:
       - whisper_models:/root/.cache/whisper
+  
+  rabbitmq:
+    image: rabbitmq:4-management
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  celery_worker:
+    image: wst-image:v0.2
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=1
+    environment:
+    - APP_CONF=${APP_CONF}
+    depends_on:
+      - db
+      - rabbitmq
+      - whisper
 
 volumes:
   whisper_models:
