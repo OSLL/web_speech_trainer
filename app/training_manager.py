@@ -2,8 +2,8 @@ from datetime import datetime
 
 from app.mongo_odm import TrainingsDBManager
 from app.status import TrainingStatus, AudioStatus, PresentationStatus
-from app.tasks.audio_tasks import recognize_audio_task
-from app.tasks.presentation_tasks import recognize_presentation_task
+from app.tasks.audio_recognition import recognize_audio_task
+from app.tasks.presentation_recognition import recognize_presentation_task
 
 
 class TrainingManager:

@@ -25,13 +25,13 @@ services:
   #     - whisper
   #     - presentation_processor
 
-  recognized_audio_processor:
-    image: wst-image:v0.2
-    command: python3 -m recognized_audio_processor $APP_CONF
-    restart: always
-    depends_on:
-      - db
-      # - presentation_processor
+  # recognized_audio_processor:
+  #   image: wst-image:v0.2
+  #   command: python3 -m recognized_audio_processor $APP_CONF
+  #   restart: always
+  #   depends_on:
+  #     - db
+  #     - presentation_processor
 
   # presentation_processor:
   #   image: wst-image:v0.2
@@ -42,13 +42,13 @@ services:
   #   volumes:
   #     - nltk_data:/root/nltk_data
 
-  recognized_presentation_processor:
-    image: wst-image:v0.2
-    command: python3 -m recognized_presentation_processor $APP_CONF
-    restart: always
-    depends_on:
-      - db
-      # - presentation_processor
+  # recognized_presentation_processor:
+  #   image: wst-image:v0.2
+  #   command: python3 -m recognized_presentation_processor $APP_CONF
+  #   restart: always
+  #   depends_on:
+  #     - db
+  #     - presentation_processor
 
   training_processor:
     image: wst-image:v0.2
@@ -56,8 +56,6 @@ services:
     restart: always
     depends_on:
       - db
-      - recognized_audio_processor
-      - recognized_presentation_processor
     volumes:
       - nltk_data:/root/nltk_data
 
@@ -94,9 +92,9 @@ services:
       - "5672:5672"
       - "15672:15672"
 
-  celery_worker_audio:
+  celery_worker_audio_rec:
     image: wst-image:v0.2
-    command: celery -A app.celery_app worker --loglevel=info --concurrency=1 -Q audio
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=1 -Q audio_recognition
     environment:
     - APP_CONF=${APP_CONF}
     depends_on:
@@ -104,16 +102,49 @@ services:
       - rabbitmq
       - whisper
 
-  celery_worker_presentation:
+  celery_worker_audio_proc:
     image: wst-image:v0.2
-    command: celery -A app.celery_app worker --loglevel=info --concurrency=1 -Q presentation
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=1 -Q audio_processing
+    environment:
+      - APP_CONF=${APP_CONF}
+    depends_on:
+      - db
+      - rabbitmq
+      
+  celery_worker_pres_rec:
+    image: wst-image:v0.2
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=1 -Q presentation_recognition
     environment:
       - APP_CONF=${APP_CONF}
     depends_on:
       - db
       - rabbitmq
     volumes:
-      - nltk_data:/root/nltk_data   
+      - nltk_data:/root/nltk_data 
+
+  celery_worker_pres_proc:
+    image: wst-image:v0.2
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=1 -Q presentation_processing
+    environment:
+      - APP_CONF=${APP_CONF}
+    depends_on:
+      - db
+      - rabbitmq
+
+  flower:
+    image: wst-image:v0.2
+    command: celery -A app.celery_app flower --port=5555 --basic_auth=guest:guest --broker_api=http://guest:guest@rabbitmq:15672/api/
+    ports:
+      - "5555:5555"
+    environment:
+      - APP_CONF=${APP_CONF}
+    depends_on:
+      - rabbitmq
+      - celery_worker_audio_rec
+      - celery_worker_audio_proc
+      - celery_worker_pres_rec
+      - celery_worker_pres_proc
+    restart: always
 
 volumes:
   whisper_models:
