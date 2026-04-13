@@ -9,6 +9,7 @@ function get_time_string(timestamp){
 }
 
 function buildCurrentTrainingRow(trainingJson, isAdmin=false) {
+    console.log(JSON.stringify(trainingJson))
     const trainingId = trainingJson.training_id;
     const currentTrainingRowElement = document.createElement("tr");
 
@@ -87,7 +88,7 @@ function buildCurrentTrainingRow(trainingJson, isAdmin=false) {
     currentTrainingRowElement.appendChild(trainingScoreElement);
 
     const presentationFileIdElement = document.createElement("td");
-    if(trainingJson["presentation_file_id"] !== "undefined" && trainingJson["message"] === "OK"){
+    if (trainingJson["presentation_file_id"] !== "undefined"){
         const presentationFileIdLink = document.createElement("a");
         presentationFileIdLink.textContent = "..." + String(trainingJson["presentation_file_id"]).slice(-5);
         presentationFileIdLink.href = `/api/files/presentations/by-training/${trainingId}/`;
@@ -97,7 +98,7 @@ function buildCurrentTrainingRow(trainingJson, isAdmin=false) {
     currentTrainingRowElement.appendChild(presentationFileIdElement);
 
     const recordingElement = document.createElement("td");
-    if(trainingJson["presentation_record_file_id"] === "None" || trainingJson["message"] !== "OK") {
+    if (trainingJson["presentation_record_file_id"] === "None") {
         recordingElement.textContent = "Аудиозапись отсутствует";
     } else {
         const recordingAudio = document.createElement("audio");
