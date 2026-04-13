@@ -9,7 +9,6 @@ function get_time_string(timestamp){
 }
 
 function buildCurrentTrainingRow(trainingJson, isAdmin=false) {
-    console.log(JSON.stringify(trainingJson))
     const trainingId = trainingJson.training_id;
     const currentTrainingRowElement = document.createElement("tr");
 
@@ -327,7 +326,6 @@ function saveVisibility(table) {
 function createControlPanel(table) {
     const headerRow = table.querySelector('tr');
     const colCount = headerRow ? headerRow.cells.length : (table.querySelector('tr')?.cells.length || 0);
-    console.log(colCount)
     const container = document.createElement('div');
     container.className = 'column-control-panel';
 
