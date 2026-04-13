@@ -409,7 +409,11 @@ function createControlPanel(table) {
     return returnable;
 }
 
+var controlPanelReady = false;
+
 function initVisibilityCheckboxes(table) {
+    if (controlPanelReady) return
+
     const panelObjects = createControlPanel(table);
     const checkboxes = panelObjects.checkboxes;
     const saved = localStorage.getItem('hidden_columns');
@@ -435,4 +439,5 @@ function initVisibilityCheckboxes(table) {
         panelObjects.showPanelBtn.style.display = 'inline-block';
     }
 
+    controlPanelReady = true;
 }
