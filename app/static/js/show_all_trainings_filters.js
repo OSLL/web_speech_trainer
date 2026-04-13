@@ -376,6 +376,14 @@ function createRangeFilter(filterCode, initialValues = "") {
     createFilterBase(filterCode, startInput, rangeInput, endInput);
 }
 
+
+function dateToString(date) {
+    const dateOptions = { year: 'numeric', month: 'numeric', day: 'numeric'};
+    const timeOptions = { hour: 'numeric', minute: '2-digit', second: '2-digit'}
+    return date.toLocaleDateString("ru-RU", dateOptions) + " " + date.toLocaleTimeString("ru-RU", timeOptions);
+}
+
+
 /**
  * Creates date filter with only Year - Month - Date (No time). It behaves as range filter but with date, except that start date set to the beggining of day and end date is set to the end of day.
  * It includes creation of interface and data in currentFilters
@@ -383,22 +391,23 @@ function createRangeFilter(filterCode, initialValues = "") {
  * @param initialValues A string with 2 string values of dates in UTC format split by PARAM_DELIMITER. First - start date, Second - it's end date
  */
 function createDateFilter(filterCode, initialValues = "") {
+
     if (filtersData[filterCode].type !== filterType.DATE) {
         console.error("Filter " + filterCode + " tried to create date type filter field!");
         return;
     }
 
     if (initialValues === "") {
-        initialValues = [];
-        initialValues[0] = new Date();
-
-        initialValues[1] = new Date();
+        initialValues = [new Date(), new Date()];
+        initialValues[0].setHours(0, 0, 0, 0);
         initialValues[1].setHours(23, 59, 59, 999);
 
-        currentFilters[filterCode] = [initialValues[0].toISOString(), initialValues[1].toISOString()].join(PARAM_DELIMITER);
+        currentFilters[filterCode] = [dateToString(initialValues[0]), dateToString(initialValues[1])].join(PARAM_DELIMITER);
+        console.log(currentFilters[filterCode])
         checkIfFiltersChanged()
     } else if (initialValues.split(PARAM_DELIMITER).length === 2) {
         let splitInitialValues = initialValues.split(PARAM_DELIMITER);
+        console.log(splitInitialValues)
         initialValues = []
         initialValues[0] = new Date(Date.parse(splitInitialValues[0]));
         initialValues[1] = new Date(Date.parse(splitInitialValues[1]));
@@ -416,9 +425,8 @@ function createDateFilter(filterCode, initialValues = "") {
         changeYear: true
     }).on("change", () => {
         toInput.datepicker("option", "minDate", fromInput.datepicker("getDate"))
-
         let splitCurrentValues = currentFilters[filterCode].split(PARAM_DELIMITER);
-        splitCurrentValues[0] = fromInput.datepicker("getDate").toISOString();
+        splitCurrentValues[0] = dateToString(fromInput.datepicker("getDate"));
         currentFilters[filterCode] = splitCurrentValues.join(PARAM_DELIMITER);
         checkIfFiltersChanged();
     });
@@ -435,13 +443,10 @@ function createDateFilter(filterCode, initialValues = "") {
         changeYear: true
     }).on("change", () => {
         fromInput.datepicker("option", "maxDate", toInput.datepicker("getDate"))
-
         let date = new Date(toInput.datepicker("getDate"));
         date.setHours(23, 59, 59, 999);
-
         let splitCurrentValues = currentFilters[filterCode].split(PARAM_DELIMITER);
-
-        splitCurrentValues[1] = date.toISOString();
+        splitCurrentValues[1] = dateToString(date);
         currentFilters[filterCode] = splitCurrentValues.join(PARAM_DELIMITER);
         checkIfFiltersChanged();
     });
