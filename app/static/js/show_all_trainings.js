@@ -168,6 +168,7 @@ function buildAllTrainingsTable(trainingsJson) {
             
             allTrainingsTable.appendChild(currentTrainingRowElement);
         });
+        initVisibilityCheckboxes(allTrainingsTable)
     })
     .catch(err => console.log(err));
 }
@@ -285,4 +286,153 @@ function call_get_all_trainings({filters, page = 0, count}) {
     return fetch(`/api/trainings?${query.toString()}`)
         .then(response => response.json())
         .then(responseJson => buildAllTrainingsTable(responseJson));
+}
+
+function setColumnVisibility(table, columnIndex, visible) {
+    const cells = table.querySelectorAll(`td:nth-child(${columnIndex}), th:nth-child(${columnIndex})`);
+    cells.forEach(cell => {
+        cell.style.display = visible ? '' : 'none';
+    });
+}
+
+function getCurrentVisibility(table) {
+    const firstRow = table.querySelector('tr');
+    if (!firstRow) return [];
+    const colCount = firstRow.cells.length;
+    const visibility = [];
+    for (let i = 1; i <= colCount; i++) {
+        const anyCell = table.querySelector(`td:nth-child(${i}), th:nth-child(${i})`);
+        visibility.push(anyCell ? anyCell.style.display !== 'none' : true);
+    }
+    return visibility;
+}
+
+function applySavedVisibility(table, hiddenIndices) {
+    const colCount = table.querySelector('tr')?.cells.length || 0;
+    for (let i = 1; i <= colCount; i++) {
+        const shouldBeHidden = hiddenIndices.includes(i);
+        setColumnVisibility(table, i, !shouldBeHidden);
+    }
+}
+
+function saveVisibility(table) {
+    const visibility = getCurrentVisibility(table);
+    const hiddenIndices = visibility.reduce((acc, isVisible, idx) => {
+        if (!isVisible) acc.push(idx + 1); // индексы с 1
+        return acc;
+    }, []);
+    localStorage.setItem('hidden_columns', JSON.stringify(hiddenIndices));
+}
+
+function createControlPanel(table) {
+    const headerRow = table.querySelector('tr');
+    const colCount = headerRow ? headerRow.cells.length : (table.querySelector('tr')?.cells.length || 0);
+    console.log(colCount)
+    const container = document.createElement('div');
+    container.className = 'column-control-panel';
+
+    const title = document.createElement('span');
+    title.textContent = 'Видимость столбцов: ';
+    title.style.fontWeight = 'bold';
+    container.appendChild(title);
+
+    const checkboxes = [];
+
+    for (let i = 1; i <= colCount; i++) {
+        let labelText = `Колонка ${i}`;
+        if (headerRow && headerRow.cells[i - 1]) {
+            labelText = headerRow.cells[i - 1].textContent.trim() || labelText;
+        }
+
+        const label = document.createElement('label');
+        label.style.marginLeft = '10px';
+        label.style.cursor = 'pointer';
+
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = true;
+        cb.dataset.columnIndex = i;
+
+        cb.addEventListener('change', (function (idx, checkbox) {
+            return function () {
+                setColumnVisibility(table, idx, checkbox.checked);
+                saveVisibility(table);
+            };
+        })(i, cb));
+
+        label.appendChild(cb);
+        label.appendChild(document.createTextNode(' ' + labelText));
+        container.appendChild(label);
+        checkboxes.push(cb);
+    }
+
+    const resetBtn = document.createElement('button');
+    resetBtn.textContent = 'Сбросить';
+    resetBtn.style.marginLeft = '20px';
+    resetBtn.addEventListener('click', () => {
+        localStorage.removeItem('hidden_columns');
+        for (let i = 1; i <= colCount; i++) {
+            setColumnVisibility(table, i, true);
+            if (checkboxes[i - 1]) checkboxes[i - 1].checked = true;
+        }
+    });
+    container.appendChild(resetBtn);
+
+    const hidePanelBtn = document.createElement('button');
+    hidePanelBtn.textContent = 'Скрыть панель';
+    hidePanelBtn.style.marginLeft = '10px';
+    hidePanelBtn.addEventListener('click', () => {
+        container.style.display = 'none';
+        showPanelBtn.style.display = 'inline-block';
+        localStorage.removeItem('visibility_panel_show');
+    });
+    container.appendChild(hidePanelBtn);
+
+    const showPanelBtn = document.createElement('button');
+    showPanelBtn.textContent = 'Показать настройку видимости столбцов';
+    showPanelBtn.addEventListener('click', () => {
+        container.style.display = '';
+        showPanelBtn.style.display = 'none';
+        localStorage.setItem('visibility_panel_show', 'true');
+    });
+    document.body.appendChild(showPanelBtn);
+
+    table.parentNode.insertBefore(container, table);
+    container.parentNode.insertBefore(showPanelBtn, container);
+
+    var returnable = new Object();
+    returnable.panelContainer = container;
+    returnable.showPanelBtn = showPanelBtn;
+    returnable.checkboxes = checkboxes;
+    returnable.colCount = colCount;
+
+    return returnable;
+}
+
+function initVisibilityCheckboxes(table) {
+    const panelObjects = createControlPanel(table);
+    const checkboxes = panelObjects.checkboxes;
+    const saved = localStorage.getItem('hidden_columns');
+    let hiddenIndices = [];
+    if (saved) {
+        try {
+            hiddenIndices = JSON.parse(saved);
+            if (!Array.isArray(hiddenIndices)) hiddenIndices = [];
+        } catch (e) { hiddenIndices = []; }
+    }
+
+    for (let i = 1; i <= panelObjects.colCount; i++) {
+        const hidden = hiddenIndices.includes(i);
+        setColumnVisibility(table, i, !hidden);
+        if (checkboxes[i - 1]) checkboxes[i - 1].checked = !hidden;
+    }
+
+    if (localStorage.getItem('visibility_panel_show') === 'true') {
+        panelObjects.panelContainer.style.display = '';
+        panelObjects.showPanelBtn.style.display = 'none';
+    } else {
+        panelObjects.panelContainer.style.display = 'none';
+        panelObjects.showPanelBtn.style.display = 'inline-block';
+    }
+
 }
