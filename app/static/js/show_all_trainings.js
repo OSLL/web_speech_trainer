@@ -1,5 +1,5 @@
 function get_time_string(timestamp){
-    let options = {year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit'}
+    let options = {year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit', timeZone: "UTC"}
     if (!isNaN(timestamp)) {
         let processing_time = new Date(timestamp);
         return processing_time.toLocaleString("ru-RU", options);
