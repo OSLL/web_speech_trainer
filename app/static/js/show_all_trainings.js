@@ -43,6 +43,10 @@ function buildCurrentTrainingRow(trainingJson, isAdmin=false) {
     trainingCritetiaIdElement.textContent = trainingJson["criteria_pack_id"];
     currentTrainingRowElement.appendChild(trainingCritetiaIdElement);
 
+    const taskIdElement = document.createElement("td");
+    taskIdElement.textContent = trainingJson["task_id"];
+    currentTrainingRowElement.appendChild(taskIdElement);
+
     const presentationRecordDurationElement = document.createElement("td");
     presentationRecordDurationElement.textContent = trainingJson["presentation_record_duration"];
     currentTrainingRowElement.appendChild(presentationRecordDurationElement);
@@ -128,6 +132,7 @@ function buildAllTrainingsTable(trainingsJson) {
         "Логин",
         "Имя",
         "Набор критериев",
+        "Задание",
         "Длительность аудиозаписи",
         "Начало тренировки",
         "Начало обработки",

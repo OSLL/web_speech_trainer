@@ -19,7 +19,7 @@ class GetAllTrainingsFilterManager():
                       "presentation_record_duration", "score", "processing_start_timestamp",
                       "processing_finish_timestamp", "training_status", "audio_status", "presentation_status", "criteria_pack_id"]
 
-    complex_filters = ["pass_back_status","training_start_timestamp"]
+    complex_filters = ["pass_back_status","training_start_timestamp", "task_id"]
 
     def __new__(cls):
         if not hasattr(cls, 'init_done'):
@@ -162,7 +162,9 @@ class GetAllTrainingsFilterManager():
                     return True
                 else:
                     return False
-
+            elif key == "task_id":
+                task_attempt = TaskAttemptsDBManager().get_task_attempt(training.task_attempt_id)
+                return values[0].lower() in task_attempt.task_id.lower()
 
         return True
 

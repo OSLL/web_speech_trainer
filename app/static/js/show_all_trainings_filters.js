@@ -862,6 +862,16 @@ let filtersData = {
 
         placeholder: "Частичное совпадение"
     },
+    "task_id": {
+        type: filterType.TEXT,
+        name: "Задание",
+        description: "Проверяется частичное совпадение с названием задания.",
+        validator: (value) => {
+            return true
+        },
+
+        placeholder: "Частичное совпадение"
+    },
     "username": {
         type: filterType.TEXT,
         name: "Логин",
