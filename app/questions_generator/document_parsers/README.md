@@ -1,4 +1,12 @@
-# Файлы взяты 26.01.2026 с https://github.com/moevm/document_insight_system/tree/master/app/main/reports
+# НЕ МЕНЯТЬ КОД В ДАННОЙ ДИРЕКТОРИИ
+Файлы взяты 26.01.2026 с https://github.com/moevm/document_insight_system/tree/master/app/main/reports  
+Хеш коммита: `e1d20a22eaf6cd1ab9174bdf6c6569028f8558af`
+
+## Обновление данного пакета
+При необходимости обновления кода в данной директории, необходимо поддержать совместимость с его использованием в данном проекте  
+Из кода данной директории используется класс `DocxUploader` классом `VkrQuestionGenerator` для загрузки и парсинга исходного docx файла  
+Из класса `DocxUploader` используются методы `upload`, `parse` и `make_chapters('VKR')`  
+При обновлении кода данной директории проследить, что изменение логики в классе `DocxUploader` и смежных с ним не оказывает влияния на работу `VkrQuestionGenerator`  
 
 ### Staff
 python -m document_parsers.document --help
