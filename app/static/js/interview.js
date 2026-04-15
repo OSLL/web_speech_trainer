@@ -7,6 +7,7 @@ const CONFIG = {
 
 const QUESTIONS = window.INTERVIEW_DATA?.questions || [];
 const SESSION_ID = window.INTERVIEW_DATA?.sessionId || null;
+const CANCEL_URL = window.INTERVIEW_DATA?.cancelUrl || "/api/interview/cancel-session/";
 const feedbackPanel = document.getElementById("feedback-panel");
 const feedbackScoreEl = document.getElementById("feedback-score");
 const feedbackVerdictEl = document.getElementById("feedback-verdict");
@@ -22,11 +23,11 @@ const stopBtn = document.getElementById("stop-btn");
 const questionNumberEl = document.getElementById("question-number");
 const questionTotalEl = document.getElementById("question-total");
 const questionTextEl = document.getElementById("question-text");
+const questionPlaceholderEl = document.getElementById("question-placeholder");
 
 const statusEl = document.getElementById("status");
 const micIndicator = document.getElementById("mic-indicator");
 const recordingsEl = document.getElementById("recordings");
-
 
 let state = "idle";
 let questionIndex = 0;
@@ -38,6 +39,8 @@ let questionSegments = [];
 let mediaStream = null;
 let micArmed = false;
 let micSpeaking = false;
+
+if (questionTotalEl) questionTotalEl.textContent = QUESTIONS.length;
 
 function applyMicIndicator() {
   if (!micIndicator) return;
@@ -101,15 +104,26 @@ function stopTimer() {
 }
 
 function hideInterviewUI() {
-  if (timerSection) timerSection.style.display = "none";
+  if (timerSection) timerSection.classList.add("is-hidden");
 }
 
 function showInterviewUI() {
-  if (timerSection) timerSection.style.display = "block";
+  if (timerSection) timerSection.classList.remove("is-hidden");
 }
 
 function setStatus(text) {
   if (statusEl) statusEl.textContent = text || "";
+}
+
+function showQuestionPlaceholder(text) {
+  if (questionPlaceholderEl) {
+    questionPlaceholderEl.textContent = text || "Вопросы появятся здесь после старта интервью";
+    questionPlaceholderEl.style.display = "block";
+  }
+}
+
+function hideQuestionPlaceholder() {
+  if (questionPlaceholderEl) questionPlaceholderEl.style.display = "none";
 }
 
 function resetFeedback() {
@@ -162,6 +176,8 @@ function renderQuestion() {
   const q = QUESTIONS[questionIndex];
   if (!q) return;
 
+  hideQuestionPlaceholder();
+
   if (questionNumberEl) questionNumberEl.textContent = String(questionIndex + 1);
   if (questionTextEl) questionTextEl.textContent = q.text || "";
 
@@ -205,6 +221,16 @@ async function ensureMic() {
   return mediaStream;
 }
 
+function stopMediaStream() {
+  if (!mediaStream) return;
+  try {
+    mediaStream.getTracks().forEach((track) => track.stop());
+  } catch (err) {
+    console.warn("Не удалось остановить медиапоток:", err);
+  }
+  mediaStream = null;
+}
+
 async function startSessionRecording() {
   await ensureMic();
   fullSessionChunks = [];
@@ -221,20 +247,45 @@ async function startSessionRecording() {
   };
 
   sessionRecorder.start();
-
   startMicIndicator();
 }
 
-function stopSessionRecording() {
-  if (!sessionRecorder) return;
+function stopSessionRecording({ upload = true, renderRecording = true } = {}) {
+  if (!sessionRecorder) {
+    stopMediaStream();
+    return Promise.resolve();
+  }
 
-  sessionRecorder.onstop = () => {
-    const blob = new Blob(fullSessionChunks, { type: "audio/webm" });
-    addFullSessionRecording(blob);
-    sendSessionToBackend(blob);
-  };
+  const recorder = sessionRecorder;
+  sessionRecorder = null;
 
-  sessionRecorder.stop();
+  return new Promise((resolve) => {
+    recorder.onstop = () => {
+      if (upload && fullSessionChunks.length > 0) {
+        const blob = new Blob(fullSessionChunks, { type: "audio/webm" });
+        if (renderRecording) addFullSessionRecording(blob);
+        sendSessionToBackend(blob);
+      }
+
+      fullSessionChunks = [];
+      stopMediaStream();
+      resolve();
+    };
+
+    if (recorder.state === "inactive") {
+      recorder.onstop();
+      return;
+    }
+
+    try {
+      recorder.stop();
+    } catch (err) {
+      console.warn("Не удалось остановить recorder:", err);
+      fullSessionChunks = [];
+      stopMediaStream();
+      resolve();
+    }
+  });
 }
 
 let vadInterval = null;
@@ -283,15 +334,27 @@ function closeCurrentAnswer() {
   currentAnswerStartTs = null;
 }
 
+function resetInterviewStateForRestart() {
+  questionIndex = 0;
+  recordedDurationSec = 0;
+  sessionStartTs = null;
+  currentAnswerStartTs = null;
+  questionSegments = [];
+  fullSessionChunks = [];
+
+  if (recordingsEl) recordingsEl.innerHTML = "";
+  if (questionTextEl) questionTextEl.textContent = "";
+  if (questionNumberEl) questionNumberEl.textContent = "1";
+  if (questionTotalEl) questionTotalEl.textContent = QUESTIONS.length;
+
+  showQuestionPlaceholder("Вопросы появятся здесь после старта интервью");
+  resetFeedback();
+}
+
 async function startInterview() {
   showInterviewUI();
-  recordingsEl.innerHTML = "";
-  resetFeedback();
-  recordedDurationSec = 0;
-  questionIndex = 0;
+  resetInterviewStateForRestart();
   state = "running";
-
-  if (questionTotalEl) questionTotalEl.textContent = QUESTIONS.length;
 
   renderQuestion();
   setStatus("Интервью началось");
@@ -328,7 +391,7 @@ function nextQuestion() {
   finishInterview();
 }
 
-function finishInterview() {
+async function finishInterview() {
   closeCurrentAnswer();
 
   recordedDurationSec = sessionStartTs == null
@@ -337,8 +400,13 @@ function finishInterview() {
 
   state = "finished";
   stopTimer();
-  stopSessionRecording();
   stopMicIndicator();
+
+  if (window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+  }
+
+  await stopSessionRecording({ upload: true, renderRecording: true });
 
   hideInterviewUI();
   setStatus("Интервью завершено");
@@ -352,6 +420,8 @@ function finishInterviewByTimeout() {
 }
 
 function addFullSessionRecording(blob) {
+  if (!recordingsEl) return;
+
   const url = URL.createObjectURL(blob);
   const card = document.createElement("div");
   card.className = "mt-3 p-3 border rounded";
@@ -377,7 +447,7 @@ async function sendSessionToBackend(blob) {
   try {
     const resp = await fetch("/api/interview/recording", {
       method: "POST",
-      body: form
+      body: form,
     });
 
     const data = await resp.json();
@@ -400,8 +470,65 @@ async function sendSessionToBackend(blob) {
   }
 }
 
+async function cancelInterviewSession() {
+  if (state === "cancelling") return;
+
+  state = "cancelling";
+  stopBtn.disabled = true;
+  setStatus("Прерываю сессию и удаляю данные…");
+
+  stopTimer();
+  stopMicIndicator();
+
+  if (window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+  }
+
+  currentAnswerStartTs = null;
+  questionSegments = [];
+
+  await stopSessionRecording({ upload: false, renderRecording: false });
+
+  try {
+    const resp = await fetch(CANCEL_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        session_id: SESSION_ID,
+      }),
+    });
+
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      console.warn("Ошибка при отмене интервью:", resp.status, data);
+      stopBtn.disabled = false;
+      state = "idle";
+      setStatus(data?.error || "Не удалось прервать сессию");
+      return;
+    }
+
+    if (data.redirect_url) {
+      window.location.href = data.redirect_url;
+      return;
+    }
+
+    stopBtn.disabled = false;
+    state = "idle";
+    setStatus("Сессия прервана, но ссылка для перехода не получена");
+  } catch (err) {
+    console.error("Ошибка при отмене интервью:", err);
+    stopBtn.disabled = false;
+    state = "idle";
+    setStatus("Ошибка при прерывании сессии");
+  }
+}
 
 mainBtn?.addEventListener("click", async () => {
+  if (state === "cancelling") return;
+
   if (state === "idle" || state === "finished") {
     await startInterview();
     return;
@@ -412,8 +539,8 @@ mainBtn?.addEventListener("click", async () => {
 });
 
 nextBtn?.addEventListener("click", nextQuestion);
-stopBtn?.addEventListener("click", finishInterview);
-
+stopBtn?.addEventListener("click", cancelInterviewSession);
 
 hideInterviewUI();
+showQuestionPlaceholder("Вопросы появятся здесь после старта интервью");
 setStatus("Нажмите «Начать», чтобы начать интервью");

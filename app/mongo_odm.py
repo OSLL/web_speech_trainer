@@ -967,6 +967,11 @@ class QuestionsDBManager:
             [("order", 1), ("created_at", 1)]
         )
 
+    def delete_by_session(self, session_id: str):
+        result = Questions.objects.model._mongometa.collection.delete_many({"session_id": session_id})
+        logger.info('Questions deleted for session_id = {}, count = {}.'.format(session_id, result.deleted_count))
+        return result.deleted_count
+
     def remove_question(self, question_id):
         return Questions.objects.get({"_id": question_id}).delete()
 
@@ -1086,6 +1091,36 @@ class InterviewRecordingDBManager:
         except InterviewRecording.DoesNotExist:
             return None
 
+    def delete_by_session(self, session_id: str, cleanup_files: bool = False):
+        recordings = list(InterviewRecording.objects.raw({"session_id": session_id}))
+        if not recordings:
+            return 0
+
+        storage = DBManager() if cleanup_files else None
+        deleted_count = 0
+
+        for recording in recordings:
+            if cleanup_files and storage is not None:
+                for file_attr in ("audio_file_id", "recognized_audio_id"):
+                    file_id = getattr(recording, file_attr, None)
+                    if not file_id:
+                        continue
+                    try:
+                        storage.delete_file(file_id)
+                    except Exception as e:
+                        logger.warning(
+                            'Error deleting recording file %s for session_id = %s: %s.',
+                            file_attr,
+                            session_id,
+                            e,
+                        )
+
+            recording.delete()
+            deleted_count += 1
+
+        logger.info('Interview recordings deleted for session_id = {}, count = {}.'.format(session_id, deleted_count))
+        return deleted_count
+
 
 class InterviewFeedbackDBManager:
     def __init__(self):
@@ -1125,6 +1160,11 @@ class InterviewFeedbackDBManager:
         feedback.save()
 
         return feedback
+
+    def delete_by_session(self, session_id: str):
+        result = InterviewFeedback.objects.model._mongometa.collection.delete_many({"session_id": session_id})
+        logger.info('Interview feedback deleted for session_id = {}, count = {}.'.format(session_id, result.deleted_count))
+        return result.deleted_count
 
 class InterviewExplanatoryNoteDBManager:
     def __new__(cls):
@@ -1188,7 +1228,7 @@ class InterviewExplanatoryNoteDBManager:
     def delete_note(self, session_id: str):
         note = self.get_by_session_id(session_id)
         if note is None:
-            return
+            return False
 
         storage = DBManager()
         try:
@@ -1198,6 +1238,7 @@ class InterviewExplanatoryNoteDBManager:
 
         note.delete()
         logger.info('Explanatory note deleted for session_id = {}.'.format(session_id))
+        return True
 
 class CeleryTaskDBManager:
     def __new__(cls):
