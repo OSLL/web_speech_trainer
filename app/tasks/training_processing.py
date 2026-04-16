@@ -158,10 +158,11 @@ def process_training_task(self, results):
         )
 
         return {
-            "status": "success",
-            "training_id": training_id,
-            "score": feedback.score,
-            "message": "Training processed successfully",
+            'status': 'success',
+            'training_id': str(training_id),
+            'task_attempt_id': str(task_attempt_id),
+            'score': feedback.score,
+            'message': 'Training processed successfully'
         }
 
     except Exception as e:
@@ -188,7 +189,7 @@ def process_training_task(self, results):
 
         return {
             "status": "failed",
-            "training_id": training_id,
+            "training_id": str(training_id),
             "error": str(e),
             "message": "Training processing failed after all retries",
         }

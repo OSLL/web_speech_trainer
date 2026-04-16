@@ -10,7 +10,7 @@ Config.init_config(config_path)
 
 
 def make_celery():
-    # Предполагается, что в конфиге есть секция [celery] с параметрами broker_url и result_backend 
+    # Предполагается, что в конфиге есть секция [celery] с параметрами broker_url и result_backend
     # Например: broker_url=amqp://guest:guest@rabbitmq:5672//
     # Например: result_backend=redis://redis:6379/0
     broker_url = Config.c.celery.broker_url
@@ -26,6 +26,7 @@ def make_celery():
             "app.tasks.presentation_recognition",
             "app.tasks.presentation_processing",
             "app.tasks.training_processing",
+            "app.tasks.passback_processing",
         ],
     )
     # Настройки по умолчанию
@@ -62,6 +63,7 @@ def make_celery():
             "app.tasks.training_processing.process_training_task": {
                 "queue": "training"
             },
+            "app.tasks.passback_processing.send_score_to_lms_task": {"queue": "passback"},
         },
     )
     return celery_app

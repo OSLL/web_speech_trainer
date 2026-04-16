@@ -543,7 +543,7 @@ class TaskAttemptsDBManager:
         if task_attempt_db is None:
             return
         task_attempt_db.training_scores[str(training_id)] = score
-        self.submit_scores_for_passback(task_attempt_db, training_id)
+        # self.submit_scores_for_passback(task_attempt_db, training_id)
         return task_attempt_db.save()
 
     def submit_scores_for_passback(self, task_attempt, training_id):
