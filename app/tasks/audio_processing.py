@@ -9,10 +9,14 @@ logger = get_root_logger("celery_process_recognized_audio_task")
 
 
 @celery.task(bind=True, max_retries=3)
-def process_recognized_audio_task(self, recognized_audio_id, training_id):
+def process_recognized_audio_task(self, result):
     """
     Обработка распознанного аудио: создание Audio с разбивкой по слайдам.
     """
+
+    training_id = result["training_id"]
+    recognized_audio_id = result["recognized_audio_id"]
+
     logger.info(
         f"Processing recognized audio: recognized_audio_id={recognized_audio_id}, training_id={training_id}"
     )
@@ -37,7 +41,14 @@ def process_recognized_audio_task(self, recognized_audio_id, training_id):
         logger.info(
             f"Finished processing recognized audio for training_id={training_id}"
         )
-        return {"status": "success", "training_id": str(training_id)}
+
+        return {
+            "status": "success",
+            "training_id": str(training_id),
+            "audio_id": str(audio_id),
+            "type": "audio",
+        }
+
     except Exception as e:
         logger.error(f"Error in process_recognized_audio_task: {e}", exc_info=True)
         TrainingsDBManager().change_audio_status(

@@ -10,17 +10,22 @@ Config.init_config(config_path)
 
 
 def make_celery():
-    # Предполагается, что в конфиге есть секция [celery] с параметром broker_url
-    # Например: broker_url = amqp://guest:guest@rabbitmq:5672//
+    # Предполагается, что в конфиге есть секция [celery] с параметрами broker_url и result_backend 
+    # Например: broker_url=amqp://guest:guest@rabbitmq:5672//
+    # Например: result_backend=redis://redis:6379/0
     broker_url = Config.c.celery.broker_url
+    result_backend = Config.c.celery.result_backend
+
     celery_app = Celery(
         "web_speech_trainer",
         broker=broker_url,
+        backend=result_backend,
         include=[
             "app.tasks.audio_recognition",
             "app.tasks.audio_processing",
             "app.tasks.presentation_recognition",
-            "app.tasks.presentation_recognition",
+            "app.tasks.presentation_processing",
+            "app.tasks.training_processing",
         ],
     )
     # Настройки по умолчанию
@@ -28,6 +33,7 @@ def make_celery():
         task_serializer="json",
         accept_content=["json"],
         result_serializer="json",
+        result_expires=3600,
         timezone="UTC",
         enable_utc=True,
         task_acks_late=True,
@@ -52,6 +58,9 @@ def make_celery():
             },
             "app.tasks.presentation_processing.process_recognized_presentation_task": {
                 "queue": "presentation_processing"
+            },
+            "app.tasks.training_processing.process_training_task": {
+                "queue": "training"
             },
         },
     )

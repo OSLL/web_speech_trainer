@@ -9,10 +9,14 @@ logger = get_root_logger("celery_process_recognized_presentation_task")
 
 
 @celery.task(bind=True, max_retries=3)
-def process_recognized_presentation_task(self, recognized_presentation_id, training_id):
+def process_recognized_presentation_task(self, result):
     """
     Обработка распознанной презентации: создание Presentation с разбивкой по слайдам.
     """
+
+    training_id = result["training_id"]
+    recognized_presentation_id = result["recognized_presentation_id"]
+
     logger.info(
         f"Processing recognized presentation: recognized_presentation_id={recognized_presentation_id}, training_id={training_id}"
     )
@@ -43,7 +47,14 @@ def process_recognized_presentation_task(self, recognized_presentation_id, train
         logger.info(
             f"Finished processing recognized presentation for training_id={training_id}"
         )
-        return {"status": "success", "training_id": str(training_id)}
+
+        return {
+            "status": "success",
+            "training_id": str(training_id),
+            "presentation_id": str(presentation_id),
+            "type": "presentation",
+        }
+
     except Exception as e:
         logger.error(
             f"Error in process_recognized_presentation_task: {e}", exc_info=True

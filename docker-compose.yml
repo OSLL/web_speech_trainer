@@ -12,52 +12,8 @@ services:
       - 5000:5000
     depends_on:
       - db
-      - training_processor
     volumes:
       - ../database-dump:/app/dump/database-dump/
-
-  # audio_processor:
-  #   image: wst-image:v0.2
-  #   command: python3 -m audio_processor $APP_CONF
-  #   restart: always
-  #   depends_on:
-  #     - db
-  #     - whisper
-  #     - presentation_processor
-
-  # recognized_audio_processor:
-  #   image: wst-image:v0.2
-  #   command: python3 -m recognized_audio_processor $APP_CONF
-  #   restart: always
-  #   depends_on:
-  #     - db
-  #     - presentation_processor
-
-  # presentation_processor:
-  #   image: wst-image:v0.2
-  #   command: python3 -m presentation_processor $APP_CONF
-  #   restart: always
-  #   depends_on:
-  #     - db
-  #   volumes:
-  #     - nltk_data:/root/nltk_data
-
-  # recognized_presentation_processor:
-  #   image: wst-image:v0.2
-  #   command: python3 -m recognized_presentation_processor $APP_CONF
-  #   restart: always
-  #   depends_on:
-  #     - db
-  #     - presentation_processor
-
-  training_processor:
-    image: wst-image:v0.2
-    command: python3 -m training_processor $APP_CONF
-    restart: always
-    depends_on:
-      - db
-    volumes:
-      - nltk_data:/root/nltk_data
 
   task_attempt_to_pass_back_processor:
     image: wst-image:v0.2
@@ -101,6 +57,7 @@ services:
       - db
       - rabbitmq
       - whisper
+      - redis
 
   celery_worker_audio_proc:
     image: wst-image:v0.2
@@ -110,6 +67,7 @@ services:
     depends_on:
       - db
       - rabbitmq
+      - redis
       
   celery_worker_pres_rec:
     image: wst-image:v0.2
@@ -119,8 +77,7 @@ services:
     depends_on:
       - db
       - rabbitmq
-    volumes:
-      - nltk_data:/root/nltk_data 
+      - redis
 
   celery_worker_pres_proc:
     image: wst-image:v0.2
@@ -130,6 +87,25 @@ services:
     depends_on:
       - db
       - rabbitmq
+      - redis
+  
+  celery_worker_training:
+    image: wst-image:v0.2
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=1 -Q training
+    environment:
+      - APP_CONF=${APP_CONF}
+    depends_on:
+      - db
+      - rabbitmq
+      - redis
+  
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
 
   flower:
     image: wst-image:v0.2
@@ -140,12 +116,14 @@ services:
       - APP_CONF=${APP_CONF}
     depends_on:
       - rabbitmq
+      - redis
       - celery_worker_audio_rec
       - celery_worker_audio_proc
       - celery_worker_pres_rec
       - celery_worker_pres_proc
+      - celery_worker_training
     restart: always
 
 volumes:
   whisper_models:
-  nltk_data:
+  redis_data:

@@ -2,7 +2,6 @@ from app.celery_app import celery
 from app.mongo_odm import DBManager, TrainingsDBManager, PresentationFilesDBManager
 from app.presentation_recognizer import PRESENTATION_RECOGNIZERS
 from app.status import PresentationStatus
-from app.tasks.presentation_processing import process_recognized_presentation_task
 from app.root_logger import get_root_logger
 
 logger = get_root_logger("celery_recognize_presentation_task")
@@ -64,10 +63,6 @@ def recognize_presentation_task(self, training_id, presentation_file_id):
             training_id, PresentationStatus.RECOGNIZED
         )
 
-        # Отправляем на дальнейшую обработку
-        process_recognized_presentation_task.delay(
-            str(recognized_presentation_id), str(training_id)
-        )
         TrainingsDBManager().change_presentation_status(
             training_id, PresentationStatus.SENT_FOR_PROCESSING
         )
@@ -75,7 +70,12 @@ def recognize_presentation_task(self, training_id, presentation_file_id):
         logger.info(
             f"Finished recognize_presentation_task for training_id={training_id}"
         )
-        return {"status": "success", "training_id": str(training_id)}
+        return {
+            "status": "success",
+            "training_id": str(training_id),
+            "recognized_presentation_id": str(recognized_presentation_id),
+            "presentation_file_id": str(presentation_file_id),
+        }
 
     except Exception as e:
         logger.error(f"Error in recognize_presentation_task: {e}", exc_info=True)

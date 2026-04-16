@@ -3,7 +3,6 @@ from app.audio_recognizer import WhisperAudioRecognizer
 from app.config import Config
 from app.mongo_odm import DBManager, TrainingsDBManager
 from app.status import AudioStatus
-from app.tasks.audio_processing import process_recognized_audio_task
 from app.root_logger import get_root_logger
 
 logger = get_root_logger("celery_recognize_audio_task")
@@ -36,14 +35,17 @@ def recognize_audio_task(self, training_id, presentation_record_file_id):
         TrainingsDBManager().add_recognized_audio_id(training_id, recognized_audio_id)
         TrainingsDBManager().change_audio_status(training_id, AudioStatus.RECOGNIZED)
 
-        # Отправляем на дальнейшую обработку
-        process_recognized_audio_task.delay(str(recognized_audio_id), str(training_id))
         TrainingsDBManager().change_audio_status(
             training_id, AudioStatus.SENT_FOR_PROCESSING
         )
 
         logger.info(f"Finished recognize_audio_task for training_id={training_id}")
-        return {"status": "success", "training_id": str(training_id)}
+        return {
+            "status": "success",
+            "training_id": str(training_id),
+            "recognized_audio_id": str(recognized_audio_id),
+            "presentation_record_file_id": str(presentation_record_file_id),
+        }
 
     except Exception as e:
         logger.error(f"Error in recognize_audio_task: {e}", exc_info=True)
