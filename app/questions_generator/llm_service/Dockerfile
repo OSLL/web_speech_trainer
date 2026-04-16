@@ -1,4 +1,4 @@
-FROM python:3.10-slim
+FROM python:3.12-slim
 
 RUN pip install --no-cache-dir \
     torch==2.5.1 \
