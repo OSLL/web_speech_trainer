@@ -1,4 +1,4 @@
-services:
+#services:
 #  init-llm:
 #    build:
 #      context: ./llm_service
@@ -20,15 +20,15 @@ services:
 #      - "8000:8000"
 # TODO: когда вернём ЛЛМ генерацию включить обратно
 
-  app:
-    build: .
-    stdin_open: true
-    tty: true
-    volumes:
-      - nltk_data:/nltk_data
-      - ./static/vkr_examples:/app/static/vkr_examples
-    command: ["bash", "-lc", "sleep infinity"]
+#  app:
+#    build: .
+#    stdin_open: true
+#    tty: true
+#    volumes:
+#      - nltk_data:/nltk_data
+#      - ./static/vkr_examples:/app/static/vkr_examples
+#    command: ["bash", "-lc", "sleep infinity"]
 
-volumes:
-  rut5_model:
-  nltk_data:
+#volumes:
+#  rut5_model:
+#  nltk_data:

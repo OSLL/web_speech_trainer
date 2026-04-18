@@ -23,7 +23,7 @@ python-pptx             ==0.6.19
 python_speech_features  ==0.6
 pytz                    ==2024.1
 requests                ==2.32.3
-scipy                   ==1.17.0
+scipy                   ==1.12.0
 ua-parser               ==0.18
 scikit-learn            ==1.4.2
 gensim                  ==4.3.2
