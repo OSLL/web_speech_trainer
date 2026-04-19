@@ -229,6 +229,8 @@ class VkrQuestionGenerator:
             ):
                 questions.append(question)
 
+        random.shuffle(questions)
+
         return questions
 
     def generate_all(self) -> List[str]:
