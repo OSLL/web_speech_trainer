@@ -1,419 +1,673 @@
-const CONFIG = {
-  TOTAL_LIMIT_SEC: 180,
-  VAD_THRESHOLD: 0.03,
-  VAD_HANG_MS: 250,
-  TIMER_TICK_MS: 1000,
-};
+(() => {
+  "use strict";
 
-const QUESTIONS = window.INTERVIEW_DATA?.questions || [];
-const SESSION_ID = window.INTERVIEW_DATA?.sessionId || null;
-const feedbackPanel = document.getElementById("feedback-panel");
-const feedbackScoreEl = document.getElementById("feedback-score");
-const feedbackVerdictEl = document.getElementById("feedback-verdict");
-const feedbackCriteriaEl = document.getElementById("feedback-criteria");
+  const BOOTSTRAP_URL = "/api/interview/bootstrap/";
+  const DEFAULT_SAVE_RECORDING_URL = "/api/interview/recording";
 
-const timerSection = document.querySelector(".timer-section");
-const timerElement = document.getElementById("timer");
-
-const mainBtn = document.getElementById("main-btn");
-const nextBtn = document.getElementById("next-btn");
-const stopBtn = document.getElementById("stop-btn");
-
-const questionNumberEl = document.getElementById("question-number");
-const questionTotalEl = document.getElementById("question-total");
-const questionTextEl = document.getElementById("question-text");
-
-const statusEl = document.getElementById("status");
-const micIndicator = document.getElementById("mic-indicator");
-const recordingsEl = document.getElementById("recordings");
-
-
-let state = "idle";
-let questionIndex = 0;
-let recordedDurationSec = 0;
-let sessionStartTs = null;
-let currentAnswerStartTs = null;
-let questionSegments = [];
-
-let mediaStream = null;
-let micArmed = false;
-let micSpeaking = false;
-
-function applyMicIndicator() {
-  if (!micIndicator) return;
-  if (!micArmed) {
-    micIndicator.style.opacity = "0.35";
-    micIndicator.classList.remove("speaking");
-    return;
-  }
-  micIndicator.style.opacity = micSpeaking ? "1" : "0.35";
-  micIndicator.classList.toggle("speaking", micSpeaking);
-}
-
-function setMic(active) {
-  micArmed = !!active;
-  if (!micArmed) micSpeaking = false;
-  applyMicIndicator();
-}
-
-function setMicSpeaking(active) {
-  micSpeaking = !!active;
-  applyMicIndicator();
-}
-
-let remainingSec = 0;
-let timer = null;
-
-function formatMMSS(totalSec) {
-  const safe = Math.max(0, totalSec);
-  const mins = Math.floor(safe / 60);
-  const secs = safe % 60;
-  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-}
-
-function updateTimer() {
-  if (timerElement) timerElement.textContent = formatMMSS(remainingSec);
-}
-
-function startGlobalCountdown() {
-  if (timer) clearInterval(timer);
-
-  remainingSec = CONFIG.TOTAL_LIMIT_SEC;
-  updateTimer();
-
-  timer = setInterval(() => {
-    remainingSec--;
-    updateTimer();
-
-    if (remainingSec <= 0) {
-      clearInterval(timer);
-      timer = null;
-      remainingSec = 0;
-      updateTimer();
-      finishInterviewByTimeout();
-    }
-  }, CONFIG.TIMER_TICK_MS);
-}
-
-function stopTimer() {
-  if (timer) clearInterval(timer);
-  timer = null;
-}
-
-function hideInterviewUI() {
-  if (timerSection) timerSection.style.display = "none";
-}
-
-function showInterviewUI() {
-  if (timerSection) timerSection.style.display = "block";
-}
-
-function setStatus(text) {
-  if (statusEl) statusEl.textContent = text || "";
-}
-
-function resetFeedback() {
-  if (feedbackPanel) feedbackPanel.style.display = "none";
-  if (feedbackScoreEl) feedbackScoreEl.textContent = "";
-  if (feedbackVerdictEl) feedbackVerdictEl.textContent = "";
-  if (feedbackCriteriaEl) feedbackCriteriaEl.innerHTML = "";
-}
-
-function renderFeedback(feedback) {
-  if (!feedback || !feedbackPanel) return;
-
-  feedbackPanel.style.display = "block";
-
-  if (feedbackScoreEl) {
-    feedbackScoreEl.textContent = Number(feedback.score || 0).toFixed(2);
-  }
-
-  if (feedbackVerdictEl) {
-    feedbackVerdictEl.textContent = feedback.verdict || "";
-  }
-
-  if (feedbackCriteriaEl) {
-    feedbackCriteriaEl.innerHTML = "";
-
-    const list = document.createElement("ul");
-    list.className = "mb-0";
-
-    for (const [name, value] of Object.entries(feedback.criteria_results || {})) {
-      const item = document.createElement("li");
-      const resultValue = Number(value?.result || 0).toFixed(2);
-      const verdict = value?.verdict ? ` — ${value.verdict}` : "";
-      item.textContent = `${name}: ${resultValue}${verdict}`;
-      list.appendChild(item);
-    }
-
-    feedbackCriteriaEl.appendChild(list);
-  }
-}
-
-function setButtons({ mainText, mainEnabled, showNext }) {
-  if (mainBtn) {
-    mainBtn.textContent = mainText;
-    mainBtn.disabled = !mainEnabled;
-  }
-  if (nextBtn) nextBtn.style.display = showNext ? "inline-block" : "none";
-}
-
-function renderQuestion() {
-  const q = QUESTIONS[questionIndex];
-  if (!q) return;
-
-  if (questionNumberEl) questionNumberEl.textContent = String(questionIndex + 1);
-  if (questionTextEl) questionTextEl.textContent = q.text || "";
-
-  if (nextBtn) {
-    nextBtn.textContent =
-      questionIndex === QUESTIONS.length - 1 ? "Закончить" : "Следующий вопрос";
-  }
-}
-
-function speak(text) {
-  return new Promise((resolve) => {
-    if (!window.speechSynthesis) return resolve();
-    window.speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = "ru-RU";
-    utter.onend = resolve;
-    utter.onerror = resolve;
-    window.speechSynthesis.speak(utter);
-  });
-}
-
-let sessionRecorder = null;
-let fullSessionChunks = [];
-
-function pickSupportedMimeType() {
-  const candidates = [
-    "audio/webm;codecs=opus",
-    "audio/webm",
-    "audio/ogg;codecs=opus",
-    "audio/ogg",
-  ];
-  for (const t of candidates) {
-    if (window.MediaRecorder && MediaRecorder.isTypeSupported(t)) return t;
-  }
-  return null;
-}
-
-async function ensureMic() {
-  if (mediaStream) return mediaStream;
-  mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  return mediaStream;
-}
-
-async function startSessionRecording() {
-  await ensureMic();
-  fullSessionChunks = [];
-  sessionStartTs = performance.now();
-  questionSegments = [];
-
-  const mimeType = pickSupportedMimeType();
-  sessionRecorder = mimeType
-    ? new MediaRecorder(mediaStream, { mimeType })
-    : new MediaRecorder(mediaStream);
-
-  sessionRecorder.ondataavailable = (e) => {
-    if (e.data && e.data.size > 0) fullSessionChunks.push(e.data);
+  const dom = {
+    timerSection: document.querySelector(".timer-section"),
+    timer: document.getElementById("timer"),
+    questionNumber: document.getElementById("question-number"),
+    questionTotal: document.getElementById("question-total"),
+    questionPlaceholder: document.getElementById("question-placeholder"),
+    questionText: document.getElementById("question-text"),
+    status: document.getElementById("status"),
+    feedbackPanel: document.getElementById("feedback-panel"),
+    feedbackScore: document.getElementById("feedback-score"),
+    feedbackVerdict: document.getElementById("feedback-verdict"),
+    feedbackCriteria: document.getElementById("feedback-criteria"),
+    mainBtn: document.getElementById("main-btn"),
+    endAnswerBtn: document.getElementById("end-answer-btn"),
+    nextBtn: document.getElementById("next-btn"),
+    stopBtn: document.getElementById("stop-btn"),
+    micIndicator: document.getElementById("mic-indicator"),
+    recordings: document.getElementById("recordings"),
   };
 
-  sessionRecorder.start();
-
-  startMicIndicator();
-}
-
-function stopSessionRecording() {
-  if (!sessionRecorder) return;
-
-  sessionRecorder.onstop = () => {
-    const blob = new Blob(fullSessionChunks, { type: "audio/webm" });
-    addFullSessionRecording(blob);
-    sendSessionToBackend(blob);
+  const state = {
+    bootstrapLoaded: false,
+    sessionId: null,
+    cancelUrl: null,
+    saveRecordingUrl: DEFAULT_SAVE_RECORDING_URL,
+    questions: [],
+    currentQuestionIndex: 0,
+    interviewStarted: false,
+    interviewFinished: false,
+    currentQuestionStartedAt: null,
+    currentQuestionText: "",
+    currentAnswerStartAtSec: null,
+    currentAnswerEndAtSec: null,
+    segments: [],
+    mediaRecorder: null,
+    mediaStream: null,
+    audioChunks: [],
+    recordingStartedAtMs: null,
+    recordingStopped: false,
+    speechSupported: "speechSynthesis" in window,
+    audioContext: null,
+    analyser: null,
+    micAnimationFrame: null,
   };
 
-  sessionRecorder.stop();
-}
-
-let vadInterval = null;
-function startMicIndicator() {
-  if (!mediaStream) return;
-  const AC = window.AudioContext || window.webkitAudioContext;
-  if (!AC) return;
-  const audioCtx = new AC();
-  const source = audioCtx.createMediaStreamSource(mediaStream);
-  const analyser = audioCtx.createAnalyser();
-  analyser.fftSize = 1024;
-  source.connect(analyser);
-  const data = new Uint8Array(analyser.fftSize);
-
-  setMic(true);
-
-  vadInterval = setInterval(() => {
-    analyser.getByteTimeDomainData(data);
-    let sum = 0;
-    for (let i = 0; i < data.length; i++) {
-      const x = (data[i] - 128) / 128;
-      sum += x * x;
+  function setStatus(text) {
+    if (dom.status) {
+      dom.status.textContent = text || "";
     }
-    const rms = Math.sqrt(sum / data.length);
-    setMicSpeaking(rms > CONFIG.VAD_THRESHOLD);
-  }, 50);
-}
-
-function stopMicIndicator() {
-  if (vadInterval) clearInterval(vadInterval);
-  vadInterval = null;
-  setMicSpeaking(false);
-  setMic(false);
-}
-
-function closeCurrentAnswer() {
-  if (currentAnswerStartTs == null) return;
-  const now = performance.now();
-  const q = QUESTIONS[questionIndex];
-  questionSegments.push({
-    question_id: q?.id || q?._id || null,
-    order: questionIndex,
-    start: (currentAnswerStartTs - sessionStartTs) / 1000,
-    end: (now - sessionStartTs) / 1000,
-  });
-  currentAnswerStartTs = null;
-}
-
-async function startInterview() {
-  showInterviewUI();
-  recordingsEl.innerHTML = "";
-  resetFeedback();
-  recordedDurationSec = 0;
-  questionIndex = 0;
-  state = "running";
-
-  if (questionTotalEl) questionTotalEl.textContent = QUESTIONS.length;
-
-  renderQuestion();
-  setStatus("Интервью началось");
-
-  setButtons({ mainText: "Озвучить вопрос", mainEnabled: true, showNext: false });
-
-  await startSessionRecording();
-  startGlobalCountdown();
-}
-
-async function askQuestion() {
-  const q = QUESTIONS[questionIndex];
-  if (!q) return;
-
-  setStatus("Озвучиваю вопрос…");
-  setButtons({ mainText: "Озвучивается…", mainEnabled: false, showNext: false });
-
-  await speak(q.text);
-
-  currentAnswerStartTs = performance.now();
-
-  setStatus("Говорите ответ");
-  setButtons({ mainText: "Озвучить вопрос", mainEnabled: false, showNext: true });
-}
-
-function nextQuestion() {
-  closeCurrentAnswer();
-  if (questionIndex < QUESTIONS.length - 1) {
-    questionIndex++;
-    renderQuestion();
-    askQuestion();
-    return;
   }
-  finishInterview();
-}
 
-function finishInterview() {
-  closeCurrentAnswer();
+  function setQuestionText(text) {
+    if (dom.questionPlaceholder) {
+      dom.questionPlaceholder.style.display = text ? "none" : "";
+    }
+    if (dom.questionText) {
+      dom.questionText.textContent = text || "";
+    }
+  }
 
-  recordedDurationSec = sessionStartTs == null
-    ? 0
-    : (performance.now() - sessionStartTs) / 1000;
+  function updateQuestionCounter() {
+    if (dom.questionNumber) {
+      dom.questionNumber.textContent = String(state.currentQuestionIndex + 1);
+    }
+    if (dom.questionTotal) {
+      dom.questionTotal.textContent = String(state.questions.length);
+    }
+  }
 
-  state = "finished";
-  stopTimer();
-  stopSessionRecording();
-  stopMicIndicator();
+  function setMicActive(active) {
+    if (!dom.micIndicator) return;
+    dom.micIndicator.style.opacity = active ? "1" : "0.35";
+  }
 
-  hideInterviewUI();
-  setStatus("Интервью завершено");
+  function showTimerSection() {
+    if (dom.timerSection) {
+      dom.timerSection.classList.remove("is-hidden");
+    }
+  }
 
-  setButtons({ mainText: "Начать заново", mainEnabled: true, showNext: false });
-}
+  function hideFeedback() {
+    if (dom.feedbackPanel) {
+      dom.feedbackPanel.style.display = "none";
+    }
+  }
 
-function finishInterviewByTimeout() {
-  setStatus("Время интервью вышло");
-  finishInterview();
-}
+  function showFeedback(feedback) {
+    if (!dom.feedbackPanel) return;
 
-function addFullSessionRecording(blob) {
-  const url = URL.createObjectURL(blob);
-  const card = document.createElement("div");
-  card.className = "mt-3 p-3 border rounded";
-  card.innerHTML = `
-    <strong>Запись всей тренировки</strong>
-    <audio controls src="${url}" class="mt-2 w-100"></audio>
-    <a href="${url}" download="interview_full.webm" class="d-block mt-2">
-      Скачать запись
-    </a>
-  `;
-  recordingsEl.appendChild(card);
-}
+    dom.feedbackPanel.style.display = "block";
+    dom.feedbackScore.textContent = feedback?.score ?? "—";
+    dom.feedbackVerdict.textContent = feedback?.verdict || "";
 
-async function sendSessionToBackend(blob) {
-  if (!SESSION_ID) return;
-
-  const form = new FormData();
-  form.append("audio", blob, "interview_full.webm");
-  form.append("session_id", SESSION_ID);
-  form.append("segments", JSON.stringify(questionSegments));
-  form.append("duration", String(recordedDurationSec.toFixed(2)));
-
-  try {
-    const resp = await fetch("/api/interview/recording", {
-      method: "POST",
-      body: form
+    const criteria = feedback?.criteria_results || {};
+    const lines = Object.entries(criteria).map(([name, item]) => {
+      const result = item?.result ?? "—";
+      const verdict = item?.verdict ? ` — ${item.verdict}` : "";
+      return `${name}: ${result}${verdict}`;
     });
 
-    const data = await resp.json();
+    dom.feedbackCriteria.innerHTML = lines.map((line) => `<div>${escapeHtml(line)}</div>`).join("");
+  }
 
-    if (!resp.ok) {
-      console.warn("Ошибка отправки записи:", resp.status, data);
-      setStatus(data?.error || "Не удалось сохранить интервью");
+  function escapeHtml(value) {
+    return String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function formatSeconds(seconds) {
+    const safeSeconds = Math.max(0, Math.floor(Number(seconds) || 0));
+    const mm = String(Math.floor(safeSeconds / 60)).padStart(2, "0");
+    const ss = String(safeSeconds % 60).padStart(2, "0");
+    return `${mm}:${ss}`;
+  }
+
+  function getElapsedRecordingSeconds() {
+    if (!state.recordingStartedAtMs) return 0;
+    return (Date.now() - state.recordingStartedAtMs) / 1000;
+  }
+
+  function getCurrentQuestionElapsedSeconds() {
+    if (!state.currentQuestionStartedAt) return 0;
+    return (Date.now() - state.currentQuestionStartedAt) / 1000;
+  }
+
+  let timerIntervalId = null;
+
+  function startTimer() {
+    stopTimer();
+    timerIntervalId = window.setInterval(() => {
+      if (dom.timer) {
+        dom.timer.textContent = formatSeconds(getCurrentQuestionElapsedSeconds());
+      }
+    }, 200);
+  }
+
+  function stopTimer() {
+    if (timerIntervalId) {
+      window.clearInterval(timerIntervalId);
+      timerIntervalId = null;
+    }
+  }
+
+  function resetTimer() {
+    stopTimer();
+    if (dom.timer) {
+      dom.timer.textContent = "00:00";
+    }
+  }
+
+  function setButtonsForIdle() {
+    dom.mainBtn.style.display = "";
+    dom.mainBtn.disabled = !state.bootstrapLoaded || state.questions.length === 0;
+    dom.mainBtn.textContent = state.interviewStarted ? "Повторить вопрос" : "Начать";
+
+    dom.endAnswerBtn.style.display = "none";
+    dom.nextBtn.style.display = "none";
+  }
+
+  function setButtonsForSpeaking() {
+    dom.mainBtn.style.display = "";
+    dom.mainBtn.disabled = true;
+    dom.mainBtn.textContent = "Озвучивается…";
+
+    dom.endAnswerBtn.style.display = "none";
+    dom.nextBtn.style.display = "none";
+  }
+
+  function setButtonsForAnswering() {
+    dom.mainBtn.style.display = "";
+    dom.mainBtn.disabled = true;
+    dom.mainBtn.textContent = "Идет ответ";
+
+    dom.endAnswerBtn.style.display = "";
+    dom.nextBtn.style.display = "none";
+  }
+
+  function setButtonsForAfterAnswer() {
+    dom.mainBtn.style.display = "";
+    dom.mainBtn.disabled = false;
+    dom.mainBtn.textContent = "Повторить вопрос";
+
+    dom.endAnswerBtn.style.display = "none";
+    dom.nextBtn.style.display = "";
+  }
+
+  function setButtonsForFinished() {
+    dom.mainBtn.style.display = "none";
+    dom.endAnswerBtn.style.display = "none";
+    dom.nextBtn.style.display = "none";
+  }
+
+  async function loadBootstrap() {
+    const response = await fetch(BOOTSTRAP_URL, {
+      method: "GET",
+      credentials: "same-origin",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok || payload.status === "failure" || payload.error) {
+      const errorMessage = payload.error || "Не удалось загрузить данные интервью.";
+      if (payload.redirect_url) {
+        window.location.href = payload.redirect_url;
+        return;
+      }
+      throw new Error(errorMessage);
+    }
+
+    state.sessionId = payload.sessionId || null;
+    state.cancelUrl = payload.cancelUrl || null;
+    state.saveRecordingUrl = payload.saveRecordingUrl || DEFAULT_SAVE_RECORDING_URL;
+    state.questions = Array.isArray(payload.questions) ? payload.questions : [];
+    state.bootstrapLoaded = true;
+
+    updateQuestionCounter();
+    setButtonsForIdle();
+  }
+
+  async function ensureMedia() {
+    if (state.mediaRecorder && state.mediaStream) {
       return;
     }
 
-    if (data.results_url) {
-      window.location.href = data.results_url;
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    state.mediaStream = stream;
+    state.audioChunks = [];
+
+    const mimeTypeCandidates = [
+      "audio/webm;codecs=opus",
+      "audio/webm",
+      "audio/ogg;codecs=opus",
+    ];
+    const selectedMimeType = mimeTypeCandidates.find((type) => window.MediaRecorder?.isTypeSupported?.(type));
+
+    state.mediaRecorder = selectedMimeType
+      ? new MediaRecorder(stream, { mimeType: selectedMimeType })
+      : new MediaRecorder(stream);
+
+    state.mediaRecorder.addEventListener("dataavailable", (event) => {
+      if (event.data && event.data.size > 0) {
+        state.audioChunks.push(event.data);
+      }
+    });
+
+    setupMicVisualizer(stream);
+  }
+
+  function setupMicVisualizer(stream) {
+    try {
+      state.audioContext = state.audioContext || new (window.AudioContext || window.webkitAudioContext)();
+      const source = state.audioContext.createMediaStreamSource(stream);
+      state.analyser = state.audioContext.createAnalyser();
+      state.analyser.fftSize = 256;
+      source.connect(state.analyser);
+
+      const dataArray = new Uint8Array(state.analyser.frequencyBinCount);
+
+      const tick = () => {
+        if (!state.analyser) return;
+        state.analyser.getByteTimeDomainData(dataArray);
+
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i += 1) {
+          const normalized = (dataArray[i] - 128) / 128;
+          sum += normalized * normalized;
+        }
+        const rms = Math.sqrt(sum / dataArray.length);
+        setMicActive(rms > 0.03);
+
+        state.micAnimationFrame = window.requestAnimationFrame(tick);
+      };
+
+      if (state.micAnimationFrame) {
+        window.cancelAnimationFrame(state.micAnimationFrame);
+      }
+      state.micAnimationFrame = window.requestAnimationFrame(tick);
+    } catch (error) {
+      console.warn("Mic visualizer setup failed:", error);
+    }
+  }
+
+  async function startRecordingIfNeeded() {
+    await ensureMedia();
+
+    if (!state.mediaRecorder) {
+      throw new Error("MediaRecorder is not available");
+    }
+
+    if (state.mediaRecorder.state === "inactive") {
+      state.audioChunks = [];
+      state.recordingStartedAtMs = Date.now();
+      state.recordingStopped = false;
+      state.mediaRecorder.start();
+    }
+  }
+
+  function stopRecordingAndGetBlob() {
+    return new Promise((resolve, reject) => {
+      if (!state.mediaRecorder) {
+        reject(new Error("Recorder is not initialized"));
+        return;
+      }
+
+      if (state.mediaRecorder.state === "inactive") {
+        const fallbackBlob = new Blob(state.audioChunks, { type: state.mediaRecorder.mimeType || "audio/webm" });
+        resolve(fallbackBlob);
+        return;
+      }
+
+      const handleStop = () => {
+        state.mediaRecorder.removeEventListener("stop", handleStop);
+        const blob = new Blob(state.audioChunks, { type: state.mediaRecorder.mimeType || "audio/webm" });
+        resolve(blob);
+      };
+
+      state.mediaRecorder.addEventListener("stop", handleStop, { once: true });
+
+      try {
+        state.mediaRecorder.stop();
+        state.recordingStopped = true;
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  async function speak(text, timeoutMs = 8000) {
+    if (!text) {
+      return { ok: true, skipped: true };
+    }
+
+    if (!window.speechSynthesis) {
+      return { ok: false, reason: "speechSynthesis_not_supported" };
+    }
+
+    return new Promise((resolve) => {
+      let finished = false;
+      let timeoutId = null;
+
+      const finish = (result) => {
+        if (finished) return;
+        finished = true;
+        if (timeoutId) {
+          window.clearTimeout(timeoutId);
+        }
+        resolve(result);
+      };
+
+      try {
+        window.speechSynthesis.cancel();
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = "ru-RU";
+        utterance.rate = 1;
+        utterance.pitch = 1;
+        utterance.volume = 1;
+
+        utterance.onend = () => finish({ ok: true });
+        utterance.onerror = (event) => finish({ ok: false, reason: event?.error || "speech_error" });
+
+        timeoutId = window.setTimeout(() => {
+          try {
+            window.speechSynthesis.cancel();
+          } catch (error) {
+            console.warn("speechSynthesis.cancel failed:", error);
+          }
+          finish({ ok: false, reason: "timeout" });
+        }, timeoutMs);
+
+        window.speechSynthesis.resume?.();
+        window.speechSynthesis.speak(utterance);
+      } catch (error) {
+        finish({ ok: false, reason: error?.message || "exception" });
+      }
+    });
+  }
+
+  async function askCurrentQuestion() {
+    const question = state.questions[state.currentQuestionIndex];
+    if (!question) {
       return;
     }
 
-    setStatus("Интервью завершено, но не удалось открыть страницу результатов");
-  } catch (err) {
-    console.error("Ошибка при fetch:", err);
-    setStatus("Ошибка при отправке интервью");
+    state.currentQuestionText = question.text || "";
+    updateQuestionCounter();
+    setQuestionText(state.currentQuestionText);
+    showTimerSection();
+    hideFeedback();
+
+    setButtonsForSpeaking();
+    setStatus("Озвучиваю вопрос…");
+
+    const speechResult = await speak(state.currentQuestionText);
+
+    if (!speechResult.ok) {
+      console.warn("Question TTS failed:", speechResult);
+      setStatus("Автоозвучка недоступна. Прочитайте вопрос на экране и отвечайте голосом.");
+    } else {
+      setStatus("Говорите ответ");
+    }
+
+    state.currentQuestionStartedAt = Date.now();
+    state.currentAnswerStartAtSec = getElapsedRecordingSeconds();
+    state.currentAnswerEndAtSec = null;
+
+    resetTimer();
+    startTimer();
+    setButtonsForAnswering();
   }
-}
 
+  async function startInterview() {
+    if (!state.bootstrapLoaded) {
+      setStatus("Данные интервью еще не загружены.");
+      return;
+    }
 
-mainBtn?.addEventListener("click", async () => {
-  if (state === "idle" || state === "finished") {
-    await startInterview();
-    return;
+    if (state.questions.length === 0) {
+      setStatus("Вопросы для интервью не найдены.");
+      return;
+    }
+
+    state.interviewStarted = true;
+    state.interviewFinished = false;
+    state.currentQuestionIndex = 0;
+    state.segments = [];
+    state.currentQuestionStartedAt = null;
+    state.currentAnswerStartAtSec = null;
+    state.currentAnswerEndAtSec = null;
+    state.recordingStartedAtMs = null;
+
+    setQuestionText("");
+    updateQuestionCounter();
+    hideFeedback();
+
+    await startRecordingIfNeeded();
+    await askCurrentQuestion();
   }
-  if (state === "running") {
-    await askQuestion();
+
+  function finishCurrentAnswer() {
+    if (!state.interviewStarted || state.interviewFinished) {
+      return;
+    }
+
+    const question = state.questions[state.currentQuestionIndex];
+    if (!question || state.currentAnswerStartAtSec == null) {
+      return;
+    }
+
+    state.currentAnswerEndAtSec = getElapsedRecordingSeconds();
+    stopTimer();
+
+    state.segments.push({
+      question_id: question.id,
+      order: state.currentQuestionIndex,
+      start: Number(state.currentAnswerStartAtSec.toFixed(3)),
+      end: Number(state.currentAnswerEndAtSec.toFixed(3)),
+      text: question.text,
+    });
+
+    appendRecordingRow({
+      title: `Вопрос ${state.currentQuestionIndex + 1}`,
+      duration: Math.max(0, state.currentAnswerEndAtSec - state.currentAnswerStartAtSec),
+      text: question.text,
+    });
+
+    setStatus("Ответ завершен.");
+    setButtonsForAfterAnswer();
   }
-});
 
-nextBtn?.addEventListener("click", nextQuestion);
-stopBtn?.addEventListener("click", finishInterview);
+  async function goToNextQuestion() {
+    if (state.currentQuestionIndex >= state.questions.length - 1) {
+      await finishInterview();
+      return;
+    }
 
+    state.currentQuestionIndex += 1;
+    await askCurrentQuestion();
+  }
 
-hideInterviewUI();
-setStatus("Нажмите «Начать», чтобы начать интервью");
+  async function finishInterview() {
+    if (state.interviewFinished) {
+      return;
+    }
+
+    state.interviewFinished = true;
+    stopTimer();
+    setButtonsForFinished();
+    setStatus("Сохраняем результаты интервью…");
+
+    try {
+      const audioBlob = await stopRecordingAndGetBlob();
+      const responsePayload = await uploadInterviewRecording(audioBlob);
+
+      showFeedback(responsePayload.feedback);
+      setStatus("Интервью завершено.");
+
+      if (responsePayload.results_url) {
+        window.location.href = responsePayload.results_url;
+      }
+    } catch (error) {
+      console.error(error);
+      setStatus(error.message || "Не удалось сохранить результаты интервью.");
+      setButtonsForAfterAnswer();
+      state.interviewFinished = false;
+    }
+  }
+
+  async function uploadInterviewRecording(audioBlob) {
+    const formData = new FormData();
+    formData.append("audio", audioBlob, "interview.webm");
+    formData.append("segments", JSON.stringify(state.segments));
+    formData.append("duration", String(getElapsedRecordingSeconds()));
+
+    const response = await fetch(state.saveRecordingUrl || DEFAULT_SAVE_RECORDING_URL, {
+      method: "POST",
+      credentials: "same-origin",
+      body: formData,
+    });
+
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok || payload.error) {
+      throw new Error(payload.error || "Не удалось сохранить запись интервью.");
+    }
+
+    return payload;
+  }
+
+  function appendRecordingRow({ title, duration, text }) {
+    if (!dom.recordings) return;
+
+    const item = document.createElement("div");
+    item.className = "recordings-item";
+
+    const safeTitle = escapeHtml(title);
+    const safeText = escapeHtml(text || "");
+    const durationText = formatSeconds(duration);
+
+    item.innerHTML = `
+      <div class="recordings-item-title">${safeTitle}</div>
+      <div class="recordings-item-duration">${durationText}</div>
+      <div class="recordings-item-text">${safeText}</div>
+    `;
+
+    dom.recordings.appendChild(item);
+  }
+
+  async function cancelSession() {
+    if (!state.cancelUrl) {
+      window.location.href = "/interview/upload/";
+      return;
+    }
+
+    const confirmed = window.confirm("Прервать текущую сессию и вернуться к загрузке документа?");
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(state.cancelUrl, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok || payload.error) {
+        throw new Error(payload.error || "Не удалось прервать сессию.");
+      }
+
+      if (payload.redirect_url) {
+        window.location.href = payload.redirect_url;
+        return;
+      }
+
+      window.location.href = "/interview/upload/";
+    } catch (error) {
+      console.error(error);
+      setStatus(error.message || "Не удалось прервать сессию.");
+    }
+  }
+
+  function bindEvents() {
+    dom.mainBtn?.addEventListener("click", async () => {
+      try {
+        if (!state.interviewStarted) {
+          await startInterview();
+        } else if (!state.interviewFinished) {
+          await askCurrentQuestion();
+        }
+      } catch (error) {
+        console.error(error);
+        setStatus(error.message || "Не удалось запустить интервью.");
+      }
+    });
+
+    dom.endAnswerBtn?.addEventListener("click", () => {
+      finishCurrentAnswer();
+    });
+
+    dom.nextBtn?.addEventListener("click", async () => {
+      try {
+        await goToNextQuestion();
+      } catch (error) {
+        console.error(error);
+        setStatus(error.message || "Не удалось перейти к следующему вопросу.");
+      }
+    });
+
+    dom.stopBtn?.addEventListener("click", async () => {
+      await cancelSession();
+    });
+
+    window.addEventListener("beforeunload", () => {
+      stopTimer();
+      if (state.micAnimationFrame) {
+        window.cancelAnimationFrame(state.micAnimationFrame);
+      }
+      if (state.mediaStream) {
+        state.mediaStream.getTracks().forEach((track) => track.stop());
+      }
+      try {
+        window.speechSynthesis?.cancel?.();
+      } catch (error) {
+        console.warn("speechSynthesis cancel failed:", error);
+      }
+    });
+  }
+
+  async function init() {
+    setButtonsForIdle();
+    hideFeedback();
+    resetTimer();
+    setStatus("Загружаем данные интервью…");
+
+    bindEvents();
+
+    try {
+      await loadBootstrap();
+
+      if (state.questions.length === 0) {
+        setStatus("Вопросы для интервью не найдены.");
+        dom.mainBtn.disabled = true;
+        return;
+      }
+
+      setStatus("");
+      updateQuestionCounter();
+      setButtonsForIdle();
+    } catch (error) {
+      console.error(error);
+      setStatus(error.message || "Не удалось загрузить интервью.");
+      dom.mainBtn.disabled = true;
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", init);
+})();

@@ -35,8 +35,14 @@
         <label class="upload-dropzone" for="document">
           <div class="upload-dropzone-icon"><i class="bi bi-cloud-arrow-up"></i></div>
           <div class="upload-dropzone-title">Выберите файл</div>
-          <div class="upload-dropzone-text">Поддерживаются: .docx, .doc, .txt, .rtf, .odt, .md</div>
-          <input id="document" name="document" type="file" accept=".docx,.doc,.txt,.rtf,.odt,.md" required>
+          <div class="upload-dropzone-text">Поддерживаются: {{ allowed_extensions_text }}</div>
+          <input
+            id="document"
+            name="document"
+            type="file"
+            accept="{{ allowed_extensions_accept }}"
+            required
+          >
         </label>
 
         <div id="selected-file-name" class="selected-file-name"></div>
@@ -54,7 +60,7 @@
 
       <div class="upload-title">Готовим интервью</div>
       <div id="processing-status-text" class="upload-subtitle">
-        Генерируем вопросы для интервью. Это может занять некоторое время...
+        Генерируем вопросы для интервью. Это может занять некоторое время... (до 2 минут)
       </div>
 
       {% if current_document_name %}
