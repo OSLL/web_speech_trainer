@@ -1,10 +1,11 @@
 import math
 
 from bson import ObjectId
-from flask import redirect, render_template, request, session, url_for
+from flask import render_template, request, session, url_for
 
 from app.interview import routes_interview
 from app.interview_evaluation import build_interview_results_data
+from app.interview_response import PageResponse
 from app.interview_utils import (
     build_invalid_format_message,
     cleanup_interview_generation_data,
@@ -33,31 +34,38 @@ logger = get_root_logger()
 def interview_upload_page():
     user_session = check_auth()
     if not user_session:
-        return 'User session not found', 404
+        return PageResponse.text('User session not found', 404).to_flask()
 
     session_id = session.get('session_id')
     if not session_id:
-        return 'Session id not found', 404
+        return PageResponse.text('Session id not found', 404).to_flask()
 
     task_manager = CeleryTaskDBManager()
     current_task = task_manager.get_task_record(session_id)
+    required_questions_count = get_default_interview_questions_count()
 
     if request.method == 'POST':
         uploaded_file = request.files.get('document')
 
         if uploaded_file is None or not uploaded_file.filename:
-            return render_upload_page(
-                task_record=current_task,
-                error_message=build_invalid_format_message(),
-                page_state='upload',
-            ), 400
+            return PageResponse.html(
+                render_upload_page(
+                    task_record=current_task,
+                    error_message=build_invalid_format_message(),
+                    page_state='upload',
+                ),
+                400,
+            ).to_flask()
 
         if not is_allowed_explanatory_note(uploaded_file.filename):
-            return render_upload_page(
-                task_record=current_task,
-                error_message=build_invalid_format_message(),
-                page_state='upload',
-            ), 400
+            return PageResponse.html(
+                render_upload_page(
+                    task_record=current_task,
+                    error_message=build_invalid_format_message(),
+                    page_state='upload',
+                ),
+                400,
+            ).to_flask()
 
         cleanup_interview_generation_data(session_id)
 
@@ -67,14 +75,14 @@ def interview_upload_page():
             filename=uploaded_file.filename,
             content_type=uploaded_file.mimetype,
             task_name=question_generation_task_service.task_name,
-            metadata={'questions_count': get_default_interview_questions_count()},
+            metadata={'questions_count': required_questions_count},
         )
 
         try:
             task_payload = question_generation_task_service.enqueue_generation(
                 session_id=session_id,
                 file_id=str(saved_task.file_id),
-                questions_count=get_default_interview_questions_count(),
+                questions_count=required_questions_count,
             )
             task_manager.mark_processing(
                 session_id=session_id,
@@ -90,86 +98,103 @@ def interview_upload_page():
                 cleanup_file=True,
             )
             current_task = task_manager.get_task_record(session_id)
-            return render_upload_page(
-                task_record=current_task,
-                error_message='Не удалось поставить задачу на генерацию вопросов. Попробуйте еще раз.',
-                page_state='upload',
-            ), 500
+            return PageResponse.html(
+                render_upload_page(
+                    task_record=current_task,
+                    error_message='Не удалось поставить задачу на генерацию вопросов. Попробуйте еще раз.',
+                    page_state='upload',
+                ),
+                500,
+            ).to_flask()
 
-        return render_upload_page(
-            task_record=current_task,
-            error_message=None,
-            page_state='processing',
-        ), 202
+        return PageResponse.html(
+            render_upload_page(
+                task_record=current_task,
+                error_message=None,
+                page_state='processing',
+            ),
+            202,
+        ).to_flask()
 
     if (
         current_task
         and (current_task.status or '').lower() == 'success'
-        and count_questions_by_session(session_id) >= get_default_interview_questions_count()
+        and count_questions_by_session(session_id) >= required_questions_count
     ):
-        return redirect(url_for('routes_interview.interview_page'))
+        return PageResponse.redirect(url_for('routes_interview.interview_page')).to_flask()
 
     if current_task and (current_task.status or '').lower() == 'processing':
-        return render_upload_page(task_record=current_task, page_state='processing'), 200
+        return PageResponse.html(
+            render_upload_page(task_record=current_task, page_state='processing'),
+            200,
+        ).to_flask()
 
     error_message = request.args.get('error')
     if not error_message and current_task and (current_task.status or '').lower() == 'failure':
         error_message = current_task.error_message or 'Не удалось сгенерировать вопросы. Загрузите документ заново.'
 
-    return render_upload_page(
-        task_record=current_task,
-        error_message=error_message,
-        page_state='upload',
-    ), 200
+    return PageResponse.html(
+        render_upload_page(
+            task_record=current_task,
+            error_message=error_message,
+            page_state='upload',
+        ),
+        200,
+    ).to_flask()
 
 
 @routes_interview.route('/interview/', methods=['GET'])
 def interview_page():
     user_session = check_auth()
     if not user_session:
-        return 'User session not found', 404
+        return PageResponse.text('User session not found', 404).to_flask()
 
     session_id = session.get('session_id')
     if not session_id:
-        return 'Session id not found', 404
+        return PageResponse.text('Session id not found', 404).to_flask()
 
     task_record = CeleryTaskDBManager().get_task_record(session_id)
     if task_record is None:
-        return redirect(url_for('routes_interview.interview_upload_page'))
+        return PageResponse.redirect(url_for('routes_interview.interview_upload_page')).to_flask()
 
     if (task_record.status or '').lower() != 'success':
-        return redirect(url_for('routes_interview.interview_upload_page'))
+        return PageResponse.redirect(url_for('routes_interview.interview_upload_page')).to_flask()
 
-    questions = list(QuestionsDBManager().get_questions_by_session(session_id)[:get_default_interview_questions_count()])
+    questions = list(
+        QuestionsDBManager().get_questions_by_session(session_id)[:get_default_interview_questions_count()]
+    )
     if not questions:
-        return redirect(url_for('routes_interview.interview_upload_page'))
+        return PageResponse.redirect(url_for('routes_interview.interview_upload_page')).to_flask()
 
     avatar_record = InterviewAvatarsDBManager().get_avatar_record(session_id)
     has_avatar = avatar_record is not None
 
-    return render_template(
-        'interview.html',
-        has_avatar=has_avatar,
-        session_id=session_id,
-        questions=questions,
-    ), 200
+    return PageResponse.html(
+        render_template(
+            'interview.html',
+            has_avatar=has_avatar,
+            session_id=session_id,
+            questions=questions,
+        ),
+        200,
+    ).to_flask()
 
 
 @routes_interview.route('/avatar_video')
 def avatar_video():
     user_session = check_auth()
     if not user_session:
-        return '', 404
+        return PageResponse.empty(404).to_flask()
 
     session_id = session.get('session_id')
     if not session_id:
-        return '', 404
+        return PageResponse.empty(404).to_flask()
 
     grid_out = InterviewAvatarsDBManager().get_avatar_file(session_id)
     if grid_out is None:
-        return '', 404
+        return PageResponse.empty(404).to_flask()
 
-    return partial_response_file(grid_out)
+    return PageResponse.html(partial_response_file(grid_out)).to_flask()
 
 
 @routes_interview.route('/interview/results/<recording_id>/', methods=['GET'])
@@ -177,21 +202,24 @@ def interview_results_page(recording_id):
     try:
         recording = InterviewRecording.objects.get({'_id': ObjectId(recording_id)})
     except Exception:
-        return 'Recording not found', 404
+        return PageResponse.text('Recording not found', 404).to_flask()
 
     questions = list(QuestionsDBManager().get_questions_by_session(recording.session_id))
     results_payload = build_interview_results_data(recording, questions)
 
-    return render_template(
-        'results.html',
-        total_score=results_payload['total_score'],
-        max_score=results_payload['max_score'],
-        verdict=results_payload['verdict'],
-        questions=results_payload['questions'],
-        results=results_payload['criteria'],
-        question_totals=results_payload['question_totals'],
-        restart_url=url_for('routes_interview.interview_upload_page'),
-    ), 200
+    return PageResponse.html(
+        render_template(
+            'results.html',
+            total_score=results_payload['total_score'],
+            max_score=results_payload['max_score'],
+            verdict=results_payload['verdict'],
+            questions=results_payload['questions'],
+            results=results_payload['criteria'],
+            question_totals=results_payload['question_totals'],
+            restart_url=url_for('routes_interview.interview_upload_page'),
+        ),
+        200,
+    ).to_flask()
 
 
 @routes_interview.route('/view_all_interviews/', methods=['GET'])
@@ -215,7 +243,7 @@ def view_all_interviews():
         page = 0
 
     if not (check_admin() or (is_logged_in() and session.get('session_id') == username)):
-        return {}, 404
+        return PageResponse.empty(404).to_flask()
 
     skip = page * count
     recordings = list(
@@ -251,14 +279,17 @@ def view_all_interviews():
 
     page_count = max(1, math.ceil(total_count / count))
 
-    return render_template(
-        'show_all_interviews.html',
-        page_title='Список интервью',
-        username=username,
-        interviews=interviews,
-        total_count=total_count,
-        current_page=page,
-        page_count=page_count,
-        count=count,
-        is_admin='true' if check_admin() else 'false',
-    ), 200
+    return PageResponse.html(
+        render_template(
+            'show_all_interviews.html',
+            page_title='Список интервью',
+            username=username,
+            interviews=interviews,
+            total_count=total_count,
+            current_page=page,
+            page_count=page_count,
+            count=count,
+            is_admin='true' if check_admin() else 'false',
+        ),
+        200,
+    ).to_flask()
