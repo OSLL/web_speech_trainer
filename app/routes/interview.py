@@ -51,6 +51,18 @@ def _delete_questions_by_session(session_id: str):
     return _get_questions_collection().delete_many({'session_id': session_id})
 
 
+def _cleanup_interview_generation_data(session_id: str) -> dict:
+    deleted_questions_result = _delete_questions_by_session(session_id)
+    deleted_note = InterviewExplanatoryNoteDBManager().delete_note(session_id)
+    deleted_task = CeleryTaskDBManager().delete_task(session_id, cleanup_file=True)
+
+    return {
+        'questions_deleted': getattr(deleted_questions_result, 'deleted_count', 0),
+        'note_deleted': 1 if deleted_note else 0,
+        'task_deleted': 1 if deleted_task else 0,
+    }
+
+
 def _cleanup_interview_session_data(session_id: str) -> dict:
     deleted_questions_result = _delete_questions_by_session(session_id)
     deleted_recordings_count = InterviewRecordingDBManager().delete_by_session(
@@ -142,7 +154,7 @@ def interview_upload_page():
                 page_state='upload',
             ), 400
 
-        _cleanup_interview_session_data(session_id)
+        _cleanup_interview_generation_data(session_id)
 
         saved_task = task_manager.add_or_update_task_file(
             session_id=session_id,
