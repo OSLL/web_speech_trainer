@@ -63,20 +63,6 @@
     <div id="recordings" class="recordings-list"></div>
   </div>
 
-  <script>
-    window.INTERVIEW_DATA = {
-      sessionId: "{{ session_id }}",
-      cancelUrl: "{{ url_for('routes_interview.cancel_interview_session') }}",
-      questions: [
-        {% for q in questions %}
-          {
-            id: "{{ q.id }}",
-            text: {{ q.text | tojson }}
-          }{% if not loop.last %},{% endif %}
-        {% endfor %}
-      ]
-    };
-  </script>
   <script src="{{ url_for('static', filename='js/interview.js') }}"></script>
 </div>
 {% endblock %}

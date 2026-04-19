@@ -173,8 +173,6 @@ def interview_page():
         render_template(
             'interview.html',
             has_avatar=has_avatar,
-            session_id=session_id,
-            questions=questions,
         ),
         200,
     ).to_flask()

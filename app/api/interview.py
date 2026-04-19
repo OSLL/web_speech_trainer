@@ -87,7 +87,7 @@ def questions_generation_status():
 
     if task_status in {'PENDING', 'STARTED', 'RETRY'}:
         return ApiResponse.processing(
-            'Генерируем вопросы для интервью. Это может занять некоторое время...',
+            'Генерируем вопросы для интервью. Это может занять некоторое время... (до 2 минут)',
             task_status=task_status,
         ).to_flask()
 
@@ -270,4 +270,47 @@ def get_interview_feedback(recording_id):
         score=feedback.score,
         verdict=feedback.verdict,
         criteria_results=feedback.criteria_results,
+    ).to_flask()
+
+@routes_interview.route('/api/interview/bootstrap/', methods=['GET'])
+def get_interview_bootstrap():
+    user_session = check_auth()
+    if not user_session:
+        return ApiResponse.error('User session not found', status_code=404).to_flask()
+
+    session_id = session.get('session_id')
+    if not session_id:
+        return ApiResponse.error('Session id not found', status_code=404).to_flask()
+
+    task_record = CeleryTaskDBManager().get_task_record(session_id)
+    if task_record is None or (task_record.status or '').lower() != 'success':
+        error_message = 'Интервью еще не готово. Загрузите документ заново.'
+        return ApiResponse.failure(
+            error_message,
+            status_code=404,
+            redirect_url=url_for('routes_interview.interview_upload_page'),
+        ).to_flask()
+
+    questions = list(
+        QuestionsDBManager().get_questions_by_session(session_id)[:get_default_interview_questions_count()]
+    )
+    if not questions:
+        error_message = 'Вопросы для интервью не найдены.'
+        return ApiResponse.failure(
+            error_message,
+            status_code=404,
+            redirect_url=url_for('routes_interview.interview_upload_page'),
+        ).to_flask()
+
+    return ApiResponse.ok(
+        sessionId=session_id,
+        cancelUrl=url_for('routes_interview.cancel_interview_session'),
+        saveRecordingUrl=url_for('routes_interview.save_interview_recording'),
+        questions=[
+            {
+                'id': str(getattr(q, 'pk', getattr(q, 'id', ''))),
+                'text': q.text,
+            }
+            for q in questions
+        ],
     ).to_flask()
