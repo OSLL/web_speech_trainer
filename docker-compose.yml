@@ -96,7 +96,10 @@ services:
       - whisper_models:/root/.cache/whisper
 
   app:
-    build: ./app/questions_generator
+    build:
+      context: .
+      dockerfile: app/questions_generator/Dockerfile
+      target: app
     stdin_open: true
     tty: true
     volumes:
@@ -111,7 +114,8 @@ services:
   celery_worker:
     build:
       context: .
-      dockerfile: ./app/questions_generator/Dockerfile_celery
+      dockerfile: app/questions_generator/Dockerfile
+      target: celery
     command: celery -A celery_app.celery_app worker --loglevel=info
     depends_on:
       - redis

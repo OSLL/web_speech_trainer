@@ -298,7 +298,7 @@ def interview_page():
     # session_id = session.get('session_id')
     # if not session_id:
     #     return 'Session id not found', 404
-    session_id = "hello, bro4"
+    session_id = "hello, bro8"
     session['session_id'] = session_id
 
     task_record = CeleryTaskDBManager().get_task_record(session_id)

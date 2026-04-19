@@ -19,23 +19,16 @@ def get_full_chapter_text(chapter):
 
     Возвращает строку с текстом, разделённым переносами строк.
     """
-    lines = [chapter["text"].strip()]
-
-    for child in chapter.get("child", []):
-        child_text = child["text"].strip()
-        if child_text:  # пропускаем пустые
-            lines.append(child_text)
-
-    return "\n".join(lines)
+    return "\n".join([chapter["text"].strip()] + [child["text"].strip()
+                                   for child in chapter.get("child", []) if child["text"].strip()])
 
 
 def make_chapters(chapters):
-    out = []
-    for item in chapters:
-        full_text = get_full_chapter_text(item)
-        if not (full_text.strip() == (item.get("text") or "").strip()):  # если заголовок совпадает с полным текстом, значит это просто глобальный заголовок и, неожиданно, внутри него самого нет текста
-            out.append(full_text)
-    return out
+    return [
+        full_text
+        for item in chapters
+        if (full_text := get_full_chapter_text(item)).strip() != item.get("text", "").strip()
+    ]
 
 
 class VkrQuestionGenerator:
