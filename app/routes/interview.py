@@ -32,9 +32,9 @@ logger = get_root_logger()
 
 @routes_interview.route('/interview/upload/', methods=['GET', 'POST'])
 def interview_upload_page():
-    user_session = check_auth()
-    if not user_session:
-        return PageResponse.text('User session not found', 404).to_flask()
+    # user_session = check_auth()
+    # if not user_session:
+    #     return PageResponse.text('User session not found', 404).to_flask()
 
     session_id = session.get('session_id')
     if not session_id:
@@ -145,9 +145,9 @@ def interview_upload_page():
 
 @routes_interview.route('/interview/', methods=['GET'])
 def interview_page():
-    user_session = check_auth()
-    if not user_session:
-        return PageResponse.text('User session not found', 404).to_flask()
+    # user_session = check_auth()
+    # if not user_session:
+    #     return PageResponse.text('User session not found', 404).to_flask()
 
     session_id = session.get('session_id')
     if not session_id:
@@ -180,9 +180,9 @@ def interview_page():
 
 @routes_interview.route('/avatar_video')
 def avatar_video():
-    user_session = check_auth()
-    if not user_session:
-        return PageResponse.empty(404).to_flask()
+    # user_session = check_auth()
+    # if not user_session:
+    #     return PageResponse.empty(404).to_flask()
 
     session_id = session.get('session_id')
     if not session_id:
