@@ -18,6 +18,8 @@ services:
     volumes:
       - ./database-dump:/app/dump/database-dump/
       - ./app_conf:/project/app_conf
+    environment:
+      - APP_CONF=${APP_CONF}
 
   audio_processor:
     <<: *wst-service

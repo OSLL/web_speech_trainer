@@ -5,7 +5,7 @@ from flask import jsonify, request, session, url_for
 from app.interview import routes_interview
 from app.interview_evaluation import evaluate_interview_recording
 from app.interview_utils import (
-    DEFAULT_INTERVIEW_QUESTIONS_COUNT,
+    get_default_interview_questions_count,
     build_upload_redirect_url,
     calculate_duration_from_segments,
     cleanup_interview_session_data,
@@ -65,7 +65,7 @@ def questions_generation_status():
             'redirect_url': build_upload_redirect_url(error_message),
         }), 200
 
-    if generation_status == 'success' and count_questions_by_session(session_id) >= DEFAULT_INTERVIEW_QUESTIONS_COUNT:
+    if generation_status == 'success' and count_questions_by_session(session_id) >= get_default_interview_questions_count():
         return jsonify({
             'status': 'success',
             'redirect_url': url_for('routes_interview.interview_page'),
@@ -92,7 +92,7 @@ def questions_generation_status():
 
     if task_status == 'SUCCESS':
         questions_count = count_questions_by_session(session_id)
-        if questions_count >= DEFAULT_INTERVIEW_QUESTIONS_COUNT:
+        if questions_count >= get_default_interview_questions_count():
             task_manager.mark_success(
                 session_id=session_id,
                 task_id=task_id,
@@ -105,7 +105,7 @@ def questions_generation_status():
             }), 200
 
         error_message = (
-            f'Сгенерировано недостаточно вопросов: {questions_count} из {DEFAULT_INTERVIEW_QUESTIONS_COUNT}. '
+            f'Сгенерировано недостаточно вопросов: {questions_count} из {get_default_interview_questions_count()}. '
             f'Загрузите документ заново.'
         )
         delete_questions_by_session(session_id)

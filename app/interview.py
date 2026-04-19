@@ -1,5 +1,6 @@
 from flask import Blueprint
 
+
 routes_interview = Blueprint('routes_interview', __name__)
 
 # Регистрируем handlers после создания blueprint, чтобы избежать циклических импортов.

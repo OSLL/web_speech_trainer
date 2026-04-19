@@ -6,10 +6,10 @@ from flask import redirect, render_template, request, session, url_for
 from app.interview import routes_interview
 from app.interview_evaluation import build_interview_results_data
 from app.interview_utils import (
-    DEFAULT_INTERVIEW_QUESTIONS_COUNT,
     build_invalid_format_message,
     cleanup_interview_generation_data,
     count_questions_by_session,
+    get_default_interview_questions_count,
     is_allowed_explanatory_note,
     partial_response_file,
     render_upload_page,
@@ -67,14 +67,14 @@ def interview_upload_page():
             filename=uploaded_file.filename,
             content_type=uploaded_file.mimetype,
             task_name=question_generation_task_service.task_name,
-            metadata={'questions_count': DEFAULT_INTERVIEW_QUESTIONS_COUNT},
+            metadata={'questions_count': get_default_interview_questions_count()},
         )
 
         try:
             task_payload = question_generation_task_service.enqueue_generation(
                 session_id=session_id,
                 file_id=str(saved_task.file_id),
-                questions_count=DEFAULT_INTERVIEW_QUESTIONS_COUNT,
+                questions_count=get_default_interview_questions_count(),
             )
             task_manager.mark_processing(
                 session_id=session_id,
@@ -105,7 +105,7 @@ def interview_upload_page():
     if (
         current_task
         and (current_task.status or '').lower() == 'success'
-        and count_questions_by_session(session_id) >= DEFAULT_INTERVIEW_QUESTIONS_COUNT
+        and count_questions_by_session(session_id) >= get_default_interview_questions_count()
     ):
         return redirect(url_for('routes_interview.interview_page'))
 
@@ -140,7 +140,7 @@ def interview_page():
     if (task_record.status or '').lower() != 'success':
         return redirect(url_for('routes_interview.interview_upload_page'))
 
-    questions = list(QuestionsDBManager().get_questions_by_session(session_id)[:DEFAULT_INTERVIEW_QUESTIONS_COUNT])
+    questions = list(QuestionsDBManager().get_questions_by_session(session_id)[:get_default_interview_questions_count()])
     if not questions:
         return redirect(url_for('routes_interview.interview_upload_page'))
 

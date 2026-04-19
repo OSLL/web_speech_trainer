@@ -1,26 +1,51 @@
 from flask import Response, render_template, request, url_for
 
-from app.interview import routes_interview
 from app.mongo_models import Questions
 from app.mongo_odm import (
     CeleryTaskDBManager,
     InterviewExplanatoryNoteDBManager,
 )
+from app.config import Config
 
-ALLOWED_EXPLANATORY_NOTE_EXTENSIONS = {'.docx', '.doc', '.txt', '.rtf', '.odt', '.md'}
-DEFAULT_INTERVIEW_QUESTIONS_COUNT = 3
-QUESTIONS_POLL_INTERVAL_MS = 2000
+
+def _get_config_constants():
+    conf = getattr(Config, 'c', None)
+    return getattr(conf, 'constants', None) if conf is not None else None
+
+
+def get_allowed_explanatory_note_extensions():
+    constants = _get_config_constants()
+    value = getattr(constants, 'allowed_explanatory_note_extensions', None) if constants else None
+    return value or {'.docx', '.doc', '.txt', '.rtf', '.odt', '.md'}
+
+
+def get_default_interview_questions_count():
+    constants = _get_config_constants()
+    value = getattr(constants, 'default_interview_questions_count', None) if constants else None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 3
+
+
+def get_questions_poll_interval_ms():
+    constants = _get_config_constants()
+    value = getattr(constants, 'questions_poll_intervals_ms', None) if constants else None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 2000
 
 
 def is_allowed_explanatory_note(filename: str | None) -> bool:
     if not filename:
         return False
     normalized = filename.lower()
-    return any(normalized.endswith(ext) for ext in ALLOWED_EXPLANATORY_NOTE_EXTENSIONS)
+    return any(normalized.endswith(ext) for ext in get_allowed_explanatory_note_extensions())
 
 
 def build_invalid_format_message() -> str:
-    allowed = ', '.join(sorted(ALLOWED_EXPLANATORY_NOTE_EXTENSIONS))
+    allowed = ', '.join(sorted(get_allowed_explanatory_note_extensions()))
     return f'Документ неверного формата. Допустимые форматы: {allowed}'
 
 
@@ -49,11 +74,6 @@ def cleanup_interview_generation_data(session_id: str) -> dict:
 
 
 def cleanup_interview_session_data(session_id: str) -> dict:
-    """
-    Полная очистка истории БОЛЬШЕ НЕ ДЕЛАЕТСЯ.
-    Даже "начать заново" чистит только текущие рабочие данные генерации,
-    но не трогает записи интервью и feedback.
-    """
     return cleanup_interview_generation_data(session_id)
 
 
@@ -86,7 +106,7 @@ def render_upload_page(task_record=None, error_message: str | None = None, page_
         current_document_name=get_current_document_name(task_record),
         page_state=page_state,
         task_id=task_record.task_id if task_record else '',
-        poll_interval_ms=QUESTIONS_POLL_INTERVAL_MS,
+        poll_interval_ms=get_questions_poll_interval_ms(),
         status_url=url_for('routes_interview.questions_generation_status'),
         interview_url=url_for('routes_interview.interview_page'),
         upload_url=url_for('routes_interview.interview_upload_page'),

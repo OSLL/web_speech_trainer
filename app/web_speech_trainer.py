@@ -153,6 +153,7 @@ if __name__ == '__main__':
     app.logger.propagate = False
     app.wsgi_app = ReverseProxied(app.wsgi_app)
     app.secret_key = Config.c.constants.app_secret_key
+    logger.info("!!!!!!!!!!!!!!FHFHF")
     
     app.config['BUG_REPORT_FORM'] = Config.c.bugreport.form_link
     app.config['BUG_REPORT_MAIL'] = Config.c.bugreport.report_mail
