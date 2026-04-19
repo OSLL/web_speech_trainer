@@ -1,7 +1,7 @@
 import json
 from flask import Blueprint, render_template, session, request, Response, jsonify, redirect, url_for
 from bson import ObjectId
-
+import math
 from app.interview_evaluation import evaluate_interview_recording, build_interview_results_data
 from app.mongo_models import InterviewRecording, Questions
 from app.mongo_odm import (
@@ -16,6 +16,7 @@ from app.mongo_odm import (
 from app.question_generation_task_service import question_generation_task_service
 from app.root_logger import get_root_logger
 from app.status import AudioStatus
+from app.lti_session_passback.auth_checkers import check_auth, check_admin, is_logged_in
 
 
 routes_interview = Blueprint('routes_interview', __name__)
@@ -107,13 +108,19 @@ def _render_upload_page(task_record=None, error_message: str | None = None, page
 
 @routes_interview.route('/interview/upload/', methods=['GET', 'POST'])
 def interview_upload_page():
-    # user_session = check_auth()
-    # if not user_session:
-    #     return 'User session not found', 404
+    user_session = check_auth()
+    if not user_session:
+        return 'User session not found', 404
 
     session_id = session.get('session_id')
     if not session_id:
         return 'Session id not found', 404
+
+    logger.debug("HAHAHAH! session_id: {}".format(session_id))
+
+    if not session_id:
+        return 'Session id not found', 404
+    session['session_id'] = session_id
 
     task_manager = CeleryTaskDBManager()
     current_task = task_manager.get_task_record(session_id)
@@ -197,9 +204,9 @@ def interview_upload_page():
 
 @routes_interview.route('/api/interview/questions-generation-status/', methods=['GET'])
 def questions_generation_status():
-    # user_session = check_auth()
-    # if not user_session:
-    #     return jsonify({'error': 'User session not found'}), 404
+    user_session = check_auth()
+    if not user_session:
+        return jsonify({'error': 'User session not found'}), 404
 
     session_id = session.get('session_id')
     if not session_id:
@@ -256,9 +263,11 @@ def questions_generation_status():
             'status_text': 'Генерируем вопросы для интервью. Это может занять некоторое время...',
         }), 200
 
+    required_questions_count = DEFAULT_INTERVIEW_QUESTIONS_COUNT
+
     if task_status == 'SUCCESS':
         questions_count = _count_questions_by_session(session_id)
-        if questions_count > 0:
+        if questions_count >= required_questions_count:
             task_manager.mark_success(
                 session_id=session_id,
                 task_id=task_id,
@@ -270,7 +279,10 @@ def questions_generation_status():
                 'redirect_url': url_for('routes_interview.interview_page'),
             }), 200
 
-        error_message = 'Задача завершилась успешно, но вопросы не были сохранены. Загрузите документ заново.'
+        error_message = (
+            f'Сгенерировано недостаточно вопросов: {questions_count} из {required_questions_count}. '
+            f'Загрузите документ заново.'
+        )
         _delete_questions_by_session(session_id)
         task_manager.mark_failure(
             session_id=session_id,
@@ -317,7 +329,7 @@ def cancel_interview_session():
         return jsonify({'error': 'Session id not found'}), 404
 
     cleanup_result = _cleanup_interview_session_data(session_id)
-    logger.info('Interview session cancelled for session_id=%s, cleanup=%s', session_id, cleanup_result)
+    logger.debug('Interview session cancelled for session_id=%s, cleanup=%s', session_id, cleanup_result)
 
     return jsonify({
         'status': 'success',
@@ -328,14 +340,16 @@ def cancel_interview_session():
 
 @routes_interview.route('/interview/', methods=['GET'])
 def interview_page():
-    # user_session = check_auth()
-    # if not user_session:
-    #     return 'User session not found', 404
-    #
-    # session_id = session.get('session_id')
-    # if not session_id:
-    #     return 'Session id not found', 404
-    session_id = "hello, bro4"
+    user_session = check_auth()
+    if not user_session:
+        return 'User session not found', 404
+
+    session_id = session.get('session_id')
+
+    logger.debug("HAHAHAH- session_id=%s", session_id)
+
+    if not session_id:
+        return 'Session id not found', 404
     session['session_id'] = session_id
 
     task_record = CeleryTaskDBManager().get_task_record(session_id)
@@ -351,8 +365,8 @@ def interview_page():
 
     avatar_record = InterviewAvatarsDBManager().get_avatar_record(session_id)
     has_avatar = avatar_record is not None
-    logger.info('session_id' + session_id)
-    logger.info(f'Questions count: {len(questions)}')
+    logger.debug('session_id' + session_id)
+    logger.debug(f'Questions count: {len(questions)}')
 
     return render_template(
         'interview.html',
@@ -435,9 +449,9 @@ def _partial_response_file(grid_out):
 
 @routes_interview.route('/avatar_video')
 def avatar_video():
-    # user_session = check_auth()
-    # if not user_session:
-    #     return '', 404
+    user_session = check_auth()
+    if not user_session:
+        return '', 404
 
     session_id = session.get('session_id')
     if not session_id:
@@ -465,9 +479,9 @@ def _calculate_duration_from_segments(segments):
 
 @routes_interview.route('/api/interview/recording', methods=['POST'])
 def save_interview_recording():
-    # user_session = check_auth()
-    # if not user_session:
-    #     return jsonify({'error': 'User session not found'}), 404
+    user_session = check_auth()
+    if not user_session:
+        return jsonify({'error': 'User session not found'}), 404
 
     real_session_id = session.get('session_id')
     if not real_session_id:
@@ -477,7 +491,7 @@ def save_interview_recording():
     segments_raw = request.form.get('segments')
     duration_raw = request.form.get('duration')
 
-    logger.info(
+    logger.debug(
         f"save_interview_recording: audio_file={'yes' if audio_file else 'no'}, "
         f"segments_raw_len={len(segments_raw) if segments_raw else 0}, "
         f'duration_raw={duration_raw}'
@@ -509,6 +523,12 @@ def save_interview_recording():
         question_segments=segments,
         status='recorded',
         audio_status=AudioStatus.NEW,
+        metadata={
+            'username': real_session_id,
+            'full_name': session.get('full_name', ''),
+            'task_id': session.get('task_id', ''),
+            'criteria_pack_id': session.get('criteria_pack_id', ''),
+        },
     ).save()
 
     questions = list(QuestionsDBManager().get_questions_by_session(real_session_id))
@@ -531,6 +551,7 @@ def save_interview_recording():
     recording.metadata = {
         **(recording.metadata or {}),
         'score': feedback_payload['score'],
+        'verdict': feedback_payload['verdict'],
     }
     recording.save()
 
@@ -545,9 +566,9 @@ def save_interview_recording():
 
 @routes_interview.route('/api/interview/feedback/<recording_id>', methods=['GET'])
 def get_interview_feedback(recording_id):
-    # user_session = check_auth()
-    # if not user_session:
-    #     return jsonify({'error': 'User session not found'}), 404
+    user_session = check_auth()
+    if not user_session:
+        return jsonify({'error': 'User session not found'}), 404
 
     feedback = InterviewFeedbackDBManager().get_feedback_by_recording_id(recording_id)
     if feedback is None:
@@ -581,4 +602,76 @@ def interview_results_page(recording_id):
         questions=results_payload['questions'],
         results=results_payload['criteria'],
         question_totals=results_payload['question_totals'],
+    ), 200
+
+@routes_interview.route('/view_all_interviews/', methods=['GET'])
+@routes_interview.route('/show_all_interviews/', methods=['GET'])
+def view_all_interviews():
+    username = request.args.get('username', '')
+
+    page = 0
+    count = 10
+
+    try:
+        page = int(request.args.get('page', '0'))
+    except Exception:
+        pass
+
+    try:
+        count = int(request.args.get('count', '10'))
+    except Exception:
+        pass
+
+    if count <= 0:
+        count = 10
+    if page < 0:
+        page = 0
+
+    if not (check_admin() or (is_logged_in() and session.get('session_id') == username)):
+        return {}, 404
+
+    skip = page * count
+    recordings = list(
+        InterviewRecordingDBManager().get_recordings_by_session(
+            username,
+            skip=skip,
+            limit=count,
+        )
+    )
+    total_count = InterviewRecordingDBManager().count_by_session(username)
+    feedback_map = InterviewFeedbackDBManager().get_feedback_map_by_session(username)
+
+    interviews = []
+    for recording in recordings:
+        feedback = feedback_map.get(str(recording.pk))
+        meta = recording.metadata or {}
+
+        interviews.append({
+            'recording_id': str(recording.pk),
+            'created_at': recording.created_at,
+            'duration': float(recording.duration or 0),
+            'status': recording.status or '',
+            'username': meta.get('username', recording.session_id),
+            'full_name': meta.get('full_name', ''),
+            'task_id': meta.get('task_id', ''),
+            'score': feedback.score if feedback else meta.get('score'),
+            'verdict': feedback.verdict if feedback else meta.get('verdict', ''),
+            'results_url': url_for(
+                'routes_interview.interview_results_page',
+                recording_id=str(recording.pk),
+            ),
+        })
+
+    page_count = max(1, math.ceil(total_count / count))
+
+    return render_template(
+        'show_all_interviews.html',
+        page_title='Список интервью',
+        username=username,
+        interviews=interviews,
+        total_count=total_count,
+        current_page=page,
+        page_count=page_count,
+        count=count,
+        is_admin="true" if check_admin() else 'false',
     ), 200

@@ -1091,6 +1091,21 @@ class InterviewRecordingDBManager:
         except InterviewRecording.DoesNotExist:
             return None
 
+    def get_recordings_by_session(self, session_id: str, skip: int = 0, limit: int | None = None):
+        query = InterviewRecording.objects.raw(
+            {"session_id": session_id}
+        ).order_by([("created_at", pymongo.DESCENDING)])
+
+        if skip:
+            query = query.skip(skip)
+        if limit is not None:
+            query = query.limit(limit)
+
+        return query
+
+    def count_by_session(self, session_id: str) -> int:
+        return InterviewRecording.objects.raw({"session_id": session_id}).count()
+
     def delete_by_session(self, session_id: str, cleanup_files: bool = False):
         recordings = list(InterviewRecording.objects.raw({"session_id": session_id}))
         if not recordings:
@@ -1134,6 +1149,10 @@ class InterviewFeedbackDBManager:
         except DoesNotExist:
             return None
 
+    def get_feedback_map_by_session(self, session_id: str):
+        feedbacks = InterviewFeedback.objects.raw({"session_id": session_id})
+        return {str(item.recording_id): item for item in feedbacks}
+
     def upsert_feedback(
         self,
         session_id,
@@ -1165,6 +1184,7 @@ class InterviewFeedbackDBManager:
         result = InterviewFeedback.objects.model._mongometa.collection.delete_many({"session_id": session_id})
         logger.info('Interview feedback deleted for session_id = {}, count = {}.'.format(session_id, result.deleted_count))
         return result.deleted_count
+
 
 class InterviewExplanatoryNoteDBManager:
     def __new__(cls):

@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="mb-3">
+        <h3>Интервью пользователя {{ username }}</h3>
+        <div class="text-muted">Всего записей: {{ total_count }}</div>
+    </div>
+
+    {% if interviews %}
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered align-middle">
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Пользователь</th>
+                        <th>ФИО</th>
+                        <th>Задание</th>
+                        <th>Длительность, сек</th>
+                        <th>Статус</th>
+                        <th>Балл</th>
+                        <th>Вердикт</th>
+                        <th>Результат</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in interviews %}
+                        <tr>
+                            <td>
+                                {% if item.created_at %}
+                                    {{ item.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td>{{ item.username or '' }}</td>
+                            <td>{{ item.full_name or '' }}</td>
+                            <td>{{ item.task_id or '' }}</td>
+                            <td>{{ '%.2f'|format(item.duration or 0) }}</td>
+                            <td>{{ item.status or '' }}</td>
+                            <td>
+                                {% if item.score is not none %}
+                                    {{ '%.2f'|format(item.score) }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td>{{ item.verdict or '' }}</td>
+                            <td>
+                                <a class="btn btn-sm btn-primary" href="{{ item.results_url }}">
+                                    Открыть
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <nav aria-label="Pagination">
+            <ul class="pagination">
+                <li class="page-item {% if current_page <= 0 %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('routes_interview.view_all_interviews', username=username, page=current_page-1, count=count) }}">
+                        Назад
+                    </a>
+                </li>
+
+                <li class="page-item disabled">
+                    <span class="page-link">
+                        Страница {{ current_page + 1 }} из {{ page_count }}
+                    </span>
+                </li>
+
+                <li class="page-item {% if current_page + 1 >= page_count %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('routes_interview.view_all_interviews', username=username, page=current_page+1, count=count) }}">
+                        Вперед
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    {% else %}
+        <div class="alert alert-info">
+            Интервью для этого пользователя пока не найдены.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
