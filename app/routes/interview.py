@@ -99,8 +99,7 @@ def interview_upload_page():
         force_upload=force_upload,
     )
     if upload_page_data.get('redirect_url'):
-        return PageResponse.redirect(url_for('routes_interview.interview_upload_page')).to_flask()
-
+        return PageResponse.redirect(upload_page_data['redirect_url']).to_flask()
     return PageResponse.html(render_upload_page(), 200).to_flask()
 
 
@@ -149,30 +148,25 @@ def avatar_video():
 
 @routes_interview.route('/interview/results/<recording_id>/', methods=['GET'])
 def interview_results_page(recording_id):
+    user_session = check_auth()
+    if not user_session:
+        return PageResponse.text('User session not found', 404).to_flask()
+
     try:
-        recording = InterviewRecording.objects.get({'_id': ObjectId(recording_id)})
+        ObjectId(recording_id)
     except Exception:
         return PageResponse.text('Recording not found', 404).to_flask()
-
-    questions = list(QuestionsDBManager().get_questions_by_session(recording.session_id))
-    results_payload = build_interview_results_data(recording, questions)
 
     return PageResponse.html(
         render_template(
             'results.html',
-            total_score=results_payload['total_score'],
-            max_score=results_payload['max_score'],
-            verdict=results_payload['verdict'],
-            questions=results_payload['questions'],
-            results=results_payload['criteria'],
-            question_totals=results_payload['question_totals'],
+            results_data_url=url_for('routes_interview.get_interview_results_data', recording_id=recording_id),
             restart_url=url_for('routes_interview.interview_upload_page'),
         ),
         200,
     ).to_flask()
 
 
-@routes_interview.route('/view_all_interviews/', methods=['GET'])
 @routes_interview.route('/show_all_interviews/', methods=['GET'])
 def view_all_interviews():
     username = request.args.get('username', '')

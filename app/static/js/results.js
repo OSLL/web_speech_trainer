@@ -1,14 +1,28 @@
 (function () {
+  function normalizeResultsPayload(rawPayload) {
+    const payload = rawPayload?.data || rawPayload?.result || rawPayload || {};
+
+    return {
+      totalScore: Number(payload.total_score ?? payload.totalScore ?? 0),
+      maxScore: Number(payload.max_score ?? payload.maxScore ?? 0),
+      verdict: payload.verdict || "",
+      questions: payload.questions || [],
+      results: payload.results || payload.criteria || [],
+      questionTotals: payload.question_totals || payload.questionTotals || []
+    };
+  }
+
   function init() {
+    const pageRoot = document.getElementById("results-page");
     const totalScoreEl = document.getElementById("total-score");
     const resultsVerdictEl = document.getElementById("results-verdict");
     const questionsLegendEl = document.getElementById("questions-legend");
     const resultsHead = document.getElementById("results-head");
     const resultsBody = document.getElementById("results-body");
     const resultsFoot = document.getElementById("results-foot");
-    const restartBtn = document.getElementById("restart-btn");
+    const resultsUrl = pageRoot?.dataset?.resultsUrl;
 
-    const DATA = window.RESULTS_DATA || {
+    let DATA = {
       totalScore: 0,
       maxScore: 0,
       verdict: "",
@@ -16,6 +30,37 @@
       results: [],
       questionTotals: []
     };
+
+    function setLoadingState() {
+      if (totalScoreEl) totalScoreEl.textContent = "Загрузка...";
+      if (resultsVerdictEl) resultsVerdictEl.textContent = "";
+      if (questionsLegendEl) questionsLegendEl.innerHTML = "";
+      if (resultsHead) resultsHead.innerHTML = "";
+      if (resultsBody) resultsBody.innerHTML = "";
+      if (resultsFoot) resultsFoot.innerHTML = "";
+    }
+
+    function setErrorState(message) {
+      const text = message || "Не удалось загрузить результаты интервью.";
+
+      if (totalScoreEl) totalScoreEl.textContent = "—";
+      if (resultsVerdictEl) resultsVerdictEl.textContent = text;
+      if (questionsLegendEl) questionsLegendEl.innerHTML = "";
+      if (resultsHead) resultsHead.innerHTML = "";
+      if (resultsFoot) resultsFoot.innerHTML = "";
+
+      if (!resultsBody) return;
+
+      resultsBody.innerHTML = "";
+
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 100;
+      td.className = "criterion-name-cell";
+      td.textContent = text;
+      tr.appendChild(td);
+      resultsBody.appendChild(tr);
+    }
 
     function renderTotalScore() {
       if (!totalScoreEl) return;
@@ -170,15 +215,42 @@
       resultsFoot.appendChild(tr);
     }
 
-    restartBtn?.addEventListener("click", () => {
-      window.location.href = "/interview/";
-    });
+    async function loadResults() {
+      if (!resultsUrl) {
+        setErrorState("Не задан URL для загрузки результатов интервью.");
+        return;
+      }
 
-    renderTotalScore();
-    renderQuestionsLegend();
-    renderHeader();
-    renderBody();
-    renderFooter();
+      setLoadingState();
+
+      try {
+        const response = await fetch(resultsUrl, {
+          method: "GET",
+          headers: {
+            Accept: "application/json"
+          },
+          credentials: "same-origin"
+        });
+
+        const rawPayload = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(rawPayload?.message || rawPayload?.error || "Не удалось загрузить результаты интервью.");
+        }
+
+        DATA = normalizeResultsPayload(rawPayload);
+
+        renderTotalScore();
+        renderQuestionsLegend();
+        renderHeader();
+        renderBody();
+        renderFooter();
+      } catch (error) {
+        setErrorState(error?.message);
+      }
+    }
+
+    loadResults();
   }
 
   if (document.readyState === "loading") {

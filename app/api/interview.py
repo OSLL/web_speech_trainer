@@ -1,7 +1,14 @@
 import json
 
 from flask import request, session, url_for
+import json
 
+from bson import ObjectId
+from flask import request, session, url_for
+
+from app.interview_evaluation import (
+    build_interview_results_data,
+)
 from app.interview import routes_interview
 from app.interview_evaluation import evaluate_interview_recording
 from app.interview_response import ApiResponse
@@ -332,4 +339,28 @@ def get_interview_feedback(recording_id):
         score=feedback.score,
         verdict=feedback.verdict,
         criteria_results=feedback.criteria_results,
+    ).to_flask()
+
+@routes_interview.route('/api/interview/results/<recording_id>/', methods=['GET'])
+def get_interview_results_data(recording_id):
+    user_session = check_auth()
+    if not user_session:
+        return ApiResponse.error('User session not found', status_code=404).to_flask()
+
+    try:
+        recording = InterviewRecording.objects.get({'_id': ObjectId(recording_id)})
+    except Exception:
+        return ApiResponse.error('Recording not found', status_code=404).to_flask()
+
+    questions = list(QuestionsDBManager().get_questions_by_session(recording.session_id))
+    results_payload = build_interview_results_data(recording, questions)
+
+    return ApiResponse.ok(
+        recording_id=str(recording.pk),
+        total_score=results_payload['total_score'],
+        max_score=results_payload['max_score'],
+        verdict=results_payload['verdict'],
+        questions=results_payload['questions'],
+        results=results_payload['criteria'],
+        question_totals=results_payload['question_totals'],
     ).to_flask()

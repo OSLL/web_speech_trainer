@@ -5,15 +5,15 @@
 {% endblock %}
 
 {% block content %}
-<div class="results-container">
+<div class="results-container" id="results-page" data-results-url="{{ results_data_url }}">
   <div class="results-card">
 
     <h1 class="results-title">Результаты интервью</h1>
 
     <div class="total-score-block">
       <div class="total-score-label">Общий балл</div>
-      <div class="total-score-value" id="total-score"></div>
-      <div class="results-verdict" id="results-verdict">{{ verdict }}</div>
+      <div class="total-score-value" id="total-score">Загрузка...</div>
+      <div class="results-verdict" id="results-verdict"></div>
     </div>
 
     <div class="questions-legend" id="questions-legend"></div>
@@ -32,17 +32,6 @@
 
   </div>
 </div>
-
-<script>
-  window.RESULTS_DATA = {
-    totalScore: {{ total_score | tojson }},
-    maxScore: {{ max_score | tojson }},
-    verdict: {{ verdict | tojson }},
-    questions: {{ questions | tojson }},
-    results: {{ results | tojson }},
-    questionTotals: {{ question_totals | tojson }}
-  };
-</script>
 
 <script src="{{ url_for('static', filename='js/results.js') }}"></script>
 {% endblock %}
