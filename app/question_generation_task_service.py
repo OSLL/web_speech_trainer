@@ -53,13 +53,6 @@ class QuestionGenerationTaskService:
                 broker=redis_url,
                 backend=redis_url,
             )
-            cls._celery_app.conf.update(
-                task_serializer="json",
-                result_serializer="json",
-                accept_content=["json"],
-                task_track_started=True,
-                task_time_limit=60 * 60,
-            )
         return cls._celery_app
 
     @classmethod
