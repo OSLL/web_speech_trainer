@@ -7,13 +7,14 @@ from types import SimpleNamespace
 import nltk
 from celery_app import celery_app
 from generator import VkrQuestionGenerator
+from app.mongo_odm import DBManager
+from app.mongo_odms.interview_odms import QuestionsDBManager
+from app.config import Config
 
 logger = logging.getLogger(__name__)
 
 
 def _build_minimal_config_from_ini():
-    from app.config import Config
-
     if getattr(Config, "c", None) is not None:
         return Config.c
 
@@ -104,9 +105,6 @@ def _ensure_nltk_resources():
 def generate_questions(self, session_id: str, file_id: str, questions_count: int):
     _build_minimal_config_from_ini()
     _ensure_nltk_resources()
-
-    from app.mongo_odm import DBManager, QuestionsDBManager
-
     db = DBManager()
     qdb = QuestionsDBManager()
 

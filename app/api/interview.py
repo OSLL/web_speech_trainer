@@ -29,6 +29,8 @@ from app.lti_session_passback.auth_checkers import check_auth
 from app.mongo_models import InterviewRecording
 from app.mongo_odm import (
     DBManager,
+)
+from app.mongo_odms.interview_odms import (
     CeleryTaskDBManager,
     InterviewFeedbackDBManager,
     QuestionsDBManager,

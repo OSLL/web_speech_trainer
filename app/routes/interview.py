@@ -18,13 +18,12 @@ from app.interview_utils import (
     render_upload_page,
 )
 from app.lti_session_passback.auth_checkers import check_admin, check_auth, is_logged_in
-from app.mongo_models import InterviewRecording
-from app.mongo_odm import (
-    CeleryTaskDBManager,
+
+from app.mongo_odms.interview_odms import (
     InterviewAvatarsDBManager,
     InterviewFeedbackDBManager,
     InterviewRecordingDBManager,
-    QuestionsDBManager,
+    CeleryTaskDBManager
 )
 from app.question_generation_task_service import question_generation_task_service
 from app.root_logger import get_root_logger
