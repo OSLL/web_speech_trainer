@@ -5,9 +5,32 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 {% endblock %}
 {% block content %}
-<div class="interview-container upload-page-container">
+<div
+  id="interview-upload-page"
+  class="interview-container upload-page-container"
+  data-upload-state-url="{{ upload_state_url }}"
+  data-status-url="{{ status_url }}"
+  data-interview-url="{{ interview_url }}"
+  data-upload-url="{{ upload_url }}"
+  data-default-poll-interval-ms="{{ poll_interval_ms|int }}"
+>
   <div class="upload-card">
-    <div id="upload-mode" class="{% if page_state == 'processing' %}ui-hidden{% endif %}">
+    <div id="upload-page-bootstrap-mode">
+      <div class="upload-icon processing-icon">
+        <i class="bi bi-arrow-repeat"></i>
+      </div>
+
+      <div class="upload-title">Загружаем данные</div>
+      <div class="upload-subtitle">
+        Подготавливаем страницу загрузки документа...
+      </div>
+
+      <div class="processing-spinner-wrap">
+        <div class="processing-spinner"></div>
+      </div>
+    </div>
+
+    <div id="upload-mode" class="ui-hidden">
       <div class="upload-icon">
         <i class="bi bi-file-earmark-text"></i>
       </div>
@@ -17,19 +40,9 @@
         Перед началом интервью загрузите текстовый документ. После успешной загрузки вы автоматически перейдете к интервью.
       </div>
 
-      <div
-        id="upload-error"
-        class="upload-alert {% if not error_message %}ui-hidden{% endif %}"
-      >
-        {{ error_message or '' }}
-      </div>
+      <div id="upload-error" class="upload-alert ui-hidden"></div>
 
-      <div
-        id="current-document"
-        class="current-document {% if not current_document_name %}ui-hidden{% endif %}"
-      >
-        Текущий документ: <strong>{{ current_document_name or '' }}</strong>
-      </div>
+      <div id="current-document" class="current-document ui-hidden"></div>
 
       <form id="upload-form" method="post" enctype="multipart/form-data" class="upload-form">
         <label class="upload-dropzone" for="document">
@@ -47,21 +60,17 @@
       </form>
     </div>
 
-    <div id="processing-mode" class="{% if page_state != 'processing' %}ui-hidden{% endif %}">
+    <div id="processing-mode" class="ui-hidden">
       <div class="upload-icon processing-icon">
         <i class="bi bi-hourglass-split"></i>
       </div>
 
       <div class="upload-title">Готовим интервью</div>
       <div id="processing-status-text" class="upload-subtitle">
-        Генерируем вопросы для интервью. Это может занять некоторое время...
+        Генерируем вопросы для интервью. Это может занять некоторое время... (до 2 минут)
       </div>
 
-      {% if current_document_name %}
-        <div class="current-document">
-          Загруженный документ: <strong>{{ current_document_name }}</strong>
-        </div>
-      {% endif %}
+      <div id="processing-current-document" class="current-document ui-hidden"></div>
 
       <div class="processing-spinner-wrap">
         <div class="processing-spinner"></div>
@@ -70,14 +79,5 @@
   </div>
 </div>
 
-<script>
-  window.INTERVIEW_UPLOAD_DATA = {
-    isProcessing: {{ 'true' if page_state == 'processing' else 'false' }},
-    pollIntervalMs: {{ poll_interval_ms|int }},
-    statusUrl: {{ status_url|tojson }},
-    interviewUrl: {{ interview_url|tojson }},
-    uploadUrl: {{ upload_url|tojson }}
-  };
-</script>
 <script src="{{ url_for('static', filename='js/interview_upload.js') }}"></script>
 {% endblock %}

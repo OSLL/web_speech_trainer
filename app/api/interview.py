@@ -6,6 +6,7 @@ from app.interview import routes_interview
 from app.interview_evaluation import evaluate_interview_recording
 from app.interview_response import ApiResponse
 from app.interview_utils import (
+    build_interview_upload_page_data,
     build_upload_redirect_url,
     calculate_duration_from_segments,
     cleanup_interview_session_data,
@@ -30,6 +31,35 @@ from app.root_logger import get_root_logger
 from app.status import AudioStatus
 
 logger = get_root_logger()
+
+
+@routes_interview.route('/api/interview/upload-page-state/', methods=['GET'])
+def get_interview_upload_page_state():
+    user_session = check_auth()
+    if not user_session:
+        return ApiResponse.error('User session not found', status_code=404).to_flask()
+
+    session_id = session.get('session_id')
+    if not session_id:
+        error_message = 'Session id not found'
+        return ApiResponse.failure(
+            error_message,
+            status_code=404,
+            redirect_url=build_upload_redirect_url(error_message),
+        ).to_flask()
+
+    task_record = CeleryTaskDBManager().get_task_record(session_id)
+    upload_page_data = build_interview_upload_page_data(
+        session_id=session_id,
+        task_record=task_record,
+        error_message=request.args.get('error'),
+        force_upload=request.args.get('force_upload') == '1',
+    )
+
+    if upload_page_data.get('redirect_url'):
+        return ApiResponse.success(redirect_url=upload_page_data['redirect_url']).to_flask()
+
+    return ApiResponse.ok(**upload_page_data).to_flask()
 
 
 @routes_interview.route('/api/interview/questions-generation-status/', methods=['GET'])

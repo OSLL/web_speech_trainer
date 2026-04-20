@@ -154,6 +154,46 @@ def build_upload_redirect_url(error_message: str | None = None) -> str:
     return url_for('routes_interview.interview_upload_page')
 
 
+def build_interview_upload_page_data(
+    session_id: str,
+    task_record=None,
+    error_message: str | None = None,
+    force_upload: bool = False,
+) -> dict:
+    required_questions_count = get_default_interview_questions_count()
+    task_status = (task_record.status or '').lower() if task_record is not None else ''
+
+    redirect_url = None
+    page_state = 'upload'
+
+    if (
+        not force_upload
+        and task_record is not None
+        and task_status == 'success'
+        and count_questions_by_session(session_id) >= required_questions_count
+    ):
+        redirect_url = url_for('routes_interview.interview_page')
+    elif (
+        not force_upload
+        and task_record is not None
+        and task_status == 'processing'
+    ):
+        page_state = 'processing'
+
+    if not error_message and task_status == 'failure':
+        error_message = task_record.error_message or 'Не удалось сгенерировать вопросы. Загрузите документ заново.'
+
+    return {
+        'page_state': page_state,
+        'error_message': error_message or '',
+        'current_document_name': get_current_document_name(task_record),
+        'processing_status_text': 'Генерируем вопросы для интервью. Это может занять некоторое время...',
+        'poll_interval_ms': get_questions_poll_interval_ms(),
+        'required_questions_count': required_questions_count,
+        'redirect_url': redirect_url,
+    }
+
+
 import ast
 
 DEFAULT_ALLOWED_EXPLANATORY_NOTE_EXTENSIONS = ['.doc', '.docx', '.md', '.odt', '.rtf', '.txt']
@@ -196,6 +236,7 @@ def render_upload_page(task_record=None, error_message: str | None = None, page_
         page_state=page_state,
         task_id=task_record.task_id if task_record else '',
         poll_interval_ms=get_questions_poll_interval_ms(),
+        upload_state_url=url_for('routes_interview.get_interview_upload_page_state'),
         status_url=url_for('routes_interview.questions_generation_status'),
         interview_url=url_for('routes_interview.interview_page'),
         upload_url=url_for('routes_interview.interview_upload_page'),

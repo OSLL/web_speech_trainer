@@ -7,9 +7,10 @@ from app.interview import routes_interview
 from app.interview_evaluation import build_interview_results_data
 from app.interview_response import PageResponse
 from app.interview_utils import (
+    build_interview_upload_page_data,
     build_invalid_format_message,
+    build_upload_redirect_url,
     cleanup_interview_generation_data,
-    count_questions_by_session,
     get_default_interview_questions_count,
     get_ready_interview_questions,
     is_allowed_explanatory_note,
@@ -43,31 +44,17 @@ def interview_upload_page():
 
     task_manager = CeleryTaskDBManager()
     current_task = task_manager.get_task_record(session_id)
-    required_questions_count = get_default_interview_questions_count()
     force_upload = request.args.get('force_upload') == '1'
 
     if request.method == 'POST':
         uploaded_file = request.files.get('document')
+        invalid_format_message = build_invalid_format_message()
 
         if uploaded_file is None or not uploaded_file.filename:
-            return PageResponse.html(
-                render_upload_page(
-                    task_record=current_task,
-                    error_message=build_invalid_format_message(),
-                    page_state='upload',
-                ),
-                400,
-            ).to_flask()
+            return PageResponse.redirect(build_upload_redirect_url(invalid_format_message)).to_flask()
 
         if not is_allowed_explanatory_note(uploaded_file.filename):
-            return PageResponse.html(
-                render_upload_page(
-                    task_record=current_task,
-                    error_message=build_invalid_format_message(),
-                    page_state='upload',
-                ),
-                400,
-            ).to_flask()
+            return PageResponse.redirect(build_upload_redirect_url(invalid_format_message)).to_flask()
 
         cleanup_interview_generation_data(session_id)
 
@@ -77,10 +64,11 @@ def interview_upload_page():
             filename=uploaded_file.filename,
             content_type=uploaded_file.mimetype,
             task_name=question_generation_task_service.task_name,
-            metadata={'questions_count': required_questions_count},
+            metadata={'questions_count': get_default_interview_questions_count()},
         )
 
         try:
+            required_questions_count = get_default_interview_questions_count()
             task_payload = question_generation_task_service.enqueue_generation(
                 session_id=session_id,
                 file_id=str(saved_task.file_id),
@@ -91,7 +79,6 @@ def interview_upload_page():
                 task_id=task_payload['task_id'],
                 task_name=question_generation_task_service.task_name,
             )
-            current_task = task_manager.get_task_record(session_id)
         except Exception:
             logger.exception('Failed to enqueue question generation task for session_id=%s', session_id)
             task_manager.mark_failure(
@@ -99,55 +86,22 @@ def interview_upload_page():
                 error_message='Не удалось поставить задачу на генерацию вопросов. Попробуйте еще раз.',
                 cleanup_file=True,
             )
-            current_task = task_manager.get_task_record(session_id)
-            return PageResponse.html(
-                render_upload_page(
-                    task_record=current_task,
-                    error_message='Не удалось поставить задачу на генерацию вопросов. Попробуйте еще раз.',
-                    page_state='upload',
-                ),
-                500,
+            return PageResponse.redirect(
+                build_upload_redirect_url('Не удалось поставить задачу на генерацию вопросов. Попробуйте еще раз.')
             ).to_flask()
 
-        return PageResponse.html(
-            render_upload_page(
-                task_record=current_task,
-                error_message=None,
-                page_state='processing',
-            ),
-            202,
-        ).to_flask()
+        return PageResponse.html(render_upload_page(), 202).to_flask()
 
-    if (
-        not force_upload
-        and current_task
-        and (current_task.status or '').lower() == 'success'
-        and count_questions_by_session(session_id) >= required_questions_count
-    ):
-        return PageResponse.redirect(url_for('routes_interview.interview_page')).to_flask()
+    upload_page_data = build_interview_upload_page_data(
+        session_id=session_id,
+        task_record=current_task,
+        error_message=request.args.get('error'),
+        force_upload=force_upload,
+    )
+    if upload_page_data.get('redirect_url'):
+        return PageResponse.redirect(url_for('routes_interview.interview_upload_page')).to_flask()
 
-    if (
-        not force_upload
-        and current_task
-        and (current_task.status or '').lower() == 'processing'
-    ):
-        return PageResponse.html(
-            render_upload_page(task_record=current_task, page_state='processing'),
-            200,
-        ).to_flask()
-
-    error_message = request.args.get('error')
-    if not error_message and current_task and (current_task.status or '').lower() == 'failure':
-        error_message = current_task.error_message or 'Не удалось сгенерировать вопросы. Загрузите документ заново.'
-
-    return PageResponse.html(
-        render_upload_page(
-            task_record=current_task,
-            error_message=error_message,
-            page_state='upload',
-        ),
-        200,
-    ).to_flask()
+    return PageResponse.html(render_upload_page(), 200).to_flask()
 
 
 @routes_interview.route('/interview/', methods=['GET'])

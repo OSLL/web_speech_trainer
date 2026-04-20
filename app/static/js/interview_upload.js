@@ -1,17 +1,33 @@
 (function () {
   function init() {
-    const config = window.INTERVIEW_UPLOAD_DATA || {};
-    const uploadMode = document.getElementById('upload-mode');
-    const processingMode = document.getElementById('processing-mode');
-    const uploadError = document.getElementById('upload-error');
-    const processingStatusText = document.getElementById('processing-status-text');
-    const currentDocument = document.getElementById('current-document');
-    const fileInput = document.getElementById('document');
-    const selectedFileName = document.getElementById('selected-file-name');
-    const uploadForm = document.getElementById('upload-form');
-    const uploadSubmitBtn = document.getElementById('upload-submit-btn');
+    var pageRoot = document.getElementById('interview-upload-page');
+    if (!pageRoot) {
+      return;
+    }
 
-    let pollTimer = null;
+    var config = {
+      uploadStateUrl: pageRoot.dataset.uploadStateUrl || '/api/interview/upload-page-state/',
+      statusUrl: pageRoot.dataset.statusUrl || '/api/interview/questions-generation-status/',
+      interviewUrl: pageRoot.dataset.interviewUrl || '/interview/',
+      uploadUrl: pageRoot.dataset.uploadUrl || '/interview/upload/',
+      defaultPollIntervalMs: Number(pageRoot.dataset.defaultPollIntervalMs || 2000)
+    };
+
+    var bootstrapMode = document.getElementById('upload-page-bootstrap-mode');
+    var uploadMode = document.getElementById('upload-mode');
+    var processingMode = document.getElementById('processing-mode');
+    var uploadError = document.getElementById('upload-error');
+    var processingStatusText = document.getElementById('processing-status-text');
+    var currentDocument = document.getElementById('current-document');
+    var processingCurrentDocument = document.getElementById('processing-current-document');
+    var fileInput = document.getElementById('document');
+    var selectedFileName = document.getElementById('selected-file-name');
+    var uploadForm = document.getElementById('upload-form');
+    var uploadSubmitBtn = document.getElementById('upload-submit-btn');
+
+    var pollTimer = null;
+    var pollIntervalMs = config.defaultPollIntervalMs;
+    var currentProcessingDocumentName = '';
 
     function showElement(element) {
       if (element) {
@@ -25,6 +41,17 @@
       }
     }
 
+    function hideBootstrapMode() {
+      hideElement(bootstrapMode);
+    }
+
+    function stopPolling() {
+      if (pollTimer) {
+        window.clearTimeout(pollTimer);
+        pollTimer = null;
+      }
+    }
+
     function setUploadError(message) {
       if (!uploadError) {
         return;
@@ -33,121 +60,253 @@
       if (message) {
         uploadError.textContent = message;
         showElement(uploadError);
+      } else {
+        uploadError.textContent = '';
+        hideElement(uploadError);
+      }
+    }
+
+    function setCurrentDocument(element, prefix, documentName) {
+      if (!element) {
         return;
       }
 
-      uploadError.textContent = '';
-      hideElement(uploadError);
+      if (!documentName) {
+        element.innerHTML = '';
+        hideElement(element);
+        return;
+      }
+
+      element.innerHTML = prefix + ': <strong></strong>';
+      var strong = element.querySelector('strong');
+      if (strong) {
+        strong.textContent = documentName;
+      }
+      showElement(element);
     }
 
-    function showUploadState(message) {
-      if (pollTimer) {
-        window.clearTimeout(pollTimer);
-        pollTimer = null;
-      }
+    function showUploadState(options) {
+      var errorMessage = options && options.errorMessage ? options.errorMessage : '';
+      var currentDocumentName = options && options.currentDocumentName ? options.currentDocumentName : '';
 
+      stopPolling();
+      hideBootstrapMode();
       showElement(uploadMode);
       hideElement(processingMode);
-      setUploadError(message || '');
-
-      if (fileInput) {
-        fileInput.value = '';
-      }
-
-      if (selectedFileName) {
-        selectedFileName.textContent = '';
-      }
+      setUploadError(errorMessage);
+      setCurrentDocument(currentDocument, 'Текущий документ', currentDocumentName);
+      setCurrentDocument(processingCurrentDocument, 'Загруженный документ', '');
 
       if (uploadSubmitBtn) {
         uploadSubmitBtn.disabled = false;
         uploadSubmitBtn.textContent = 'Продолжить';
       }
-
-      if (currentDocument && !currentDocument.textContent.trim()) {
-        hideElement(currentDocument);
-      }
     }
 
-    function showProcessingState(message) {
+    function showProcessingState(message, currentDocumentName) {
+      hideBootstrapMode();
       hideElement(uploadMode);
       showElement(processingMode);
+      setUploadError('');
+
+      if (currentDocumentName) {
+        currentProcessingDocumentName = currentDocumentName;
+      }
+
+      setCurrentDocument(currentDocument, 'Текущий документ', '');
+      setCurrentDocument(processingCurrentDocument, 'Загруженный документ', currentProcessingDocumentName);
 
       if (processingStatusText) {
         processingStatusText.textContent =
-          message || 'Пожалуйста, подождите. Мы анализируем документ и готовим вопросы.';
+          message || 'Генерируем вопросы для интервью. Это может занять некоторое время...';
       }
     }
 
     function buildUploadRedirectUrl(errorMessage) {
-      const baseUrl = config.uploadUrl || '/interview/upload/';
-      const url = new URL(baseUrl, window.location.origin);
-
+      var url = new URL(config.uploadUrl, window.location.origin);
       if (errorMessage) {
         url.searchParams.set('error', errorMessage);
       }
+      return url.toString();
+    }
+
+    function buildUploadStateUrl() {
+      var url = new URL(config.uploadStateUrl, window.location.origin);
+      var currentSearchParams = new URLSearchParams(window.location.search);
+
+      currentSearchParams.forEach(function (value, key) {
+        url.searchParams.set(key, value);
+      });
 
       return url.toString();
     }
 
-    async function pollStatus() {
-      try {
-        const response = await fetch(config.statusUrl, {
-          method: 'GET',
-          headers: {
-            Accept: 'application/json',
-          },
-          credentials: 'same-origin',
-          cache: 'no-store',
-        });
+    async function fetchJson(url) {
+      var response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json'
+        },
+        credentials: 'same-origin',
+        cache: 'no-store'
+      });
 
-        let payload = {};
-        try {
-          payload = await response.json();
-        } catch (error) {
-          payload = {};
+      var payload = {};
+      try {
+        payload = await response.json();
+      } catch (e) {
+        payload = {};
+      }
+
+      return { response: response, payload: payload };
+    }
+
+    function getPayloadErrorMessage(payload, fallbackMessage) {
+      return (
+        payload.error_message ||
+        payload.error ||
+        payload.message ||
+        fallbackMessage ||
+        'Не удалось загрузить данные страницы.'
+      );
+    }
+
+    async function loadInitialPageState() {
+      try {
+        var result = await fetchJson(buildUploadStateUrl());
+        var payload = result.payload || {};
+
+        if (payload.redirect_url) {
+          window.location.href = payload.redirect_url;
+          return;
         }
 
+        if (payload.poll_interval_ms) {
+          pollIntervalMs = Number(payload.poll_interval_ms) || config.defaultPollIntervalMs;
+        }
+
+        if (payload.page_state === 'processing') {
+          showProcessingState(
+            payload.processing_status_text || 'Генерируем вопросы для интервью. Это может занять некоторое время...',
+            payload.current_document_name || ''
+          );
+          pollStatus();
+          return;
+        }
+
+        showUploadState({
+          errorMessage: payload.error_message || '',
+          currentDocumentName: payload.current_document_name || ''
+        });
+      } catch (e) {
+        showUploadState({
+          errorMessage: '',
+          currentDocumentName: ''
+        });
+      }
+    }
+
+    async function pollStatus() {
+      try {
+        var result = await fetchJson(config.statusUrl);
+        var payload = result.payload || {};
+
         if (payload.status === 'success') {
-          window.location.href = payload.redirect_url || config.interviewUrl || '/interview/';
+          window.location.href = payload.redirect_url || config.interviewUrl;
           return;
         }
 
         if (payload.status === 'failure') {
           window.location.href =
-            payload.redirect_url || buildUploadRedirectUrl(payload.error || 'Не удалось сгенерировать вопросы.');
+            payload.redirect_url ||
+            buildUploadRedirectUrl(getPayloadErrorMessage(payload, 'Не удалось сгенерировать вопросы.'));
           return;
         }
 
         showProcessingState(
-          payload.status_text || 'Генерируем вопросы для интервью. Это может занять некоторое время...'
+          payload.status_text || 'Генерируем вопросы для интервью. Это может занять некоторое время...',
+          currentProcessingDocumentName
         );
-      } catch (error) {
-        showProcessingState('Проверяем статус генерации вопросов...');
+      } catch (e) {
+        showProcessingState(
+          'Проверяем статус генерации вопросов...',
+          currentProcessingDocumentName
+        );
       }
 
-      pollTimer = window.setTimeout(pollStatus, config.pollIntervalMs || 2000);
+      pollTimer = window.setTimeout(pollStatus, pollIntervalMs);
+    }
+
+    async function submitUploadForm(event) {
+      event.preventDefault();
+
+      var selectedFile = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+      if (!selectedFile) {
+        showUploadState({
+          errorMessage: 'Выберите файл для загрузки.',
+          currentDocumentName: ''
+        });
+        return;
+      }
+
+      currentProcessingDocumentName = selectedFile.name;
+
+      if (uploadSubmitBtn) {
+        uploadSubmitBtn.disabled = true;
+        uploadSubmitBtn.textContent = 'Загружаем...';
+      }
+
+      showProcessingState(
+        'Загружаем документ и запускаем генерацию вопросов...',
+        currentProcessingDocumentName
+      );
+
+      stopPolling();
+
+      try {
+        var formData = new FormData(uploadForm);
+
+        var response = await fetch(config.uploadUrl, {
+          method: 'POST',
+          body: formData,
+          credentials: 'same-origin',
+          redirect: 'follow'
+        });
+
+        if (response.redirected) {
+          window.location.href = response.url;
+          return;
+        }
+
+        if (!response.ok && response.status !== 202) {
+          showUploadState({
+            errorMessage: 'Не удалось загрузить документ. Попробуйте еще раз.',
+            currentDocumentName: ''
+          });
+          return;
+        }
+
+        pollStatus();
+      } catch (e) {
+        showUploadState({
+          errorMessage: 'Не удалось загрузить документ. Проверьте соединение и попробуйте снова.',
+          currentDocumentName: ''
+        });
+      }
     }
 
     if (fileInput && selectedFileName) {
       fileInput.addEventListener('change', function () {
-        const file = fileInput.files && fileInput.files[0];
-        selectedFileName.textContent = file ? `Выбран файл: ${file.name}` : '';
+        var file = fileInput.files && fileInput.files[0];
+        selectedFileName.textContent = file ? ('Выбран файл: ' + file.name) : '';
       });
     }
 
-    if (uploadForm && uploadSubmitBtn) {
-      uploadForm.addEventListener('submit', function () {
-        uploadSubmitBtn.disabled = true;
-        uploadSubmitBtn.textContent = 'Загружаем...';
-      });
+    if (uploadForm) {
+      uploadForm.addEventListener('submit', submitUploadForm);
     }
 
-    if (config.isProcessing) {
-      showProcessingState();
-      pollStatus();
-    } else {
-      showUploadState(uploadError ? uploadError.textContent.trim() : '');
-    }
+    loadInitialPageState();
   }
 
   if (document.readyState === 'loading') {
