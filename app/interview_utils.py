@@ -4,6 +4,7 @@ from app.mongo_models import Questions
 from app.mongo_odm import (
     CeleryTaskDBManager,
     InterviewExplanatoryNoteDBManager,
+    QuestionsDBManager,
 )
 from app.config import Config
 
@@ -21,30 +22,36 @@ def get_default_interview_questions_count():
     except (TypeError, ValueError):
         return 3
 
+
 def get_interview_criteria_pack_id():
     constants = get_config_constants()
     value = getattr(constants, 'interview_criteria_pack_id', None) if constants else None
     return value
+
 
 def get_interview_feedback_evaluation_id():
     constants = get_config_constants()
     value = getattr(constants, 'interview_feedback_evaluation_id', None) if constants else None
     return int(value)
 
+
 def get_ideal_answer_min_sec():
     constants = get_config_constants()
     value = getattr(constants, 'ideal_answer_min_sec', None) if constants else None
     return int(value)
+
 
 def get_ideal_answer_max_sec():
     constants = get_config_constants()
     value = getattr(constants, 'ideal_answer_max_sec', None) if constants else None
     return int(value)
 
+
 def get_min_answer_sec():
     constants = get_config_constants()
     value = getattr(constants, 'min_answer_sec', None) if constants else None
     return int(value)
+
 
 def get_questions_poll_interval_ms():
     constants = get_config_constants()
@@ -105,11 +112,41 @@ def get_current_document_name(task_record) -> str | None:
     return task_record.filename or None
 
 
+def get_ready_interview_questions(session_id: str):
+    task_record = CeleryTaskDBManager().get_task_record(session_id)
+    if task_record is None:
+        return []
+
+    if (task_record.status or '').lower() != 'success':
+        return []
+
+    return list(
+        QuestionsDBManager().get_questions_by_session(session_id)[:get_default_interview_questions_count()]
+    )
+
+def serialize_questions_for_client(questions):
+    serialized_questions = []
+
+    for question in questions:
+        question_pk = getattr(question, 'pk', None) or getattr(question, '_id', None)
+        question_text = getattr(question, 'text', '')
+        question_order = getattr(question, 'order', 0)
+
+        serialized_questions.append(
+            {
+                'id': str(question_pk) if question_pk is not None else '',
+                'text': question_text,
+                'order': question_order,
+            }
+        )
+
+    return serialized_questions
+
+
 def extract_task_error_message(task_payload: dict) -> str:
     error = (task_payload or {}).get('error') or {}
     message = error.get('message') if isinstance(error, dict) else None
     return message or 'Не удалось сгенерировать вопросы. Попробуйте загрузить документ снова.'
-
 
 def build_upload_redirect_url(error_message: str | None = None) -> str:
     if error_message:
@@ -120,7 +157,6 @@ def build_upload_redirect_url(error_message: str | None = None) -> str:
 import ast
 
 DEFAULT_ALLOWED_EXPLANATORY_NOTE_EXTENSIONS = ['.doc', '.docx', '.md', '.odt', '.rtf', '.txt']
-
 
 def get_allowed_explanatory_note_extensions():
     constants = get_config_constants()
@@ -150,6 +186,8 @@ def get_allowed_explanatory_note_extensions_accept():
 
 def get_allowed_explanatory_note_extensions_label():
     return ', '.join(get_allowed_explanatory_note_extensions())
+
+
 def render_upload_page(task_record=None, error_message: str | None = None, page_state: str = 'upload'):
     return render_template(
         'interview_upload.html',

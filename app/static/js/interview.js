@@ -6,9 +6,12 @@ document.addEventListener("DOMContentLoaded", () => {
     TIMER_TICK_MS: 1000,
   };
 
-  const QUESTIONS = window.INTERVIEW_DATA?.questions || [];
-  const SESSION_ID = window.INTERVIEW_DATA?.sessionId || null;
-  const CANCEL_URL = window.INTERVIEW_DATA?.cancelUrl || "/api/interview/cancel-session/";
+  const API = {
+    SESSION_DATA_URL: "/api/interview/session-data/",
+    RECORDING_URL: "/api/interview/recording",
+    CANCEL_URL: "/api/interview/cancel-session/",
+  };
+
   const feedbackPanel = document.getElementById("feedback-panel");
   const feedbackScoreEl = document.getElementById("feedback-score");
   const feedbackVerdictEl = document.getElementById("feedback-verdict");
@@ -30,6 +33,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const micIndicator = document.getElementById("mic-indicator");
   const recordingsEl = document.getElementById("recordings");
 
+  let questions = [];
+  let dataLoaded = false;
   let state = "idle";
   let questionIndex = 0;
   let recordedDurationSec = 0;
@@ -41,7 +46,9 @@ document.addEventListener("DOMContentLoaded", () => {
   let micArmed = false;
   let micSpeaking = false;
 
-  if (questionTotalEl) questionTotalEl.textContent = QUESTIONS.length;
+  function getCurrentQuestion() {
+    return questions[questionIndex] || null;
+  }
 
   function applyMicIndicator() {
     if (!micIndicator) return;
@@ -174,7 +181,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderQuestion() {
-    const q = QUESTIONS[questionIndex];
+    const q = getCurrentQuestion();
     if (!q) return;
 
     hideQuestionPlaceholder();
@@ -184,7 +191,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (nextBtn) {
       nextBtn.textContent =
-        questionIndex === QUESTIONS.length - 1 ? "Закончить" : "Следующий вопрос";
+        questionIndex === questions.length - 1 ? "Закончить" : "Следующий вопрос";
     }
   }
 
@@ -326,7 +333,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function closeCurrentAnswer() {
     if (currentAnswerStartTs == null) return;
     const now = performance.now();
-    const q = QUESTIONS[questionIndex];
+    const q = getCurrentQuestion();
     questionSegments.push({
       question_id: q?.id || q?._id || null,
       order: questionIndex,
@@ -347,13 +354,73 @@ document.addEventListener("DOMContentLoaded", () => {
     if (recordingsEl) recordingsEl.innerHTML = "";
     if (questionTextEl) questionTextEl.textContent = "";
     if (questionNumberEl) questionNumberEl.textContent = "1";
-    if (questionTotalEl) questionTotalEl.textContent = QUESTIONS.length;
+    if (questionTotalEl) questionTotalEl.textContent = String(questions.length);
 
     showQuestionPlaceholder("Вопросы появятся здесь после старта интервью");
     resetFeedback();
   }
 
+  async function loadInterviewData() {
+    dataLoaded = false;
+    questions = [];
+
+    setButtons({ mainText: "Загрузка...", mainEnabled: false, showNext: false });
+    showQuestionPlaceholder("Загружаем вопросы интервью...");
+    setStatus("Загружаю данные интервью...");
+
+    try {
+      const resp = await fetch(API.SESSION_DATA_URL, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+
+      const data = await resp.json().catch(() => ({}));
+
+      if (!resp.ok) {
+        if (data?.redirect_url) {
+          window.location.href = data.redirect_url;
+          return;
+        }
+        throw new Error(data?.error || "Не удалось загрузить данные интервью");
+      }
+
+      questions = Array.isArray(data.questions) ? data.questions : [];
+
+      if (!questions.length) {
+        if (data?.redirect_url) {
+          window.location.href = data.redirect_url;
+          return;
+        }
+        throw new Error("Вопросы для интервью не найдены");
+      }
+
+      questionIndex = 0;
+      dataLoaded = true;
+
+      if (questionTotalEl) {
+        questionTotalEl.textContent = String(data.total_questions || questions.length);
+      }
+
+      showQuestionPlaceholder("Вопросы появятся здесь после старта интервью");
+      setStatus("Нажмите «Начать», чтобы начать интервью");
+      setButtons({ mainText: "Начать", mainEnabled: true, showNext: false });
+    } catch (err) {
+      questions = [];
+      if (questionTotalEl) questionTotalEl.textContent = "0";
+      showQuestionPlaceholder("Не удалось загрузить вопросы интервью");
+      setStatus(err?.message || "Не удалось загрузить данные интервью");
+      setButtons({ mainText: "Начать", mainEnabled: false, showNext: false });
+    }
+  }
+
   async function startInterview() {
+    if (!dataLoaded || !questions.length) {
+      setStatus("Вопросы еще не загружены");
+      return;
+    }
+
     showInterviewUI();
     resetInterviewStateForRestart();
     state = "running";
@@ -368,7 +435,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function askQuestion() {
-    const q = QUESTIONS[questionIndex];
+    const q = getCurrentQuestion();
     if (!q) return;
 
     setStatus("Озвучиваю вопрос…");
@@ -384,7 +451,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function nextQuestion() {
     closeCurrentAnswer();
-    if (questionIndex < QUESTIONS.length - 1) {
+    if (questionIndex < questions.length - 1) {
       questionIndex++;
       renderQuestion();
       askQuestion();
@@ -438,21 +505,18 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function sendSessionToBackend(blob) {
-    if (!SESSION_ID) return;
-
     const form = new FormData();
     form.append("audio", blob, "interview_full.webm");
-    form.append("session_id", SESSION_ID);
     form.append("segments", JSON.stringify(questionSegments));
     form.append("duration", String(recordedDurationSec.toFixed(2)));
 
     try {
-      const resp = await fetch("/api/interview/recording", {
+      const resp = await fetch(API.RECORDING_URL, {
         method: "POST",
         body: form,
       });
 
-      const data = await resp.json();
+      const data = await resp.json().catch(() => ({}));
 
       if (!resp.ok) {
         console.warn("Ошибка отправки записи:", resp.status, data);
@@ -463,6 +527,10 @@ document.addEventListener("DOMContentLoaded", () => {
       if (data.results_url) {
         window.location.href = data.results_url;
         return;
+      }
+
+      if (data.feedback) {
+        renderFeedback(data.feedback);
       }
 
       setStatus("Интервью завершено, но не удалось открыть страницу результатов");
@@ -492,17 +560,11 @@ document.addEventListener("DOMContentLoaded", () => {
     await stopSessionRecording({ upload: false, renderRecording: false });
 
     try {
-      const resp = await fetch(CANCEL_URL, {
+      const resp = await fetch(API.CANCEL_URL, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          session_id: SESSION_ID,
-        }),
       });
 
-      const data = await resp.json();
+      const data = await resp.json().catch(() => ({}));
 
       if (!resp.ok) {
         console.warn("Ошибка при отмене интервью:", resp.status, data);
@@ -521,7 +583,7 @@ document.addEventListener("DOMContentLoaded", () => {
       state = "idle";
       setStatus("Сессия прервана, но ссылка для перехода не получена");
     } catch (err) {
-      console.error("Ошибка при отмене интервью:", err);
+      console.error("Ошибка при прерывании интервью:", err);
       stopBtn.disabled = false;
       state = "idle";
       setStatus("Ошибка при прерывании сессии");
@@ -544,6 +606,9 @@ document.addEventListener("DOMContentLoaded", () => {
   stopBtn?.addEventListener("click", cancelInterviewSession);
 
   hideInterviewUI();
-  showQuestionPlaceholder("Вопросы появятся здесь после старта интервью");
-  setStatus("Нажмите «Начать», чтобы начать интервью");
+  showQuestionPlaceholder("Загружаем вопросы интервью...");
+  setButtons({ mainText: "Загрузка...", mainEnabled: false, showNext: false });
+  setStatus("Загружаю данные интервью...");
+
+  loadInterviewData();
 });

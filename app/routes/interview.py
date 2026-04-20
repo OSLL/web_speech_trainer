@@ -11,6 +11,7 @@ from app.interview_utils import (
     cleanup_interview_generation_data,
     count_questions_by_session,
     get_default_interview_questions_count,
+    get_ready_interview_questions,
     is_allowed_explanatory_note,
     partial_response_file,
     render_upload_page,
@@ -159,16 +160,7 @@ def interview_page():
     if not session_id:
         return PageResponse.text('Session id not found', 404).to_flask()
 
-    task_record = CeleryTaskDBManager().get_task_record(session_id)
-    if task_record is None:
-        return PageResponse.redirect(url_for('routes_interview.interview_upload_page')).to_flask()
-
-    if (task_record.status or '').lower() != 'success':
-        return PageResponse.redirect(url_for('routes_interview.interview_upload_page')).to_flask()
-
-    questions = list(
-        QuestionsDBManager().get_questions_by_session(session_id)[:get_default_interview_questions_count()]
-    )
+    questions = get_ready_interview_questions(session_id)
     if not questions:
         return PageResponse.redirect(url_for('routes_interview.interview_upload_page')).to_flask()
 
@@ -179,8 +171,6 @@ def interview_page():
         render_template(
             'interview.html',
             has_avatar=has_avatar,
-            session_id=session_id,
-            questions=questions,
         ),
         200,
     ).to_flask()

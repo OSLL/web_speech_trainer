@@ -13,7 +13,9 @@ from app.interview_utils import (
     delete_questions_by_session,
     extract_task_error_message,
     get_default_interview_questions_count,
+    get_ready_interview_questions,
     safe_float,
+    serialize_questions_for_client,
 )
 from app.lti_session_passback.auth_checkers import check_auth
 from app.mongo_models import InterviewRecording
@@ -143,6 +145,36 @@ def questions_generation_status():
     return ApiResponse.processing(
         'Проверяем статус генерации вопросов...',
         task_status=task_status or 'UNKNOWN',
+    ).to_flask()
+
+
+@routes_interview.route('/api/interview/session-data/', methods=['GET'])
+def get_interview_session_data():
+    user_session = check_auth()
+    if not user_session:
+        return ApiResponse.error('User session not found', status_code=404).to_flask()
+
+    session_id = session.get('session_id')
+    if not session_id:
+        error_message = 'Session id not found'
+        return ApiResponse.failure(
+            error_message,
+            status_code=404,
+            redirect_url=build_upload_redirect_url(error_message),
+        ).to_flask()
+
+    questions = get_ready_interview_questions(session_id)
+    if not questions:
+        error_message = 'Вопросы для интервью не найдены. Загрузите документ заново.'
+        return ApiResponse.failure(
+            error_message,
+            status_code=404,
+            redirect_url=build_upload_redirect_url(error_message),
+        ).to_flask()
+
+    return ApiResponse.ok(
+        questions=serialize_questions_for_client(questions),
+        total_questions=len(questions),
     ).to_flask()
 
 
