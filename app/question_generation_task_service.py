@@ -19,15 +19,6 @@ def get_question_task_name():
 
 
 class QuestionGenerationTaskService:
-    """
-    Producer/service layer для постановки задачи генерации вопросов в Celery
-    и чтения её статуса из backend'а Celery.
-
-    Основной сервис не импортирует код воркера напрямую, а знает только:
-    - broker/backend Redis
-    - имя celery-задачи
-    """
-
     _redis_url: str | None = None
     _task_name: str | None = None
     _celery_app: Celery | None = None

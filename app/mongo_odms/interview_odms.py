@@ -48,6 +48,16 @@ class QuestionsDBManager:
     def get_all(self):
         return Questions.objects.all()
 
+    def get_questions_collection(self):
+        return Questions.objects.model._mongometa.collection
+
+    def count_questions_by_session(self, session_id: str) -> int:
+        return get_questions_collection().count_documents({'session_id': session_id})
+
+    def delete_questions_by_session(self, session_id: str):
+        return get_questions_collection().delete_many({'session_id': session_id})
+
+
 class InterviewAvatarsDBManager:
     def __new__(cls):
         if not hasattr(cls, 'init_done'):

@@ -17,8 +17,6 @@ from app.interview_utils import (
     build_upload_redirect_url,
     calculate_duration_from_segments,
     cleanup_interview_session_data,
-    count_questions_by_session,
-    delete_questions_by_session,
     extract_task_error_message,
     get_default_interview_questions_count,
     get_ready_interview_questions,
@@ -109,7 +107,7 @@ def questions_generation_status():
 
     required_questions_count = get_default_interview_questions_count()
 
-    if generation_status == 'success' and count_questions_by_session(session_id) >= required_questions_count:
+    if generation_status == 'success' and QuestionsDBManager.count_questions_by_session(session_id) >= required_questions_count:
         return ApiResponse.success(
             redirect_url=url_for('routes_interview.interview_page'),
         ).to_flask()
@@ -133,7 +131,7 @@ def questions_generation_status():
         ).to_flask()
 
     if task_status == 'SUCCESS':
-        questions_count = count_questions_by_session(session_id)
+        questions_count = QuestionsDBManager.count_questions_by_session(session_id)
         if questions_count >= required_questions_count:
             task_manager.mark_success(
                 session_id=session_id,
@@ -149,7 +147,7 @@ def questions_generation_status():
             f'Сгенерировано недостаточно вопросов: {questions_count} из {required_questions_count}. '
             f'Загрузите документ заново.'
         )
-        delete_questions_by_session(session_id)
+        QuestionsDBManager.delete_questions_by_session(session_id)
         task_manager.mark_failure(
             session_id=session_id,
             task_id=task_id,
@@ -166,7 +164,7 @@ def questions_generation_status():
 
     if task_status == 'FAILURE':
         error_message = extract_task_error_message(task_payload)
-        delete_questions_by_session(session_id)
+        QuestionsDBManager.delete_questions_by_session(session_id)
         task_manager.mark_failure(
             session_id=session_id,
             task_id=task_id,
