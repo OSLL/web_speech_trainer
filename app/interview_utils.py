@@ -74,19 +74,6 @@ def build_invalid_format_message() -> str:
     allowed = ', '.join(sorted(get_allowed_explanatory_note_extensions()))
     return f'Документ неверного формата. Допустимые форматы: {allowed}'
 
-
-def get_questions_collection():
-    return Questions.objects.model._mongometa.collection
-
-
-def count_questions_by_session(session_id: str) -> int:
-    return get_questions_collection().count_documents({'session_id': session_id})
-
-
-def delete_questions_by_session(session_id: str):
-    return get_questions_collection().delete_many({'session_id': session_id})
-
-
 def cleanup_interview_generation_data(session_id: str) -> dict:
     deleted_questions_result = delete_questions_by_session(session_id)
     deleted_note = InterviewExplanatoryNoteDBManager().delete_note(session_id)
