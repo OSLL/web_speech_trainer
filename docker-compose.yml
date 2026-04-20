@@ -97,18 +97,6 @@ services:
     volumes:
       - whisper_models:/root/.cache/whisper
 
-  app:
-    build:
-      context: .
-      dockerfile: app/questions_generator/Dockerfile
-      target: app
-    stdin_open: true
-    tty: true
-    volumes:
-      - nltk_data:/nltk_data
-      - ./app/questions_generator/static/vkr_examples:/app/static/vkr_examples
-    command: [ "bash", "-lc", "sleep infinity" ]
-
   redis:
     image: redis:7
     restart: always
@@ -117,7 +105,6 @@ services:
     build:
       context: .
       dockerfile: app/questions_generator/Dockerfile
-      target: celery
     command: celery -A celery_app.celery_app worker --loglevel=info
     depends_on:
       - redis

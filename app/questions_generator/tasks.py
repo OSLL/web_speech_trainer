@@ -5,7 +5,7 @@ import tempfile
 from types import SimpleNamespace
 
 import nltk
-from celery_app import celery_app
+from celery_app import celery_app, HEURISTIC_TEMPLATES
 from generator import VkrQuestionGenerator
 from app.mongo_odm import DBManager
 from app.mongo_odms.interview_odms import QuestionsDBManager
@@ -127,7 +127,7 @@ def generate_questions(self, session_id: str, file_id: str, questions_count: int
 
         logger.info("Файл сохранён временно: %s", temp_path)
 
-        generator = VkrQuestionGenerator(temp_path)
+        generator = VkrQuestionGenerator(temp_path, HEURISTIC_TEMPLATES)
         questions = generator.generate_all()
 
         if questions_count:

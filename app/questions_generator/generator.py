@@ -7,6 +7,7 @@ import random
 
 from nltk.tokenize import sent_tokenize
 import requests
+from requests.exceptions import RequestException, HTTPError, Timeout
 
 from logging_utils import log_timed
 from document_parsers.docx_uploader import DocxUploader
@@ -37,12 +38,12 @@ class VkrQuestionGenerator:
     def __init__(
         self,
         docx_path: str,
-        heuristic_csv_path: str = "static/heuristic_questions.csv",
+        heuristic_templates: List[Dict[str, str]],
         llm_url: str = "http://llm:8000"
     ):
         self.logger = logging.getLogger(__name__)
 
-        with log_timed(self.logger, "инициализация генератора"):
+        with log_timed(self.logger, "инициализация генератора", logging.DEBUG):
 
             self.llm_url = llm_url
             self.docx_path = docx_path
@@ -61,12 +62,9 @@ class VkrQuestionGenerator:
             full_text = "\n".join(self.sections)
             self.validator = VkrQuestionValidator(full_text)
 
-            self.heuristic_templates: List[Dict[str, str]] = []
-            with Path(heuristic_csv_path).open(encoding="utf-8") as f:
-                reader = csv.DictReader(f, delimiter="|")
-                self.heuristic_templates.extend(reader)
+            self.heuristic_templates = heuristic_templates
 
-        self.logger.info(
+        self.logger.debug(
             "Генератор готов. Глав найдено: %d",
             len(self.sections)
         )
@@ -109,27 +107,63 @@ class VkrQuestionGenerator:
     def llm_generate_question(self, text_fragment: str) -> str:
         prompt = f"ask: {text_fragment}"
 
-        resp = requests.post(
-            f"{self.llm_url}/generate",
-            json={
-                "prompt": prompt,
-                "max_length": 96,
-                "num_beams": 5,
-            },
-            timeout=60,
-        )
-        resp.raise_for_status()
-        return resp.json()["text"].strip()
+        try:
+            resp = requests.post(
+                f"{self.llm_url}/generate",
+                json={
+                    "prompt": prompt,
+                    "max_length": 96,
+                    "num_beams": 5,
+                },
+                timeout=60,
+            )
+
+            resp.raise_for_status()
+
+            data = resp.json()
+            if "text" not in data:
+                raise ValueError("Ответ LLM не содержит 'text'")
+
+            return data["text"].strip()
+
+        except HTTPError as e:
+            self.logger.warning(
+                "HTTP ошибка LLM: %s | status=%s",
+                e,
+                getattr(e.response, "status_code", None),
+            )
+
+        except Timeout:
+            self.logger.warning("Таймаут LLM")
+
+        except RequestException as e:
+            self.logger.warning(
+                "Ошибка запроса к LLM: %s",
+                e,
+            )
+
+        except ValueError as e:
+            self.logger.warning(
+                "Некорректный ответ LLM: %s",
+                e,
+            )
+
+        self.logger.error("LLM не сгенерировала вопрос")
+        raise RuntimeError("LLM generation failed")
 
     def generate_llm_questions(self, count: int = 10) -> List[str]:
         questions: List[str] = []
         seen: set[str] = set()
 
-        resp = requests.get(f"{self.llm_url}/max_tokens", timeout=5)
-        resp.raise_for_status()
-        max_tokens = resp.json()["max_tokens"] - 32  # резервируем 32 токена для safety
+        try:
+            resp = requests.get(f"{self.llm_url}/max_tokens", timeout=5)
+            resp.raise_for_status()
+            max_tokens = resp.json()["max_tokens"] - 32  # резервируем 32 токена для safety
+        except RequestException as e:
+            self.logger.error("Не удалось получить max_tokens от LLM: %s", e)
+            return []
 
-        self.logger.info(
+        self.logger.debug(
             "LLM генерация: глав=%d требуется=%d",
             len(self.sections),
             count,
@@ -138,13 +172,22 @@ class VkrQuestionGenerator:
         all_chunks: List[tuple[int, int, str]] = []
 
         for section_index, section_text in enumerate(self.sections):
-            chunks = self._chunk_section(section_text, max_tokens)
+            try:
+                chunks = self._chunk_section(section_text, max_tokens)
+            except RequestException as e:
+                self.logger.warning(
+                    "Ошибка токенизации: section_index=%d error=%s",
+                    section_index,
+                    e,
+                )
+                continue
+
             for chunk_index, chunk in enumerate(chunks):
                 all_chunks.append((section_index, chunk_index, chunk))
 
         random.shuffle(all_chunks)
 
-        with log_timed(self.logger, "LLM генерация всех вопросов", количество=count):
+        with log_timed(self.logger, "LLM генерация всех вопросов", logging.DEBUG, количество=count):
 
             for section_index, chunk_index, chunk in all_chunks:
                 if len(questions) >= count:
@@ -154,46 +197,84 @@ class VkrQuestionGenerator:
                     with log_timed(
                             self.logger,
                             "LLM вопрос",
+                            logging.DEBUG,
                             индекс=f"{section_index}.{chunk_index}",
                     ):
                         q = self.llm_generate_question(chunk)
 
-                    rel = self.validator.check_relevance(q)
-                    clr = self.validator.check_clarity(q)
-                    diff = self.validator.check_difficulty(q)
-
-                    score = int(rel) + int(clr) + int(diff)
-
-                    if (
-                            score < 2
-                            or len(q) < 15
-                            or not q.endswith("?")
-                            or q.lower() in seen
-                    ):
-                        self.logger.info(
-                            "LLM вопрос отклонён: chunk_index=%d, длина=%d",
-                            chunk_index,
-                            len(q),
-                        )
-                        continue
-
-                    questions.append(q)
-                    seen.add(q.lower())
-                    self.logger.info(
-                        "LLM вопрос принят: номер=%d, длина=%d",
-                        len(questions),
-                        len(q),
+                except RuntimeError as e:
+                    self.logger.warning(
+                        "LLM не ответила: section=%d chunk=%d error=%s",
+                        section_index,
+                        chunk_index,
+                        e,
                     )
+                    continue
+
+                except RequestException as e:
+                    self.logger.warning(
+                        "Сетевая ошибка при генерации: section=%d chunk=%d error=%s",
+                        section_index,
+                        chunk_index,
+                        e,
+                    )
+                    continue
+
+                except ValueError as e:
+                    self.logger.warning(
+                        "Ошибка данных LLM: section=%d chunk=%d error=%s",
+                        section_index,
+                        chunk_index,
+                        e,
+                    )
+                    continue
 
                 except Exception as exc:
                     self.logger.exception(
-                        "Ошибка LLM генерации: section_index=%d, chunk_index=%d, error=%s",
+                        "Ошибка: section=%d chunk=%d error=%s",
                         section_index,
                         chunk_index,
-                        exc,
+                        exc
                     )
+                    continue
 
-        self.logger.info(
+                try:
+                    rel = self.validator.check_relevance(q)
+                    clr = self.validator.check_clarity(q)
+                    diff = self.validator.check_difficulty(q)
+                except Exception as e:
+                    self.logger.warning(
+                        "Ошибка валидатора: section=%d chunk=%d error=%s",
+                        section_index,
+                        chunk_index,
+                        e,
+                    )
+                    continue
+
+                score = int(rel) + int(clr) + int(diff)
+
+                if (
+                        score < 2
+                        or len(q) < 15
+                        or not q.endswith("?")
+                        or q.lower() in seen
+                ):
+                    self.logger.info(
+                        "LLM вопрос отклонён: chunk_index=%d, длина=%d",
+                        chunk_index,
+                        len(q),
+                    )
+                    continue
+
+                questions.append(q)
+                seen.add(q.lower())
+                self.logger.debug(
+                    "LLM вопрос принят: номер=%d, длина=%d",
+                    len(questions),
+                    len(q),
+                )
+
+        self.logger.debug(
             "LLM вопросы сформированы: всего=%d",
             len(questions),
         )
@@ -227,7 +308,7 @@ class VkrQuestionGenerator:
         return questions
 
     def generate_all(self) -> List[str]:
-        with log_timed(self.logger, "полная генерация вопросов"):
+        with log_timed(self.logger, "полная генерация вопросов", logging.DEBUG):
             result: List[str] = []
 
             result.extend(self.heuristic_questions())
