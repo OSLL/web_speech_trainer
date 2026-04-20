@@ -12,8 +12,7 @@ logger = get_root_logger()
 DEFAULT_REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
 DEFAULT_TASK_NAME = os.getenv(
     "QUESTION_GENERATION_TASK_NAME",
-    "tasks.genera"
-    "te_questions",
+    "tasks.generate_questions",
 )
 
 
