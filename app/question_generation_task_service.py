@@ -5,15 +5,17 @@ from celery import Celery
 from celery.result import AsyncResult
 
 from app.root_logger import get_root_logger
-
+from app.config import Config
 
 logger = get_root_logger()
 
-DEFAULT_REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
-DEFAULT_TASK_NAME = os.getenv(
-    "QUESTION_GENERATION_TASK_NAME",
-    "tasks.generate_questions",
-)
+
+def get_redis_url():
+    return Config.c.redis.redis_url
+
+
+def get_question_task_name():
+    return Config.c.constants.question_generation_task_name
 
 
 class QuestionGenerationTaskService:
@@ -26,28 +28,43 @@ class QuestionGenerationTaskService:
     - имя celery-задачи
     """
 
-    def __init__(
-        self,
-        redis_url: str | None = None,
-        task_name: str | None = None,
-    ) -> None:
-        self.redis_url = redis_url or DEFAULT_REDIS_URL
-        self.task_name = task_name or DEFAULT_TASK_NAME
-        self.celery_app = Celery(
-            "main_service_question_generation_producer",
-            broker=self.redis_url,
-            backend=self.redis_url,
-        )
-        self.celery_app.conf.update(
-            task_serializer="json",
-            result_serializer="json",
-            accept_content=["json"],
-            task_track_started=True,
-            task_time_limit=60 * 60,
-        )
+    _redis_url: str | None = None
+    _task_name: str | None = None
+    _celery_app: Celery | None = None
 
+    @classmethod
+    def get_redis_url(cls) -> str:
+        if cls._redis_url is None:
+            cls._redis_url = get_redis_url()
+        return cls._redis_url
+
+    @classmethod
+    def get_task_name(cls) -> str:
+        if cls._task_name is None:
+            cls._task_name = get_question_task_name()
+        return cls._task_name
+
+    @classmethod
+    def get_celery_app(cls) -> Celery:
+        if cls._celery_app is None:
+            redis_url = cls.get_redis_url()
+            cls._celery_app = Celery(
+                "main_service_question_generation_producer",
+                broker=redis_url,
+                backend=redis_url,
+            )
+            cls._celery_app.conf.update(
+                task_serializer="json",
+                result_serializer="json",
+                accept_content=["json"],
+                task_track_started=True,
+                task_time_limit=60 * 60,
+            )
+        return cls._celery_app
+
+    @classmethod
     def enqueue_generation(
-        self,
+        cls,
         session_id: str,
         file_id: str,
         questions_count: int,
@@ -70,17 +87,19 @@ class QuestionGenerationTaskService:
         if normalized_questions_count <= 0:
             raise ValueError("questions_count must be greater than 0")
 
+        task_name = cls.get_task_name()
+        celery_app = cls.get_celery_app()
+
         logger.info(
             "Queueing question generation task: session_id=%s file_id=%s questions_count=%s task_name=%s",
             session_id,
             file_id,
             normalized_questions_count,
-            self.task_name,
-
+            task_name,
         )
 
-        result = self.celery_app.send_task(
-            self.task_name,
+        result = celery_app.send_task(
+            task_name,
             kwargs={
                 "session_id": session_id,
                 "file_id": str(file_id),
@@ -94,7 +113,6 @@ class QuestionGenerationTaskService:
             session_id,
         )
 
-
         return {
             "task_id": result.id,
             "status": result.status,
@@ -103,37 +121,37 @@ class QuestionGenerationTaskService:
             "questions_count": normalized_questions_count,
         }
 
-    def get_task_status(self, task_id: str) -> dict[str, Any]:
+    @classmethod
+    def get_task_status(cls, task_id: str) -> dict[str, Any]:
         """
         Возвращает статус задачи и, если доступно, result/error/meta.
         """
         if not task_id:
             raise ValueError("task_id is required")
 
-        async_result = AsyncResult(task_id, app=self.celery_app)
+        celery_app = cls.get_celery_app()
+        async_result = AsyncResult(task_id, app=celery_app)
         info = async_result.info
 
         payload: dict[str, Any] = {
             "task_id": task_id,
             "status": async_result.status,
             "ready": async_result.ready(),
-            "successful": async_result.successful() if async_result.ready() else False,
-            "failed": async_result.failed(),
             "result": None,
             "error": None,
             "meta": None,
         }
 
         if async_result.successful():
-            payload["result"] = self._normalize_value(async_result.result)
+            payload["result"] = cls._normalize_value(async_result.result)
             return payload
 
         if async_result.failed():
-            payload["error"] = self._serialize_error(async_result.result)
+            payload["error"] = cls._serialize_error(async_result.result)
             return payload
 
         if info is not None:
-            payload["meta"] = self._normalize_value(info)
+            payload["meta"] = cls._normalize_value(info)
 
         return payload
 
@@ -157,6 +175,3 @@ class QuestionGenerationTaskService:
                 "message": str(value),
             }
         return value
-
-
-question_generation_task_service = QuestionGenerationTaskService()

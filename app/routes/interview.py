@@ -25,7 +25,7 @@ from app.mongo_odms.interview_odms import (
     InterviewRecordingDBManager,
     CeleryTaskDBManager
 )
-from app.question_generation_task_service import question_generation_task_service
+from app.question_generation_task_service import QuestionGenerationTaskService
 from app.root_logger import get_root_logger
 
 logger = get_root_logger()
@@ -62,13 +62,13 @@ def interview_upload_page():
             file_obj=uploaded_file,
             filename=uploaded_file.filename,
             content_type=uploaded_file.mimetype,
-            task_name=question_generation_task_service.task_name,
+            task_name=QuestionGenerationTaskService.get_task_name(),
             metadata={'questions_count': get_default_interview_questions_count()},
         )
 
         try:
             required_questions_count = get_default_interview_questions_count()
-            task_payload = question_generation_task_service.enqueue_generation(
+            task_payload = QuestionGenerationTaskService.enqueue_generation(
                 session_id=session_id,
                 file_id=str(saved_task.file_id),
                 questions_count=required_questions_count,
@@ -76,7 +76,7 @@ def interview_upload_page():
             task_manager.mark_processing(
                 session_id=session_id,
                 task_id=task_payload['task_id'],
-                task_name=question_generation_task_service.task_name,
+                task_name=QuestionGenerationTaskService.get_task_name,
             )
         except Exception:
             logger.exception('Failed to enqueue question generation task for session_id=%s', session_id)

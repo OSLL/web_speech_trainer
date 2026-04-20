@@ -35,7 +35,7 @@ from app.mongo_odms.interview_odms import (
     InterviewFeedbackDBManager,
     QuestionsDBManager,
 )
-from app.question_generation_task_service import question_generation_task_service
+from app.question_generation_task_service import QuestionGenerationTaskService
 from app.root_logger import get_root_logger
 from app.status import AudioStatus
 
@@ -123,7 +123,7 @@ def questions_generation_status():
             redirect_url=build_upload_redirect_url(error_message),
         ).to_flask()
 
-    task_payload = question_generation_task_service.get_task_status(task_id)
+    task_payload = QuestionGenerationTaskService.get_task_status(task_id)
     task_status = (task_payload.get('status') or '').upper()
 
     if task_status in {'PENDING', 'STARTED', 'RETRY'}:
