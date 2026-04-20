@@ -100,8 +100,6 @@ def build_upload_redirect_url(error_message: str | None = None) -> str:
 
 
 def render_upload_page(task_record=None, error_message: str | None = None, page_state: str = 'upload'):
-    allowed_extensions = sorted(get_allowed_explanatory_note_extensions())
-
     return render_template(
         'interview_upload.html',
         error_message=error_message,
@@ -112,8 +110,6 @@ def render_upload_page(task_record=None, error_message: str | None = None, page_
         status_url=url_for('routes_interview.questions_generation_status'),
         interview_url=url_for('routes_interview.interview_page'),
         upload_url=url_for('routes_interview.interview_upload_page'),
-        allowed_extensions_text=', '.join(allowed_extensions),
-        allowed_extensions_accept=','.join(allowed_extensions),
     )
 
 

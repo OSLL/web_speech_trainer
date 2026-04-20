@@ -35,14 +35,8 @@
         <label class="upload-dropzone" for="document">
           <div class="upload-dropzone-icon"><i class="bi bi-cloud-arrow-up"></i></div>
           <div class="upload-dropzone-title">Выберите файл</div>
-          <div class="upload-dropzone-text">Поддерживаются: {{ allowed_extensions_text }}</div>
-          <input
-            id="document"
-            name="document"
-            type="file"
-            accept="{{ allowed_extensions_accept }}"
-            required
-          >
+          <div class="upload-dropzone-text">Поддерживаются: .docx, .doc, .txt, .rtf, .odt, .md</div>
+          <input id="document" name="document" type="file" accept=".docx,.doc,.txt,.rtf,.odt,.md" required>
         </label>
 
         <div id="selected-file-name" class="selected-file-name"></div>
