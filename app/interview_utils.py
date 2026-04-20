@@ -8,22 +8,46 @@ from app.mongo_odm import (
 from app.config import Config
 
 
-def _get_config_constants():
+def get_config_constants():
     conf = getattr(Config, 'c', None)
     return getattr(conf, 'constants', None) if conf is not None else None
 
 
 def get_default_interview_questions_count():
-    constants = _get_config_constants()
+    constants = get_config_constants()
     value = getattr(constants, 'default_interview_questions_count', None) if constants else None
     try:
         return int(value)
     except (TypeError, ValueError):
         return 3
 
+def get_interview_criteria_pack_id():
+    constants = get_config_constants()
+    value = getattr(constants, 'interview_criteria_pack_id', None) if constants else None
+    return value
+
+def get_interview_feedback_evaluation_id():
+    constants = get_config_constants()
+    value = getattr(constants, 'interview_feedback_evaluation_id', None) if constants else None
+    return int(value)
+
+def get_ideal_answer_min_sec():
+    constants = get_config_constants()
+    value = getattr(constants, 'ideal_answer_min_sec', None) if constants else None
+    return int(value)
+
+def get_ideal_answer_max_sec():
+    constants = get_config_constants()
+    value = getattr(constants, 'ideal_answer_max_sec', None) if constants else None
+    return int(value)
+
+def get_min_answer_sec():
+    constants = get_config_constants()
+    value = getattr(constants, 'min_answer_sec', None) if constants else None
+    return int(value)
 
 def get_questions_poll_interval_ms():
-    constants = _get_config_constants()
+    constants = get_config_constants()
     value = getattr(constants, 'questions_poll_intervals_ms', None) if constants else None
     try:
         return int(value)
@@ -99,7 +123,7 @@ DEFAULT_ALLOWED_EXPLANATORY_NOTE_EXTENSIONS = ['.doc', '.docx', '.md', '.odt', '
 
 
 def get_allowed_explanatory_note_extensions():
-    constants = _get_config_constants()
+    constants = get_config_constants()
     value = getattr(constants, 'allowed_explanatory_note_extensions', None) if constants else None
 
     if isinstance(value, str):

@@ -32,9 +32,9 @@ logger = get_root_logger()
 
 @routes_interview.route('/interview/upload/', methods=['GET', 'POST'])
 def interview_upload_page():
-    # user_session = check_auth()
-    # if not user_session:
-    #     return PageResponse.text('User session not found', 404).to_flask()
+    user_session = check_auth()
+    if not user_session:
+        return PageResponse.text('User session not found', 404).to_flask()
 
     session_id = session.get('session_id')
     if not session_id:
@@ -43,6 +43,7 @@ def interview_upload_page():
     task_manager = CeleryTaskDBManager()
     current_task = task_manager.get_task_record(session_id)
     required_questions_count = get_default_interview_questions_count()
+    force_upload = request.args.get('force_upload') == '1'
 
     if request.method == 'POST':
         uploaded_file = request.files.get('document')
@@ -117,13 +118,18 @@ def interview_upload_page():
         ).to_flask()
 
     if (
-        current_task
+        not force_upload
+        and current_task
         and (current_task.status or '').lower() == 'success'
         and count_questions_by_session(session_id) >= required_questions_count
     ):
         return PageResponse.redirect(url_for('routes_interview.interview_page')).to_flask()
 
-    if current_task and (current_task.status or '').lower() == 'processing':
+    if (
+        not force_upload
+        and current_task
+        and (current_task.status or '').lower() == 'processing'
+    ):
         return PageResponse.html(
             render_upload_page(task_record=current_task, page_state='processing'),
             200,
@@ -145,9 +151,9 @@ def interview_upload_page():
 
 @routes_interview.route('/interview/', methods=['GET'])
 def interview_page():
-    # user_session = check_auth()
-    # if not user_session:
-    #     return PageResponse.text('User session not found', 404).to_flask()
+    user_session = check_auth()
+    if not user_session:
+        return PageResponse.text('User session not found', 404).to_flask()
 
     session_id = session.get('session_id')
     if not session_id:
@@ -182,9 +188,9 @@ def interview_page():
 
 @routes_interview.route('/avatar_video')
 def avatar_video():
-    # user_session = check_auth()
-    # if not user_session:
-    #     return PageResponse.empty(404).to_flask()
+    user_session = check_auth()
+    if not user_session:
+        return PageResponse.empty(404).to_flask()
 
     session_id = session.get('session_id')
     if not session_id:
@@ -271,10 +277,6 @@ def view_all_interviews():
             'task_id': meta.get('task_id', ''),
             'score': feedback.score if feedback else meta.get('score'),
             'verdict': feedback.verdict if feedback else meta.get('verdict', ''),
-            'results_url': url_for(
-                'routes_interview.interview_results_page',
-                recording_id=str(recording.pk),
-            ),
         })
 
     page_count = max(1, math.ceil(total_count / count))

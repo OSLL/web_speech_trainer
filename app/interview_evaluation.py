@@ -1,19 +1,12 @@
 from dataclasses import dataclass
 
 from app.feedback_evaluator import FeedbackEvaluatorFactory
-
-INTERVIEW_CRITERIA_PACK_ID = "INTERVIEW_SIMPLE_V1"
-INTERVIEW_FEEDBACK_EVALUATOR_ID = 0
+from app.interview_utils import get_ideal_answer_max_sec, get_min_answer_sec, get_ideal_answer_min_sec, get_interview_feedback_evaluation_id, get_interview_criteria_pack_id
 
 INTERVIEW_CRITERION_WEIGHTS = {
     "InterviewDurationCriterion": 0.5,
     "InterviewAnswerCoverageCriterion": 0.5,
 }
-
-MIN_ANSWER_SEC = 5
-IDEAL_ANSWER_MIN_SEC = 15
-IDEAL_ANSWER_MAX_SEC = 60
-
 
 @dataclass
 class InterviewCriterionResult:
@@ -71,7 +64,7 @@ def _build_segments_by_order(question_segments):
 def _score_answer_coverage(segment) -> InterviewCriterionResult:
     duration = _segment_duration(segment)
 
-    if duration >= MIN_ANSWER_SEC:
+    if duration >= get_min_answer_sec():
         return InterviewCriterionResult(
             1.0,
             f"Ответ засчитан: {duration:.1f} сек."
@@ -80,7 +73,7 @@ def _score_answer_coverage(segment) -> InterviewCriterionResult:
     if duration > 0:
         return InterviewCriterionResult(
             0.0,
-            f"Ответ слишком короткий: {duration:.1f} сек. Нужно хотя бы {MIN_ANSWER_SEC} сек."
+            f"Ответ слишком короткий: {duration:.1f} сек. Нужно хотя бы {get_min_answer_sec()} сек."
         )
 
     return InterviewCriterionResult(
@@ -95,23 +88,23 @@ def _score_answer_duration(segment) -> InterviewCriterionResult:
     if duration <= 0:
         return InterviewCriterionResult(0.0, "Нет ответа по вопросу.")
 
-    if duration < IDEAL_ANSWER_MIN_SEC:
-        score = duration / IDEAL_ANSWER_MIN_SEC
+    if duration < get_ideal_answer_min_sec():
+        score = duration / get_ideal_answer_min_sec()
         return InterviewCriterionResult(
             score,
-            f"Ответ коротковат: {duration:.1f} сек. Желательно от {IDEAL_ANSWER_MIN_SEC} сек."
+            f"Ответ коротковат: {duration:.1f} сек. Желательно от {get_ideal_answer_min_sec()} сек."
         )
 
-    if duration <= IDEAL_ANSWER_MAX_SEC:
+    if duration <= get_ideal_answer_max_sec():
         return InterviewCriterionResult(
             1.0,
             f"Хорошая длительность ответа: {duration:.1f} сек."
         )
 
-    score = max(0.0, 1.0 - ((duration - IDEAL_ANSWER_MAX_SEC) / IDEAL_ANSWER_MAX_SEC))
+    score = max(0.0, 1.0 - ((duration - get_ideal_answer_max_sec()) / get_ideal_answer_max_sec()))
     return InterviewCriterionResult(
         score,
-        f"Ответ слишком длинный: {duration:.1f} сек. Желательно до {IDEAL_ANSWER_MAX_SEC} сек."
+        f"Ответ слишком длинный: {duration:.1f} сек. Желательно до {get_ideal_answer_max_sec()} сек."
     )
 
 
@@ -157,14 +150,14 @@ def evaluate_interview_recording(recording, questions_count: int) -> dict:
     }
 
     evaluator_cls = FeedbackEvaluatorFactory().get_feedback_evaluator(
-        INTERVIEW_FEEDBACK_EVALUATOR_ID
+        get_interview_feedback_evaluation_id()
     )
     evaluator = evaluator_cls(INTERVIEW_CRITERION_WEIGHTS.copy())
     feedback = evaluator.evaluate_feedback(criteria_results)
 
     return {
-        "criteria_pack_id": INTERVIEW_CRITERIA_PACK_ID,
-        "feedback_evaluator_id": INTERVIEW_FEEDBACK_EVALUATOR_ID,
+        "criteria_pack_id": get_interview_criteria_pack_id(),
+        "feedback_evaluator_id": get_interview_feedback_evaluation_id(),
         "score": round(feedback.score, 2),
         "verdict": _build_verdict(feedback.score),
         "criteria_results": {

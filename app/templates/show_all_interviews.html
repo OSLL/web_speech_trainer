@@ -20,7 +20,6 @@
                         <th>Статус</th>
                         <th>Балл</th>
                         <th>Вердикт</th>
-                        <th>Результат</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -46,11 +45,6 @@
                                 {% endif %}
                             </td>
                             <td>{{ item.verdict or '' }}</td>
-                            <td>
-                                <a class="btn btn-sm btn-primary" href="{{ item.results_url }}">
-                                    Открыть
-                                </a>
-                            </td>
                         </tr>
                     {% endfor %}
                 </tbody>
@@ -83,5 +77,14 @@
             Интервью для этого пользователя пока не найдены.
         </div>
     {% endif %}
+
+    <div class="mt-4">
+        <a
+            class="btn btn-outline-danger"
+            href="{{ url_for('routes_interview.interview_upload_page', force_upload=1) }}"
+        >
+            Загрузить новую ВКР
+        </a>
+    </div>
 </div>
 {% endblock %}
