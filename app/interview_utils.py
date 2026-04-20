@@ -13,12 +13,6 @@ def _get_config_constants():
     return getattr(conf, 'constants', None) if conf is not None else None
 
 
-def get_allowed_explanatory_note_extensions():
-    constants = _get_config_constants()
-    value = getattr(constants, 'allowed_explanatory_note_extensions', None) if constants else None
-    return value or {'.docx', '.doc', '.txt', '.rtf', '.odt', '.md'}
-
-
 def get_default_interview_questions_count():
     constants = _get_config_constants()
     value = getattr(constants, 'default_interview_questions_count', None) if constants else None
@@ -99,6 +93,39 @@ def build_upload_redirect_url(error_message: str | None = None) -> str:
     return url_for('routes_interview.interview_upload_page')
 
 
+import ast
+
+DEFAULT_ALLOWED_EXPLANATORY_NOTE_EXTENSIONS = ['.doc', '.docx', '.md', '.odt', '.rtf', '.txt']
+
+
+def get_allowed_explanatory_note_extensions():
+    constants = _get_config_constants()
+    value = getattr(constants, 'allowed_explanatory_note_extensions', None) if constants else None
+
+    if isinstance(value, str):
+        try:
+            parsed = ast.literal_eval(value)
+        except (ValueError, SyntaxError):
+            parsed = [item.strip() for item in value.split(',') if item.strip()]
+        value = parsed
+
+    if isinstance(value, (list, tuple, set)):
+        normalized = sorted({
+            str(item).strip().lower()
+            for item in value
+            if str(item).strip()
+        })
+        return normalized or DEFAULT_ALLOWED_EXPLANATORY_NOTE_EXTENSIONS
+
+    return DEFAULT_ALLOWED_EXPLANATORY_NOTE_EXTENSIONS
+
+
+def get_allowed_explanatory_note_extensions_accept():
+    return ','.join(get_allowed_explanatory_note_extensions())
+
+
+def get_allowed_explanatory_note_extensions_label():
+    return ', '.join(get_allowed_explanatory_note_extensions())
 def render_upload_page(task_record=None, error_message: str | None = None, page_state: str = 'upload'):
     return render_template(
         'interview_upload.html',
@@ -110,6 +137,8 @@ def render_upload_page(task_record=None, error_message: str | None = None, page_
         status_url=url_for('routes_interview.questions_generation_status'),
         interview_url=url_for('routes_interview.interview_page'),
         upload_url=url_for('routes_interview.interview_upload_page'),
+        allowed_extensions_accept=get_allowed_explanatory_note_extensions_accept(),
+        allowed_extensions_label=get_allowed_explanatory_note_extensions_label(),
     )
 
 
