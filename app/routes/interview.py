@@ -72,6 +72,7 @@ def interview_upload_page():
                 session_id=session_id,
                 file_id=str(saved_task.file_id),
                 questions_count=required_questions_count,
+                generate_llm_questions=False
             )
             task_manager.mark_processing(
                 session_id=session_id,

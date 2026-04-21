@@ -52,10 +52,10 @@ class QuestionsDBManager:
         return Questions.objects.model._mongometa.collection
 
     def count_questions_by_session(self, session_id: str) -> int:
-        return get_questions_collection().count_documents({'session_id': session_id})
+        return self.get_questions_collection().count_documents({'session_id': session_id})
 
     def delete_questions_by_session(self, session_id: str):
-        return get_questions_collection().delete_many({'session_id': session_id})
+        return self.get_questions_collection().delete_many({'session_id': session_id})
 
 
 class InterviewAvatarsDBManager:

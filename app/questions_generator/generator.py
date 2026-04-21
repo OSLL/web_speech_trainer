@@ -13,6 +13,8 @@ from logging_utils import log_timed
 from document_parsers.docx_uploader import DocxUploader
 from validator import VkrQuestionValidator
 
+HEURISTIC_QUESTIONS_PERCENTAGE = 0.2
+
 
 def get_full_chapter_text(chapter):
     """
@@ -307,13 +309,21 @@ class VkrQuestionGenerator:
 
         return questions
 
-    def generate_all(self) -> List[str]:
+    def generate_all(self, questions_count, generate_llm_questions) -> List[str]:
         with log_timed(self.logger, "полная генерация вопросов", logging.DEBUG):
             result: List[str] = []
 
-            result.extend(self.heuristic_questions())
-            # result.append("--- rut5-base-multitask вопросы ---")
-            # result.extend(self.generate_llm_questions(count=10))
+            if generate_llm_questions:
+                heuristic_questions_number = int(questions_count * HEURISTIC_QUESTIONS_PERCENTAGE)
+                llm_questions_number = questions_count - heuristic_questions_number
+                result.extend(self.heuristic_questions())
+                if len(result) > heuristic_questions_number:
+                    result = result[:heuristic_questions_number]
+                result.extend(self.generate_llm_questions(count=llm_questions_number))
+            else:
+                result.extend(self.heuristic_questions())
+                if len(result) > questions_count:
+                    result = result[:questions_count]
 
             deduped = list(dict.fromkeys(result))
 

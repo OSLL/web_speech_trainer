@@ -102,7 +102,7 @@ def _ensure_nltk_resources():
     retry_backoff=True,
     retry_kwargs={"max_retries": 3},
 )
-def generate_questions(self, session_id: str, file_id: str, questions_count: int):
+def generate_questions(self, session_id: str, file_id: str, questions_count: int, generate_llm_questions: bool):
     _build_minimal_config_from_ini()
     _ensure_nltk_resources()
     db = DBManager()
@@ -128,10 +128,7 @@ def generate_questions(self, session_id: str, file_id: str, questions_count: int
         logger.info("Файл сохранён временно: %s", temp_path)
 
         generator = VkrQuestionGenerator(temp_path, HEURISTIC_TEMPLATES)
-        questions = generator.generate_all()
-
-        if questions_count:
-            questions = questions[:questions_count]
+        questions = generator.generate_all(questions_count, generate_llm_questions)
 
         logger.info("Сгенерировано вопросов: %d", len(questions))
 
