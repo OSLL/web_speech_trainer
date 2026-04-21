@@ -127,7 +127,7 @@ def questions_generation_status():
 
     if task_status in {'PENDING', 'STARTED', 'RETRY'}:
         return ApiResponse.processing(
-            'Генерируем вопросы для интервью. Это может занять некоторое время...',
+            'Генерируем вопросы для интервью. Это может занять некоторое время...(до 2 минут)',
             task_status=task_status,
         ).to_flask()
 
