@@ -1,4 +1,14 @@
+from collections import Counter
 from dataclasses import dataclass
+import re
+from typing import Iterable, List
+
+from app.root_logger import get_root_logger
+from app.utils import RussianStopwords
+
+logger = get_root_logger()
+
+TRANSCRIPT_WORD_RE = re.compile(r"[a-zа-яё0-9]+", re.IGNORECASE)
 
 
 @dataclass
@@ -16,77 +26,322 @@ class InterviewCriterionResult:
         }
 
 
-class InterviewDurationCriterion:
+class InterviewWordsCountCriterion:
     """
-    Оценивает общую длительность интервью.
-    1.0 — если уложились в интервал [min_duration_sec, max_duration_sec]
-    Ниже минимума — линейное снижение.
-    Выше максимума — линейное снижение.
+    Оценивает количество распознанных слов.
+    1.0 — если количество слов попадает в интервал [min_words, max_words].
+    Ниже минимума и выше максимума — линейное снижение.
     """
 
-    def __init__(self, min_duration_sec=90, max_duration_sec=180):
-        self.min_duration_sec = min_duration_sec
-        self.max_duration_sec = max_duration_sec
+    def __init__(self, min_words=60, max_words=240):
+        self.min_words = max(1, int(min_words or 1))
+        self.max_words = max(self.min_words, int(max_words or self.min_words))
 
-    def evaluate(self, duration_sec):
-        duration_sec = float(duration_sec or 0)
+    def evaluate_words_count(self, words_count: int) -> InterviewCriterionResult:
+        words_count = int(words_count or 0)
 
-        if duration_sec <= 0:
-            return InterviewCriterionResult(0.0, "Не удалось определить длительность интервью.")
+        if words_count <= 0:
+            return InterviewCriterionResult(
+                0.0,
+                "Не удалось собрать текст ответа.",
+            )
 
-        if duration_sec < self.min_duration_sec:
-            score = duration_sec / self.min_duration_sec
+        if words_count < self.min_words:
+            score = words_count / self.min_words
             return InterviewCriterionResult(
                 score,
-                f"Интервью слишком короткое: {duration_sec:.1f} сек. "
-                f"Желательно не меньше {self.min_duration_sec} сек."
+                f"Слов маловато: {words_count}. Желательно не меньше {self.min_words}.",
             )
 
-        if duration_sec <= self.max_duration_sec:
+        if words_count <= self.max_words:
             return InterviewCriterionResult(
                 1.0,
-                f"Хорошая длительность: {duration_sec:.1f} сек."
+                f"Хорошее количество слов: {words_count}.",
             )
 
-        score = max(0.0, 1.0 - ((duration_sec - self.max_duration_sec) / self.max_duration_sec))
+        score = max(0.0, 1.0 - ((words_count - self.max_words) / self.max_words))
         return InterviewCriterionResult(
             score,
-            f"Интервью слишком длинное: {duration_sec:.1f} сек. "
-            f"Желательно не больше {self.max_duration_sec} сек."
+            f"Слов многовато: {words_count}. Желательно не больше {self.max_words}.",
         )
 
+    def evaluate_transcript(self, transcript: str) -> InterviewCriterionResult:
+        return self.evaluate_words_count(count_transcript_words(transcript))
 
-class InterviewAnswerCoverageCriterion:
+    def evaluate(self, question_segments):
+        transcripts = [extract_segment_transcript(segment) for segment in question_segments or []]
+        full_text = " ".join(filter(None, transcripts)).strip()
+        return self.evaluate_transcript(full_text)
+
+
+class InterviewFillerWordsCriterion:
     """
-    Смотрит, на сколько вопросов пользователь реально дал ответ.
-    Ответ засчитывается, если сегмент ответа >= min_answer_sec.
+    Оценивает долю слов-паразитов и словесного мусора по собранной расшифровке ответов.
+    Чем меньше доля таких слов, тем выше итоговый балл.
     """
 
-    def __init__(self, min_answer_sec=5):
-        self.min_answer_sec = min_answer_sec
+    DEFAULT_FILLER_WORDS = {
+        "ну",
+        "вот",
+        "типа",
+        "короче",
+        "значит",
+        "блин",
+        "эм",
+        "ээ",
+        "эээ",
+        "мм",
+        "ага",
+        "гм",
+    }
 
-    def evaluate(self, question_segments, questions_count):
-        if questions_count <= 0:
-            return InterviewCriterionResult(0.0, "Вопросы не найдены.")
+    DEFAULT_FILLER_PHRASES = (
+        "как бы",
+        "это самое",
+        "так сказать",
+        "собственно говоря",
+        "в общем",
+    )
 
-        answered_orders = set()
+    WORD_RE = re.compile(r"[а-яё]+", re.IGNORECASE)
+    SPACE_RE = re.compile(r"\s+")
 
+    def __init__(
+        self,
+        soft_ratio=0.03,
+        hard_ratio=0.18,
+        filler_words=None,
+        filler_phrases=None,
+        example_limit=5,
+    ):
+        self.soft_ratio = soft_ratio
+        self.hard_ratio = hard_ratio
+        self.example_limit = max(1, int(example_limit or 1))
+        self.filler_words = set(filler_words or self.DEFAULT_FILLER_WORDS)
+        self.filler_phrases = tuple(filler_phrases or self.DEFAULT_FILLER_PHRASES)
+
+    @classmethod
+    def _normalize_text(cls, text: str) -> str:
+        text = (text or "").lower().replace("-", " ")
+        text = cls.SPACE_RE.sub(" ", text)
+        return text.strip()
+
+    @classmethod
+    def _split_words(cls, text: str) -> List[str]:
+        return cls.WORD_RE.findall(cls._normalize_text(text))
+
+    def _format_examples(self, matched_fillers: List[str]) -> str:
+        if not matched_fillers:
+            return ""
+
+        counter = Counter(matched_fillers)
+        examples = []
+        for filler, count in counter.most_common(self.example_limit):
+            examples.append(f"{filler} ×{count}" if count > 1 else filler)
+        return ", ".join(examples)
+
+    def _count_fillers(self, text: str):
+        normalized_text = f" {self._normalize_text(text)} "
+        words = self._split_words(normalized_text)
+
+        matched_filler_words = [word for word in words if word in self.filler_words]
+        filler_words_count = len(matched_filler_words)
+
+        filler_phrases_found = []
+        filler_phrases_count = 0
+
+        for phrase in self.filler_phrases:
+            pattern = rf"(?<!\w){re.escape(phrase)}(?!\w)"
+            matches = re.findall(pattern, normalized_text)
+            filler_phrases_count += len(matches)
+            if matches:
+                filler_phrases_found.extend([phrase] * len(matches))
+
+        logger.info("Interview transcript normalized: %s", normalized_text)
+        logger.info("Interview words: %s", words)
+        logger.info("Matched filler words: %s", matched_filler_words)
+        logger.info("Matched filler phrases: %s", filler_phrases_found)
+
+        fillers_count = filler_words_count + filler_phrases_count
+        matched_fillers = matched_filler_words + filler_phrases_found
+
+        try:
+            stopwords = set(RussianStopwords().words)
+        except Exception:
+            stopwords = set()
+
+        meaningful_words_count = sum(1 for word in words if word not in stopwords)
+
+        return {
+            "total_words": len(words),
+            "meaningful_words": meaningful_words_count,
+            "fillers_count": fillers_count,
+            "ratio": (fillers_count / len(words)) if words else 0.0,
+            "matched_fillers": matched_fillers,
+            "examples": self._format_examples(matched_fillers),
+        }
+
+    def evaluate_transcript(self, transcript: str) -> InterviewCriterionResult:
+        stats = self._count_fillers(transcript)
+        total_words = stats["total_words"]
+        fillers_count = stats["fillers_count"]
+        ratio = stats["ratio"]
+        meaningful_words = stats["meaningful_words"]
+        examples = stats["examples"]
+        examples_suffix = f" Примеры: {examples}." if examples else ""
+
+        if total_words == 0:
+            return InterviewCriterionResult(
+                0.0,
+                "Не удалось собрать текст ответа.",
+            )
+
+        if fillers_count == 0 or ratio <= self.soft_ratio:
+            return InterviewCriterionResult(
+                1.0,
+                f"Слов-паразитов почти нет: {fillers_count} из {total_words} слов ({ratio * 100:.1f}%)."
+                f"{examples_suffix}",
+            )
+
+        if ratio >= self.hard_ratio:
+            return InterviewCriterionResult(
+                0.0,
+                f"Слишком много слов-паразитов: {fillers_count} из {total_words} слов ({ratio * 100:.1f}%)."
+                f"{examples_suffix}",
+            )
+
+        score = 1.0 - ((ratio - self.soft_ratio) / (self.hard_ratio - self.soft_ratio))
+        return InterviewCriterionResult(
+            score,
+            f"Найдено слов-паразитов: {fillers_count} из {total_words} слов ({ratio * 100:.1f}%). "
+            f"Содержательных слов: {meaningful_words}."
+            f"{examples_suffix}",
+        )
+
+    def evaluate(self, question_segments):
+        transcripts = [extract_segment_transcript(segment) for segment in question_segments or []]
+        full_text = " ".join(filter(None, transcripts)).strip()
+        return self.evaluate_transcript(full_text)
+
+
+class InterviewPauseDurationCriterion:
+    """
+    Оценивает длительность пауз по данным VAD, собранным на клиенте.
+    Долгие и суммарно большие паузы уменьшают балл.
+    """
+
+    def __init__(
+        self,
+        good_max_pause_sec=1.5,
+        bad_max_pause_sec=7.0,
+        good_total_pause_sec=3.0,
+        bad_total_pause_sec=18.0,
+        neutral_score_if_no_data=0.5,
+    ):
+        self.good_max_pause_sec = good_max_pause_sec
+        self.bad_max_pause_sec = bad_max_pause_sec
+        self.good_total_pause_sec = good_total_pause_sec
+        self.bad_total_pause_sec = bad_total_pause_sec
+        self.neutral_score_if_no_data = neutral_score_if_no_data
+
+    def evaluate_pause_durations(self, pause_durations_sec: Iterable[float]) -> InterviewCriterionResult:
+        pauses = [max(0.0, float(value or 0.0)) for value in (pause_durations_sec or [])]
+
+        if not pauses:
+            return InterviewCriterionResult(
+                self.neutral_score_if_no_data,
+                "Данные о паузах не собраны: оценка по паузам нейтральная.",
+            )
+
+        total_pause = sum(pauses)
+        max_pause = max(pauses, default=0.0)
+
+        score_by_max = _linear_score(max_pause, self.good_max_pause_sec, self.bad_max_pause_sec)
+        score_by_total = _linear_score(total_pause, self.good_total_pause_sec, self.bad_total_pause_sec)
+        score = 0.65 * score_by_max + 0.35 * score_by_total
+
+        if score >= 0.9:
+            verdict = (
+                f"Паузы в норме: максимум {max_pause:.2f} сек., "
+                f"суммарно {total_pause:.2f} сек."
+            )
+        else:
+            verdict = (
+                f"Паузы затянуты: максимум {max_pause:.2f} сек., "
+                f"суммарно {total_pause:.2f} сек."
+            )
+
+        return InterviewCriterionResult(score, verdict)
+
+    def evaluate(self, question_segments):
+        all_pauses = []
         for segment in question_segments or []:
-            start = float(segment.get("start", 0) or 0)
-            end = float(segment.get("end", 0) or 0)
-            order = segment.get("order")
+            all_pauses.extend(extract_segment_pause_durations(segment))
+        return self.evaluate_pause_durations(all_pauses)
 
-            if order is None:
-                continue
 
-            if end - start >= self.min_answer_sec:
-                answered_orders.add(order)
+def normalize_transcript_text(text: str) -> str:
+    text = (text or "").lower().replace("-", " ")
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
 
-        answered_count = min(len(answered_orders), questions_count)
-        score = answered_count / questions_count
 
-        return InterviewCriterionResult(
-            score,
-            f"Дано полноценных ответов: {answered_count} из {questions_count} "
-            f"(минимум {self.min_answer_sec} сек. на ответ)."
-        )
+def split_transcript_words(text: str) -> List[str]:
+    return TRANSCRIPT_WORD_RE.findall(normalize_transcript_text(text))
+
+
+def count_transcript_words(text: str) -> int:
+    return len(split_transcript_words(text))
+
+
+def extract_segment_transcript(segment) -> str:
+    if not isinstance(segment, dict):
+        return ""
+
+    for key in ("transcript", "answer_text", "text"):
+        value = segment.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+
+    words_value = segment.get("words")
+    if isinstance(words_value, str):
+        return words_value.strip()
+    if isinstance(words_value, list):
+        return " ".join(str(item).strip() for item in words_value if str(item).strip())
+
+    return ""
+
+
+def extract_segment_pause_durations(segment) -> List[float]:
+    if not isinstance(segment, dict):
+        return []
+
+    pauses = segment.get("pauses")
+    if isinstance(pauses, list):
+        result = []
+        for item in pauses:
+            if isinstance(item, dict):
+                result.append(float(item.get("duration_sec", 0.0) or 0.0))
+            else:
+                result.append(float(item or 0.0))
+        return [max(0.0, value) for value in result]
+
+    pause_durations = segment.get("pause_durations")
+    if isinstance(pause_durations, list):
+        return [max(0.0, float(value or 0.0)) for value in pause_durations]
+
+    if segment.get("total_pause_sec") is not None:
+        return [max(0.0, float(segment.get("total_pause_sec") or 0.0))]
+
+    return []
+
+
+def _linear_score(value: float, good_boundary: float, bad_boundary: float) -> float:
+    value = float(value or 0.0)
+    if value <= good_boundary:
+        return 1.0
+    if value >= bad_boundary:
+        return 0.0
+    if bad_boundary <= good_boundary:
+        return 0.0
+    return 1.0 - ((value - good_boundary) / (bad_boundary - good_boundary))
