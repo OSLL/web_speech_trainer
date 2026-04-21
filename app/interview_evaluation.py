@@ -137,14 +137,7 @@ def evaluate_interview_recording(recording, questions_count: int) -> dict:
         }
     }
 
-
-
 def build_interview_results_data(recording, questions) -> dict:
-    """
-    Строит таблицу для results.html:
-    строка — критерий
-    столбец — вопрос
-    """
     questions = list(questions or [])
     questions_count = len(questions)
 
