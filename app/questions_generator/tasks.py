@@ -1,8 +1,6 @@
-import configparser
 import logging
 import os
 import tempfile
-from types import SimpleNamespace
 
 import nltk
 from celery_app import celery_app, HEURISTIC_TEMPLATES
@@ -10,64 +8,21 @@ from generator import VkrQuestionGenerator
 from app.mongo_odm import DBManager
 from app.mongo_odms.interview_odms import QuestionsDBManager
 from app.config import Config
+from types import SimpleNamespace
+from celery.signals import worker_process_init
 
 logger = logging.getLogger(__name__)
 
-
-def _build_minimal_config_from_ini():
-    if getattr(Config, "c", None) is not None:
-        return Config.c
-
-    app_conf = os.getenv("APP_CONF")
-    if not app_conf:
-        raise RuntimeError("APP_CONF is not set for celery worker")
-
-    parser = configparser.ConfigParser()
-    read_files = parser.read(app_conf)
-
-    if not read_files:
-        raise RuntimeError(f"Cannot read APP_CONF file: {app_conf}")
-
-    mongo_url = parser.get(
-        "mongodb",
-        "url",
-        fallback=os.getenv("MONGODB_URL", "mongodb://db:27017/")
-    )
-    if not mongo_url.endswith("/"):
-        mongo_url = mongo_url + "/"
-
-    mongo_db_name = parser.get(
-        "mongodb",
-        "database_name",
-        fallback=parser.get(
-            "mongodb",
-            "database",
-            fallback=os.getenv("MONGODB_DATABASE_NAME", "web_speech_trainer")
-        )
-    )
-
-    storage_max_size_mbytes = parser.get(
-        "constants",
-        "storage_max_size_mbytes",
-        fallback=os.getenv("STORAGE_MAX_SIZE_MBYTES", "1024")
-    )
-
+if getattr(Config, "c", None) is None:
     Config.c = SimpleNamespace(
         mongodb=SimpleNamespace(
-            url=mongo_url,
-            database_name=mongo_db_name,
+            url=celery_app.conf.mongodb_url,
+            database_name=celery_app.conf.mongodb_database_name,
         ),
         constants=SimpleNamespace(
-            storage_max_size_mbytes=storage_max_size_mbytes,
+            storage_max_size_mbytes=celery_app.conf.storage_max_size_mbytes,
         ),
     )
-
-    logger.info(
-        "Celery worker Config.c initialized: mongodb.url=%s mongodb.database_name=%s",
-        Config.c.mongodb.url,
-        Config.c.mongodb.database_name,
-    )
-    return Config.c
 
 
 def _ensure_nltk_resources():
@@ -86,14 +41,20 @@ def _ensure_nltk_resources():
     for resource_path, package_name in required_resources:
         try:
             nltk.data.find(resource_path)
-            logger.info("NLTK resource already exists: %s", resource_path)
+            logger.debug("NLTK resource already exists: %s", resource_path)
         except LookupError:
-            logger.info("Downloading NLTK resource: %s into %s", package_name, download_dir)
+            logger.debug("Downloading NLTK resource: %s into %s", package_name, download_dir)
             nltk.download(package_name, download_dir=download_dir, quiet=True)
 
             # Повторная проверка, чтобы упасть понятной ошибкой, если скачать не удалось
             nltk.data.find(resource_path)
-            logger.info("NLTK resource downloaded: %s", resource_path)
+            logger.debug("NLTK resource downloaded: %s", resource_path)
+
+
+@worker_process_init.connect
+def setup_nltk(**kwargs):
+    logger.debug("Инициализация NLTK в worker процессе")
+    _ensure_nltk_resources()
 
 
 @celery_app.task(
@@ -103,8 +64,6 @@ def _ensure_nltk_resources():
     retry_kwargs={"max_retries": 3},
 )
 def generate_questions(self, session_id: str, file_id: str, questions_count: int, generate_llm_questions: bool):
-    _build_minimal_config_from_ini()
-    _ensure_nltk_resources()
     db = DBManager()
     qdb = QuestionsDBManager()
 
@@ -119,13 +78,13 @@ def generate_questions(self, session_id: str, file_id: str, questions_count: int
 
         file_obj = db.get_file(file_id)
         if file_obj is None:
-            raise RuntimeError("Файл не найден в GridFS")
+            raise RuntimeError(f"Файл ВКР (id {file_id}) не найден в GridFS")
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp:
             tmp.write(file_obj.read())
             temp_path = tmp.name
 
-        logger.info("Файл сохранён временно: %s", temp_path)
+        logger.info(f"Файл ВКР (id {file_id}) сохранён временно для использования генератором вопросов: %s", temp_path)
 
         generator = VkrQuestionGenerator(temp_path, HEURISTIC_TEMPLATES)
         questions = generator.generate_all(questions_count, generate_llm_questions)
@@ -157,6 +116,6 @@ def generate_questions(self, session_id: str, file_id: str, questions_count: int
         if temp_path and os.path.exists(temp_path):
             try:
                 os.remove(temp_path)
-                logger.info("Временный файл удалён")
+                logger.info(f"Временный файл ВКР (id {file_id}) для генератора вопросов удалён")
             except Exception:
-                logger.warning("Не удалось удалить временный файл")
+                logger.warning(f"Не удалось удалить временный файл ВКР (id {file_id}), который использовался генератором вопросов")
