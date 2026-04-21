@@ -42,7 +42,7 @@ def setup_logging(log_path: Optional[str] = None) -> None:
 def log_timed(
     logger: logging.Logger,
     operation: str,
-    level: int = logging.INFO,
+    level: int = logging.DEBUG,
     **extra,
 ):
     start = time.perf_counter()
@@ -63,20 +63,3 @@ def log_timed(
             elapsed_ms,
             extra if extra else "",
         )
-
-
-@contextmanager
-def suppress_console_logs():
-    root = logging.getLogger()
-    saved = []
-
-    for h in root.handlers:
-        if isinstance(h, logging.StreamHandler):
-            saved.append((h, h.level))
-            h.setLevel(logging.CRITICAL + 1)
-
-    try:
-        yield
-    finally:
-        for h, lvl in saved:
-            h.setLevel(lvl)

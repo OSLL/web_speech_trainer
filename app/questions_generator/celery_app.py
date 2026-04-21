@@ -2,23 +2,15 @@ import os
 import csv
 from pathlib import Path
 from celery import Celery
+import celeryconfig
 
-REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
+celery_app = Celery("question_generator")
 
-celery_app = Celery(
-    "question_generator",
-    broker=REDIS_URL,
-    backend=REDIS_URL,
-    include=["tasks"],
-)
+celery_app.config_from_object(celeryconfig)
 
-celery_app.conf.update(
-    task_serializer="json",
-    result_serializer="json",
-    accept_content=["json"],
-    task_track_started=True,
-    task_time_limit=60 * 60,
-)
+celery_app.autodiscover_tasks(["app"])
+
+celery_app.conf.imports = ("tasks",)
 
 
 def _load_heuristic_templates():
