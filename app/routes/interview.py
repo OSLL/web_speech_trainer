@@ -38,6 +38,7 @@ def interview_upload_page():
         return PageResponse.text('User session not found', 404).to_flask()
 
     session_id = session.get('session_id')
+    logger.debug(session_id)
     if not session_id:
         return PageResponse.text('Session id not found', 404).to_flask()
 

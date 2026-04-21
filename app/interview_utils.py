@@ -76,7 +76,8 @@ def build_invalid_format_message() -> str:
 
 
 def cleanup_interview_generation_data(session_id: str) -> dict:
-    deleted_questions_result = QuestionsDBManager().delete_questions_by_session(session_id)
+    questions_db = QuestionsDBManager()
+    deleted_questions_result = questions_db.delete_questions_by_session(session_id)
     deleted_note = InterviewExplanatoryNoteDBManager().delete_note(session_id)
     deleted_task = CeleryTaskDBManager().delete_task(session_id, cleanup_file=True)
 
@@ -85,7 +86,6 @@ def cleanup_interview_generation_data(session_id: str) -> dict:
         'note_deleted': 1 if deleted_note else 0,
         'task_deleted': 1 if deleted_task else 0,
     }
-
 
 def cleanup_interview_session_data(session_id: str) -> dict:
     return cleanup_interview_generation_data(session_id)
@@ -154,12 +154,13 @@ def build_interview_upload_page_data(
 
     redirect_url = None
     page_state = 'upload'
+    questions_db = QuestionsDBManager()
 
     if (
         not force_upload
         and task_record is not None
         and task_status == 'success'
-        and count_questions_by_session(session_id) >= required_questions_count
+        and questions_db.count_questions_by_session(session_id) >= required_questions_count
     ):
         redirect_url = url_for('routes_interview.interview_page')
     elif (
@@ -181,7 +182,6 @@ def build_interview_upload_page_data(
         'required_questions_count': required_questions_count,
         'redirect_url': redirect_url,
     }
-
 
 import ast
 
