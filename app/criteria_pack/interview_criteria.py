@@ -1,6 +1,8 @@
 from collections import Counter
 from dataclasses import dataclass
+import json
 import re
+from pathlib import Path
 from typing import Iterable, List
 
 from app.root_logger import get_root_logger
@@ -9,6 +11,52 @@ from app.utils import RussianStopwords
 logger = get_root_logger()
 
 TRANSCRIPT_WORD_RE = re.compile(r"[a-zа-яё0-9]+", re.IGNORECASE)
+FILLERS_CONFIG_FILENAME = "filler_words.json"
+_FILLERS_CONFIG_CACHE = None
+
+
+def load_fillers_config() -> dict:
+    global _FILLERS_CONFIG_CACHE
+    if _FILLERS_CONFIG_CACHE is not None:
+        return _FILLERS_CONFIG_CACHE
+
+    config_path = Path(__file__).resolve().parent.parent / "word_config" / FILLERS_CONFIG_FILENAME
+
+    with config_path.open("r", encoding="utf-8") as file_obj:
+        data = json.load(file_obj)
+
+    filler_words = data.get("filler_words")
+    filler_phrases = data.get("filler_phrases")
+
+    if not isinstance(filler_words, list):
+        raise ValueError(f"{FILLERS_CONFIG_FILENAME}: filler_words must be a list")
+    if not isinstance(filler_phrases, list):
+        raise ValueError(f"{FILLERS_CONFIG_FILENAME}: filler_phrases must be a list")
+
+    normalized_words = sorted({
+        str(item).strip().lower()
+        for item in filler_words
+        if str(item).strip()
+    })
+    normalized_phrases = [
+        str(item).strip().lower()
+        for item in filler_phrases
+        if str(item).strip()
+    ]
+
+    _FILLERS_CONFIG_CACHE = {
+        "filler_words": normalized_words,
+        "filler_phrases": normalized_phrases,
+    }
+
+    logger.info(
+        "Loaded fillers config from %s: %s words, %s phrases.",
+        config_path,
+        len(normalized_words),
+        len(normalized_phrases),
+    )
+
+    return _FILLERS_CONFIG_CACHE
 
 
 @dataclass
@@ -27,11 +75,6 @@ class InterviewCriterionResult:
 
 
 class InterviewWordsCountCriterion:
-    """
-    Оценивает количество распознанных слов.
-    1.0 — если количество слов попадает в интервал [min_words, max_words].
-    Ниже минимума и выше максимума — линейное снижение.
-    """
 
     def __init__(self, min_words=60, max_words=240):
         self.min_words = max(1, int(min_words or 1))
@@ -75,33 +118,6 @@ class InterviewWordsCountCriterion:
 
 
 class InterviewFillerWordsCriterion:
-    """
-    Оценивает долю слов-паразитов и словесного мусора по собранной расшифровке ответов.
-    Чем меньше доля таких слов, тем выше итоговый балл.
-    """
-
-    DEFAULT_FILLER_WORDS = {
-        "ну",
-        "вот",
-        "типа",
-        "короче",
-        "значит",
-        "блин",
-        "эм",
-        "ээ",
-        "эээ",
-        "мм",
-        "ага",
-        "гм",
-    }
-
-    DEFAULT_FILLER_PHRASES = (
-        "как бы",
-        "это самое",
-        "так сказать",
-        "собственно говоря",
-        "в общем",
-    )
 
     WORD_RE = re.compile(r"[а-яё]+", re.IGNORECASE)
     SPACE_RE = re.compile(r"\s+")
@@ -117,8 +133,15 @@ class InterviewFillerWordsCriterion:
         self.soft_ratio = soft_ratio
         self.hard_ratio = hard_ratio
         self.example_limit = max(1, int(example_limit or 1))
-        self.filler_words = set(filler_words or self.DEFAULT_FILLER_WORDS)
-        self.filler_phrases = tuple(filler_phrases or self.DEFAULT_FILLER_PHRASES)
+
+        config = load_fillers_config()
+
+        self.filler_words = set(
+            filler_words if filler_words is not None else config["filler_words"]
+        )
+        self.filler_phrases = tuple(
+            filler_phrases if filler_phrases is not None else config["filler_phrases"]
+        )
 
     @classmethod
     def _normalize_text(cls, text: str) -> str:
@@ -225,11 +248,6 @@ class InterviewFillerWordsCriterion:
 
 
 class InterviewPauseDurationCriterion:
-    """
-    Оценивает длительность пауз по данным VAD, собранным на клиенте.
-    Долгие и суммарно большие паузы уменьшают балл.
-    """
-
     def __init__(
         self,
         good_max_pause_sec=1.5,
