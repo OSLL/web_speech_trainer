@@ -2,7 +2,6 @@ import logging
 import os
 import tempfile
 
-import nltk
 from celery_app import celery_app, HEURISTIC_TEMPLATES
 from generator import VkrQuestionGenerator
 from app.mongo_odm import DBManager
@@ -10,6 +9,7 @@ from app.mongo_odms.interview_odms import QuestionsDBManager
 from app.config import Config
 from types import SimpleNamespace
 from celery.signals import worker_process_init
+from check_nltk import ensure_nltk_resources
 
 logger = logging.getLogger(__name__)
 
@@ -25,36 +25,10 @@ if getattr(Config, "c", None) is None:
     )
 
 
-def _ensure_nltk_resources():
-    download_dir = os.getenv("NLTK_DATA", "/root/nltk_data")
-    os.makedirs(download_dir, exist_ok=True)
-
-    if download_dir not in nltk.data.path:
-        nltk.data.path.insert(0, download_dir)
-
-    required_resources = (
-        ("corpora/stopwords", "stopwords"),
-        ("tokenizers/punkt", "punkt"),
-        ("tokenizers/punkt_tab", "punkt_tab"),
-    )
-
-    for resource_path, package_name in required_resources:
-        try:
-            nltk.data.find(resource_path)
-            logger.debug("NLTK resource already exists: %s", resource_path)
-        except LookupError:
-            logger.debug("Downloading NLTK resource: %s into %s", package_name, download_dir)
-            nltk.download(package_name, download_dir=download_dir, quiet=True)
-
-            # Повторная проверка, чтобы упасть понятной ошибкой, если скачать не удалось
-            nltk.data.find(resource_path)
-            logger.debug("NLTK resource downloaded: %s", resource_path)
-
-
 @worker_process_init.connect
 def setup_nltk(**kwargs):
     logger.debug("Инициализация NLTK в worker процессе")
-    _ensure_nltk_resources()
+    ensure_nltk_resources()
 
 
 @celery_app.task(
