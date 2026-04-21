@@ -9,6 +9,13 @@ from nltk.corpus import stopwords
 
 from logging_utils import log_timed
 
+STOPWORDS_RU = set(stopwords.words("russian"))
+SECTIONS_PATTERN = re.compile(
+    r'(?P<intro>(?:\n|^)введение[^\n]*(?:\n[^\n]+)*?(?=\n\s*\n|$))|'
+    r'(?P<meth>(?:\n|^)(методология|методы)[^\n]*(?:\n[^\n]+)*?(?=\n\s*\n|$))',
+    re.DOTALL
+)
+
 
 class VkrQuestionValidator:
     def __init__(self, vkr_text: str):
@@ -17,46 +24,28 @@ class VkrQuestionValidator:
         with log_timed(self.logger, "инициализация валидатора"):
             self.vkr_text = vkr_text.lower()
 
-            with log_timed(self.logger, "загрузка стоп-слов"):
-                self.stopwords = set(stopwords.words("russian"))
+            self.stopwords = STOPWORDS_RU
 
             with log_timed(self.logger, "извлечение ключевых слов"):
                 self.keywords = self._extract_keywords()
 
-        self.logger.info(
-            "Валидатор готов: стоп-слов=%d тема=%d цели=%d методология=%d",
-            len(self.stopwords),
-            len(self.keywords["theme"]),
-            len(self.keywords["goals"]),
-            len(self.keywords["methodology"]),
-        )
+        self.logger.debug("Валидатор готов")
 
     def _extract_keywords(self) -> Dict[str, Set[str]]:
         keywords = {
             "theme": set(),
-            "goals": set(),
             "methodology": set(),
         }
 
-        with log_timed(self.logger, "извлечение введения"):
-            intro = self._extract_introduction()
-        with log_timed(self.logger, "токенизация введения"):
+        with log_timed(self.logger, "извлечение введения и методологии"):
+            intro, meth = self._extract_sections()
+        with log_timed(self.logger, "токенизация введения и методологии"):
             keywords["theme"] = self._tokenize_and_filter(intro)
-
-        with log_timed(self.logger, "извлечение целей"):
-            goals = self._extract_goals_section()
-        with log_timed(self.logger, "токенизация целей"):
-            keywords["goals"] = self._tokenize_and_filter(goals)
-
-        with log_timed(self.logger, "извлечение методологии"):
-            meth = self._extract_methodology_section()
-        with log_timed(self.logger, "токенизация методологии"):
             keywords["methodology"] = self._tokenize_and_filter(meth)
 
-        self.logger.info(
-            "Ключевые слова извлечены: тема=%d цели=%d методология=%d",
+        self.logger.debug(
+            "Ключевые слова извлечены: тема=%d методология=%d",
             len(keywords["theme"]),
-            len(keywords["goals"]),
             len(keywords["methodology"]),
         )
         return keywords
@@ -74,20 +63,17 @@ class VkrQuestionValidator:
         ]
         return set(filtered_tokens)
 
-    def _extract_introduction(self) -> str:
-        intro_pattern = r'введение.*?(?=глава|раздел)'
-        match = re.search(intro_pattern, self.vkr_text, re.DOTALL)
-        return match.group(0) if match else ""
+    def _extract_sections(self):
+        intro = ""
+        meth = ""
 
-    def _extract_goals_section(self) -> str:
-        goals_pattern = r'(цель|задачи).*?(?=глава|раздел)'
-        match = re.search(goals_pattern, self.vkr_text, re.DOTALL)
-        return match.group(0) if match else ""
+        for match in SECTIONS_PATTERN.finditer(self.vkr_text):
+            if match.group("intro"):
+                intro = match.group("intro")
+            elif match.group("meth"):
+                meth = match.group("meth")
 
-    def _extract_methodology_section(self) -> str:
-        meth_pattern = r'(методология|методы).*?(?=глава|раздел)'
-        match = re.search(meth_pattern, self.vkr_text, re.DOTALL)
-        return match.group(0) if match else ""
+        return intro, meth
 
     def check_relevance(self, question: str) -> bool:
         with log_timed(self.logger, "проверка релевантности", длина=len(question)):
