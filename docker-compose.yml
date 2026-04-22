@@ -13,8 +13,6 @@ services:
     depends_on:
       - db
       - training_processor
-    volumes:
-      - ./database-dump:/app/dump/database-dump/
     environment:
       - APP_CONF=${APP_CONF}
 
