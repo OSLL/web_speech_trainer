@@ -1,7 +1,5 @@
 from flask import Response, render_template, request, url_for
 
-from app.mongo_models import Questions
-
 from app.mongo_odms.interview_odms import (
     CeleryTaskDBManager,
     InterviewExplanatoryNoteDBManager,

@@ -46,6 +46,17 @@ document.addEventListener("DOMContentLoaded", () => {
   let micArmed = false;
   let micSpeaking = false;
 
+  let currentAnswerTranscriptFinalParts = [];
+  let currentAnswerTranscriptInterimByIndex = new Map();
+  let currentAnswerPauses = [];
+  let currentPauseCandidateTs = null;
+  let currentPauseStartTs = null;
+
+  let recognition = null;
+  let recognitionActive = false;
+  let recognitionShouldRun = false;
+  let recognitionStopResolver = null;
+
   function getCurrentQuestion() {
     return questions[questionIndex] || null;
   }
@@ -70,6 +81,202 @@ document.addEventListener("DOMContentLoaded", () => {
   function setMicSpeaking(active) {
     micSpeaking = !!active;
     applyMicIndicator();
+  }
+
+
+  function getSpeechRecognitionCtor() {
+    return window.SpeechRecognition || window.webkitSpeechRecognition || null;
+  }
+
+  function ensureSpeechRecognition() {
+    const SpeechRecognitionCtor = getSpeechRecognitionCtor();
+    if (!SpeechRecognitionCtor) return null;
+    if (recognition) return recognition;
+
+    recognition = new SpeechRecognitionCtor();
+    recognition.lang = "ru-RU";
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = (event) => {
+      if (currentAnswerStartTs == null) return;
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        const transcript = result[0]?.transcript?.trim();
+        if (!transcript) continue;
+
+        if (result.isFinal) {
+          currentAnswerTranscriptFinalParts.push(transcript);
+          currentAnswerTranscriptInterimByIndex.delete(i);
+        } else {
+          currentAnswerTranscriptInterimByIndex.set(i, transcript);
+        }
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.warn("SpeechRecognition error:", event);
+    };
+
+    recognition.onend = () => {
+      recognitionActive = false;
+
+      if (recognitionStopResolver) {
+        const resolve = recognitionStopResolver;
+        recognitionStopResolver = null;
+        resolve();
+      }
+
+      if (!recognitionShouldRun || state !== "running" || currentAnswerStartTs == null) return;
+      try {
+        recognition.start();
+        recognitionActive = true;
+      } catch (err) {
+        console.warn("Не удалось перезапустить SpeechRecognition:", err);
+      }
+    };
+
+    return recognition;
+  }
+
+  function resetAnswerSpeechMetrics() {
+    currentAnswerTranscriptFinalParts = [];
+    currentAnswerTranscriptInterimByIndex = new Map();
+    currentAnswerPauses = [];
+    currentPauseCandidateTs = null;
+    currentPauseStartTs = null;
+  }
+
+  function buildCurrentAnswerTranscript() {
+    const interimParts = Array.from(currentAnswerTranscriptInterimByIndex.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(([, value]) => value);
+
+    return [...currentAnswerTranscriptFinalParts, ...interimParts]
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function startAnswerSpeechCapture() {
+    resetAnswerSpeechMetrics();
+    currentPauseCandidateTs = performance.now();
+    recognitionShouldRun = true;
+
+    const speechRecognition = ensureSpeechRecognition();
+    if (!speechRecognition || recognitionActive) return;
+
+    try {
+      speechRecognition.start();
+      recognitionActive = true;
+    } catch (err) {
+      console.warn("Не удалось запустить SpeechRecognition:", err);
+    }
+  }
+
+  function stopAnswerSpeechCapture() {
+    recognitionShouldRun = false;
+
+    if (!recognition || !recognitionActive) {
+      return Promise.resolve();
+    }
+
+    return new Promise((resolve) => {
+      let timeoutId = null;
+
+      const finishStop = () => {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+        recognitionStopResolver = null;
+        resolve();
+      };
+
+      recognitionStopResolver = finishStop;
+
+      timeoutId = setTimeout(() => {
+        recognitionActive = false;
+        finishStop();
+      }, 800);
+
+      try {
+        recognition.stop();
+      } catch (err) {
+        console.warn("Не удалось остановить SpeechRecognition:", err);
+        recognitionActive = false;
+        finishStop();
+      }
+    });
+  }
+
+  function pushPause(startTs, endTs) {
+    if (sessionStartTs == null) return;
+    const durationSec = Math.max(0, (endTs - startTs) / 1000);
+    if (durationSec <= 0) return;
+
+    currentAnswerPauses.push({
+      start: (startTs - sessionStartTs) / 1000,
+      end: (endTs - sessionStartTs) / 1000,
+      duration_sec: Number(durationSec.toFixed(2)),
+    });
+  }
+
+  function trackAnswerPause(rms, nowTs) {
+    if (currentAnswerStartTs == null || state !== "running") return;
+
+    const speaking = rms > CONFIG.VAD_THRESHOLD;
+
+    if (speaking) {
+      if (currentPauseStartTs != null) {
+        pushPause(currentPauseStartTs, nowTs);
+        currentPauseStartTs = null;
+      }
+      currentPauseCandidateTs = null;
+      return;
+    }
+
+    if (currentPauseStartTs != null) return;
+
+    if (currentPauseCandidateTs == null) {
+      currentPauseCandidateTs = nowTs;
+      return;
+    }
+
+    if (nowTs - currentPauseCandidateTs >= CONFIG.VAD_HANG_MS) {
+      currentPauseStartTs = currentPauseCandidateTs;
+    }
+  }
+
+  async function consumeCurrentAnswerSpeechMetrics(nowTs) {
+    if (currentPauseStartTs != null) {
+      pushPause(currentPauseStartTs, nowTs);
+    } else if (
+      currentPauseCandidateTs != null &&
+      nowTs - currentPauseCandidateTs >= CONFIG.VAD_HANG_MS
+    ) {
+      pushPause(currentPauseCandidateTs, nowTs);
+    }
+
+    await stopAnswerSpeechCapture();
+
+    const transcript = buildCurrentAnswerTranscript();
+    const pauses = currentAnswerPauses.slice();
+    const totalPauseSec = pauses.reduce((sum, item) => sum + Number(item?.duration_sec || 0), 0);
+    const maxPauseSec = pauses.reduce(
+      (max, item) => Math.max(max, Number(item?.duration_sec || 0)),
+      0,
+    );
+
+    resetAnswerSpeechMetrics();
+
+    return {
+      transcript,
+      pauses,
+      totalPauseSec: Number(totalPauseSec.toFixed(2)),
+      maxPauseSec: Number(maxPauseSec.toFixed(2)),
+    };
   }
 
   let remainingSec = 0;
@@ -319,6 +526,8 @@ document.addEventListener("DOMContentLoaded", () => {
         sum += x * x;
       }
       const rms = Math.sqrt(sum / data.length);
+      const nowTs = performance.now();
+      trackAnswerPause(rms, nowTs);
       setMicSpeaking(rms > CONFIG.VAD_THRESHOLD);
     }, 50);
   }
@@ -330,15 +539,21 @@ document.addEventListener("DOMContentLoaded", () => {
     setMic(false);
   }
 
-  function closeCurrentAnswer() {
+  async function closeCurrentAnswer() {
     if (currentAnswerStartTs == null) return;
     const now = performance.now();
     const q = getCurrentQuestion();
+    const answerSpeechMetrics = await consumeCurrentAnswerSpeechMetrics(now);
+
     questionSegments.push({
       question_id: q?.id || q?._id || null,
       order: questionIndex,
       start: (currentAnswerStartTs - sessionStartTs) / 1000,
       end: (now - sessionStartTs) / 1000,
+      transcript: answerSpeechMetrics.transcript,
+      pauses: answerSpeechMetrics.pauses,
+      total_pause_sec: answerSpeechMetrics.totalPauseSec,
+      max_pause_sec: answerSpeechMetrics.maxPauseSec,
     });
     currentAnswerStartTs = null;
   }
@@ -350,6 +565,8 @@ document.addEventListener("DOMContentLoaded", () => {
     currentAnswerStartTs = null;
     questionSegments = [];
     fullSessionChunks = [];
+    resetAnswerSpeechMetrics();
+    stopAnswerSpeechCapture();
 
     if (recordingsEl) recordingsEl.innerHTML = "";
     if (questionTextEl) questionTextEl.textContent = "";
@@ -444,24 +661,25 @@ document.addEventListener("DOMContentLoaded", () => {
     await speak(q.text);
 
     currentAnswerStartTs = performance.now();
+    startAnswerSpeechCapture();
 
     setStatus("Говорите ответ");
     setButtons({ mainText: "Озвучить вопрос", mainEnabled: false, showNext: true });
   }
 
-  function nextQuestion() {
-    closeCurrentAnswer();
+  async function nextQuestion() {
+    await closeCurrentAnswer();
     if (questionIndex < questions.length - 1) {
       questionIndex++;
       renderQuestion();
-      askQuestion();
+      await askQuestion();
       return;
     }
-    finishInterview();
+    await finishInterview();
   }
 
   async function finishInterview() {
-    closeCurrentAnswer();
+    await closeCurrentAnswer();
 
     recordedDurationSec = sessionStartTs == null
       ? 0
@@ -554,6 +772,8 @@ document.addEventListener("DOMContentLoaded", () => {
       window.speechSynthesis.cancel();
     }
 
+    stopAnswerSpeechCapture();
+    resetAnswerSpeechMetrics();
     currentAnswerStartTs = null;
     questionSegments = [];
 

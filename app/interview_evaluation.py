@@ -1,26 +1,26 @@
-from dataclasses import dataclass
-
 from app.feedback_evaluator import FeedbackEvaluatorFactory
-from app.interview_utils import get_ideal_answer_max_sec, get_min_answer_sec, get_ideal_answer_min_sec, get_interview_feedback_evaluation_id, get_interview_criteria_pack_id
+from app.criteria_pack.interview_criteria import (
+    InterviewCriterionResult,
+    InterviewFillerWordsCriterion,
+    InterviewPauseDurationCriterion,
+    InterviewWordsCountCriterion,
+    extract_segment_pause_durations,
+    extract_segment_transcript,
+)
+from app.interview_utils import (
+    get_ideal_answer_max_sec,
+    get_ideal_answer_min_sec,
+    get_interview_criteria_pack_id,
+    get_interview_feedback_evaluation_id,
+)
+
+TARGET_WORDS_PER_SEC = 2.0
 
 INTERVIEW_CRITERION_WEIGHTS = {
-    "InterviewDurationCriterion": 0.5,
-    "InterviewAnswerCoverageCriterion": 0.5,
+    "InterviewFillerWordsCriterion": 0.34,
+    "InterviewWordsCountCriterion": 0.33,
+    "InterviewPauseDurationCriterion": 0.33,
 }
-
-@dataclass
-class InterviewCriterionResult:
-    result: float
-    verdict: str = ""
-
-    def __post_init__(self):
-        self.result = max(0.0, min(1.0, float(self.result)))
-
-    def to_dict(self):
-        return {
-            "result": round(self.result, 2),
-            "verdict": self.verdict,
-        }
 
 
 def _build_verdict(score: float) -> str:
@@ -42,11 +42,6 @@ def _segment_duration(segment) -> float:
 
 
 def _build_segments_by_order(question_segments):
-    """
-    Берем по одному сегменту на вопрос.
-    Если по одному вопросу пришло несколько сегментов,
-    оставляем самый длинный.
-    """
     result = {}
 
     for segment in question_segments or []:
@@ -61,67 +56,47 @@ def _build_segments_by_order(question_segments):
     return result
 
 
-def _score_answer_coverage(segment) -> InterviewCriterionResult:
-    duration = _segment_duration(segment)
+def _build_words_count_criterion(min_seconds, max_seconds, multiplier=1.0):
+    min_words = max(1, round(float(min_seconds or 0) * TARGET_WORDS_PER_SEC * multiplier))
+    max_words = max(min_words, round(float(max_seconds or 0) * TARGET_WORDS_PER_SEC * multiplier))
+    return InterviewWordsCountCriterion(min_words=min_words, max_words=max_words)
 
-    if duration >= get_min_answer_sec():
-        return InterviewCriterionResult(
-            1.0,
-            f"Ответ засчитан: {duration:.1f} сек."
-        )
 
-    if duration > 0:
-        return InterviewCriterionResult(
-            0.0,
-            f"Ответ слишком короткий: {duration:.1f} сек. Нужно хотя бы {get_min_answer_sec()} сек."
-        )
-
-    return InterviewCriterionResult(
-        0.0,
-        "Ответ отсутствует."
+def _score_words_segment(segment) -> InterviewCriterionResult:
+    criterion = _build_words_count_criterion(
+        get_ideal_answer_min_sec(),
+        get_ideal_answer_max_sec(),
     )
+    return criterion.evaluate_transcript(extract_segment_transcript(segment))
 
 
-def _score_answer_duration(segment) -> InterviewCriterionResult:
-    duration = _segment_duration(segment)
+def _score_fillers_segment(segment) -> InterviewCriterionResult:
+    criterion = InterviewFillerWordsCriterion()
+    return criterion.evaluate_transcript(extract_segment_transcript(segment))
 
-    if duration <= 0:
-        return InterviewCriterionResult(0.0, "Нет ответа по вопросу.")
 
-    if duration < get_ideal_answer_min_sec():
-        score = duration / get_ideal_answer_min_sec()
-        return InterviewCriterionResult(
-            score,
-            f"Ответ коротковат: {duration:.1f} сек. Желательно от {get_ideal_answer_min_sec()} сек."
-        )
-
-    if duration <= get_ideal_answer_max_sec():
-        return InterviewCriterionResult(
-            1.0,
-            f"Хорошая длительность ответа: {duration:.1f} сек."
-        )
-
-    score = max(0.0, 1.0 - ((duration - get_ideal_answer_max_sec()) / get_ideal_answer_max_sec()))
-    return InterviewCriterionResult(
-        score,
-        f"Ответ слишком длинный: {duration:.1f} сек. Желательно до {get_ideal_answer_max_sec()} сек."
-    )
+def _score_pause_segment(segment) -> InterviewCriterionResult:
+    criterion = InterviewPauseDurationCriterion()
+    return criterion.evaluate_pause_durations(extract_segment_pause_durations(segment))
 
 
 def _build_question_level_rows(question_segments, questions_count):
     segments_by_order = _build_segments_by_order(question_segments)
 
-    coverage_cells = []
-    duration_cells = []
+    filler_cells = []
+    words_cells = []
+    pause_cells = []
 
     for order in range(questions_count):
         segment = segments_by_order.get(order)
-        coverage_cells.append(_score_answer_coverage(segment))
-        duration_cells.append(_score_answer_duration(segment))
+        filler_cells.append(_score_fillers_segment(segment))
+        words_cells.append(_score_words_segment(segment))
+        pause_cells.append(_score_pause_segment(segment))
 
     return {
-        "Наличие ответа": coverage_cells,
-        "Длительность ответа": duration_cells,
+        "Слова-паразиты": filler_cells,
+        "Количество слов": words_cells,
+        "Паузы": pause_cells,
     }
 
 
@@ -129,24 +104,20 @@ def evaluate_interview_recording(recording, questions_count: int) -> dict:
     """
     Считает общий feedback, который сохраняется в InterviewFeedback.
     """
-    rows = _build_question_level_rows(recording.question_segments, questions_count)
+    safe_questions_count = max(1, int(questions_count or 0))
 
-    if questions_count > 0:
-        duration_avg = sum(item.result for item in rows["Длительность ответа"]) / questions_count
-        coverage_avg = sum(item.result for item in rows["Наличие ответа"]) / questions_count
-    else:
-        duration_avg = 0.0
-        coverage_avg = 0.0
+    filler_criterion = InterviewFillerWordsCriterion()
+    words_count_criterion = _build_words_count_criterion(
+        get_ideal_answer_min_sec(),
+        get_ideal_answer_max_sec(),
+        multiplier=safe_questions_count,
+    )
+    pause_criterion = InterviewPauseDurationCriterion()
 
     criteria_results = {
-        "InterviewDurationCriterion": InterviewCriterionResult(
-            duration_avg,
-            "Средний балл по длительности ответов."
-        ),
-        "InterviewAnswerCoverageCriterion": InterviewCriterionResult(
-            coverage_avg,
-            "Средний балл по наличию ответов."
-        ),
+        "InterviewFillerWordsCriterion": filler_criterion.evaluate(recording.question_segments),
+        "InterviewWordsCountCriterion": words_count_criterion.evaluate(recording.question_segments),
+        "InterviewPauseDurationCriterion": pause_criterion.evaluate(recording.question_segments),
     }
 
     evaluator_cls = FeedbackEvaluatorFactory().get_feedback_evaluator(
@@ -166,13 +137,7 @@ def evaluate_interview_recording(recording, questions_count: int) -> dict:
         }
     }
 
-
 def build_interview_results_data(recording, questions) -> dict:
-    """
-    Строит таблицу для results.html:
-    строка — критерий
-    столбец — вопрос
-    """
     questions = list(questions or [])
     questions_count = len(questions)
 

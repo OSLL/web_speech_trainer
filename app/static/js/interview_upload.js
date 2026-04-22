@@ -118,7 +118,7 @@
 
       if (processingStatusText) {
         processingStatusText.textContent =
-          message || 'Генерируем вопросы для интервью. Это может занять некоторое время...';
+          message || 'Генерируем вопросы для интервью. Это может занять некоторое время...(до 2 минут)';
       }
     }
 
@@ -187,7 +187,7 @@
 
         if (payload.page_state === 'processing') {
           showProcessingState(
-            payload.processing_status_text || 'Генерируем вопросы для интервью. Это может занять некоторое время...',
+            payload.processing_status_text || 'Генерируем вопросы для интервью. Это может занять некоторое время...(до 2 минут)',
             payload.current_document_name || ''
           );
           pollStatus();
@@ -224,7 +224,7 @@
         }
 
         showProcessingState(
-          payload.status_text || 'Генерируем вопросы для интервью. Это может занять некоторое время...',
+          payload.status_text || 'Генерируем вопросы для интервью. Это может занять некоторое время...(до 2 минут)',
           currentProcessingDocumentName
         );
       } catch (e) {
