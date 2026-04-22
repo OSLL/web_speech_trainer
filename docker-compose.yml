@@ -85,21 +85,26 @@ services:
   redis:
     image: redis:7
     restart: always
+    profiles:
+      - question_generate_profile
 
   celery_worker:
     build:
       context: .
-      dockerfile: app/questions_generator/Dockerfile
+      dockerfile: ./app/questions_generator/Dockerfile
+    profiles:
+      - question_generate_profile
+    working_dir: /project/app/questions_generator
     command: celery -A celery_app.celery_app worker --loglevel=info
     depends_on:
       - redis
       - db
     volumes:
       - nltk_data:/root/nltk_data
-      - ./app/questions_generator:/app
+      - ./app:/project/app
       - ./app_conf:/project/app_conf
     environment:
-      - PYTHONPATH=/project
+      - PYTHONPATH=/project:/project/app:/project/app/questions_generator
       - APP_CONF=${APP_CONF}
       - NLTK_DATA=/root/nltk_data
 
