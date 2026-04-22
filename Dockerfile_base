@@ -9,21 +9,21 @@ LABEL version="0.3"
 LABEL project="wst"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3-pip \
-    python3-dev \
-    ffmpeg \
-    exiftool \
-    inkscape \
-    mupdf \
-    mupdf-tools \
-    libgconf-2-4 \
-    libnss3 \
-    libxss1 \
-    libmagic1 \
-    nano \
-    libreoffice-impress \
-    default-jre \
-    ca-certificates && \
+    python3-pip=23.0.1+dfsg-1 \
+    python3-dev=3.11.2-1+b1 \
+    ffmpeg=7:5.1.8-0+deb12u1 \
+    libimage-exiftool-perl=12.57+dfsg-1 \
+    inkscape=1.2.2-2+b1 \
+    mupdf=1.21.1+ds2-1+deb12u1 \
+    mupdf-tools=1.21.1+ds2-1+deb12u1 \
+    libgconf-2-4=3.2.6-8 \
+    libnss3=2:3.87.1-1+deb12u2 \
+    libxss1=1:1.2.3-1 \
+    libmagic1=1:5.44-3 \
+    nano=7.2-1+deb12u1 \
+    libreoffice-impress=4:7.4.7-1+deb12u10 \
+    default-jre=2:1.17-74 \
+    ca-certificates=20230311+deb12u1 && \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt ./
