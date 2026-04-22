@@ -95,7 +95,6 @@ services:
       - redis
       - db
     volumes:
-      - .:/project
       - nltk_data:/root/nltk_data
       - ./app/questions_generator:/app
       - ./app_conf:/project/app_conf
