@@ -15,7 +15,6 @@ services:
       - training_processor
     volumes:
       - ./database-dump:/app/dump/database-dump/
-      - ./app_conf:/project/app_conf
     environment:
       - APP_CONF=${APP_CONF}
 
@@ -26,8 +25,6 @@ services:
       - db
       - whisper
       - presentation_processor
-    volumes:
-      - ./app_conf:/project/app_conf
 
   recognized_audio_processor:
     <<: *wst-service
@@ -36,8 +33,6 @@ services:
       - db
       - audio_processor
       - presentation_processor
-    volumes:
-      - ./app_conf:/project/app_conf
 
   presentation_processor:
     <<: *wst-service
@@ -46,7 +41,6 @@ services:
       - db
     volumes:
       - nltk_data:/root/nltk_data
-      - ./app_conf:/project/app_conf
 
   recognized_presentation_processor:
     <<: *wst-service
@@ -54,8 +48,6 @@ services:
     depends_on:
       - db
       - presentation_processor
-    volumes:
-      - ./app_conf:/project/app_conf
 
   training_processor:
     <<: *wst-service
@@ -66,15 +58,12 @@ services:
       - recognized_presentation_processor
     volumes:
       - nltk_data:/root/nltk_data
-      - ./app_conf:/project/app_conf
 
   task_attempt_to_pass_back_processor:
     <<: *wst-service
     command: python3 -m task_attempt_to_pass_back_processor $APP_CONF
     depends_on:
       - db
-    volumes:
-      - ./app_conf:/project/app_conf
 
   db:
     image: mongo:8-noble
