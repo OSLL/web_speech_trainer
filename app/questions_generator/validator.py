@@ -8,6 +8,7 @@ from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 
 from logging_utils import log_timed
+from validator_constants import *
 
 STOPWORDS_RU = set(stopwords.words("russian"))
 SECTIONS_PATTERN = re.compile(
@@ -80,8 +81,7 @@ class VkrQuestionValidator:
             score = 0
             score += bool(set(question.lower().split()) & self.keywords["theme"])
             score += self._calculate_actuality_score(question)
-            score += bool(set(question.lower().split()) & self.keywords["goals"])
-            result = score >= 2
+            result = score >= RELEVANCE_THRESHOLD
 
         self.logger.info(
             "Релевантность=%s балл=%d вопрос=%r",
@@ -104,11 +104,11 @@ class VkrQuestionValidator:
                 всего=len(questions_list),
         ):
             coverage = {
-                "теория": self._check_theory_coverage(questions_list),
-                "практика": self._check_practice_coverage(questions_list),
-                "глубина_анализа": self._check_analysis_depth(questions_list),
+                "theory": self._check_theory_coverage(questions_list),
+                "practice": self._check_practice_coverage(questions_list),
+                "analysis depth": self._check_analysis_depth(questions_list),
             }
-            result = all(value >= 0.7 for value in coverage.values())
+            result = all(value >= COMPLETENESS_THRESHOLD for value in coverage.values())
 
         self.logger.info(
             "Полнота набора вопросов=%s покрытие=%s",
@@ -118,39 +118,31 @@ class VkrQuestionValidator:
         return result
 
     def _check_theory_coverage(self, questions: List[str]) -> float:
-        theoretical_terms = {'теория', 'модель', 'концепция', 'принцип'}
         total_questions = len(questions)
         theory_questions = sum(
             1 for q in questions
-            if any(term in q.lower() for term in theoretical_terms)
+            if any(term in q.lower() for term in THEORETICAL_TERMS)
         )
         return theory_questions / total_questions if total_questions > 0 else 0
 
     def _check_practice_coverage(self, questions: List[str]) -> float:
-        practical_terms = {'применение', 'реализация', 'использование', 'результаты'}
         total_questions = len(questions)
         practice_questions = sum(
             1 for q in questions
-            if any(term in q.lower() for term in practical_terms)
+            if any(term in q.lower() for term in PRACTICAL_TERMS)
         )
         return practice_questions / total_questions if total_questions > 0 else 0
 
     def _check_analysis_depth(self, questions: List[str]) -> float:
-        depth_indicators = {
-            'поверхностный': {'что', 'какой'},
-            'средний': {'почему', 'как'},
-            'глубокий': {'анализ', 'оценка', 'сравнение'}
-        }
-
         depths = []
         for q in questions:
             q_lower = q.lower()
             depth = 0
-            if any(ind in q_lower for ind in depth_indicators['глубокий']):
+            if any(ind in q_lower for ind in DEPTH_INDICATORS['low']):
                 depth = 2
-            elif any(ind in q_lower for ind in depth_indicators['средний']):
+            elif any(ind in q_lower for ind in DEPTH_INDICATORS['medium']):
                 depth = 1
-            elif any(ind in q_lower for ind in depth_indicators['поверхностный']):
+            elif any(ind in q_lower for ind in DEPTH_INDICATORS['high']):
                 depth = 0
             depths.append(depth)
 
@@ -158,12 +150,13 @@ class VkrQuestionValidator:
 
     def check_clarity(self, question: str) -> bool:
         with log_timed(self.logger, "проверка ясности", длина=len(question)):
-            metrics = {
-                "length": self._check_length(question),
-                "complexity": self._calculate_complexity(question),
-                "ambiguity": self._check_ambiguity(question),
-            }
-            result = all(v >= 0.7 for v in metrics.values())
+            metrics = ClarityMetrics(
+                length=self._check_length(question),
+                complexity=self._calculate_complexity(question),
+                ambiguity=self._check_ambiguity(question),
+            )
+
+            result = all(v >= CLARITY_THRESHOLD for v in vars(metrics).values())
 
         self.logger.info(
             "Ясность=%s метрики=%s вопрос=%r",
@@ -175,10 +168,10 @@ class VkrQuestionValidator:
 
     def _check_length(self, question: str) -> float:
         words = len(question.split())
-        if words < 7:
-            return 0.5 * (words / 7)
-        elif words > 15:
-            return 1 - 0.5 * ((words - 15) / 15)
+        if words < MIN_WORDS:
+            return SHORT_PENALTY * (words / MIN_WORDS)
+        elif words > MAX_WORDS:
+            return 1 - LONG_PENALTY * ((words - MAX_WORDS) / MAX_WORDS)
         return 1.0
 
     def _calculate_complexity(self, question: str) -> float:
@@ -187,24 +180,21 @@ class VkrQuestionValidator:
         return min(1.0, len(unique_words) / len(words))
 
     def _check_ambiguity(self, question: str) -> float:
-        ambiguous_terms = {
-            'или', 'и', 'при этом', 'однако', 'тем не менее',
-            'с другой стороны', 'в то же время'
-        }
         ambiguity_score = 1.0
-        for term in ambiguous_terms:
+        for term in AMBIGUOUS_TERMS:
             if term in question.lower():
-                ambiguity_score -= 0.2
+                ambiguity_score -= AMBIGUOUS_PENALTY
         return max(0.0, ambiguity_score)
 
     def check_difficulty(self, question: str) -> bool:
         with log_timed(self.logger, "проверка сложности", длина=len(question)):
-            metrics = {
-                "abstraction": self._assess_abstraction(question),
-                "type": self._identify_question_type(question),
-                "level": self._match_student_level(question),
-            }
-            result = all(v == "optimal" for v in metrics.values())
+            metrics = DifficultyMetrics(
+                abstraction=self._assess_abstraction(question),
+                type=self._identify_question_type(question),
+                level=self._match_student_level(question),
+            )
+
+            result = all(v == "optimal" for v in vars(metrics).values())
 
         self.logger.info(
             "Сложность=%s метрики=%s вопрос=%r",
@@ -215,63 +205,39 @@ class VkrQuestionValidator:
         return result
 
     def _assess_abstraction(self, question: str) -> str:
-        abstract_terms = {
-            'концепция', 'модель', 'теория', 'абстракция',
-            'парадигма', 'методология'
-        }
-        concrete_terms = {
-            'пример', 'факт', 'данные', 'результат',
-            'показатель', 'число'
-        }
-
-        abstract_count = sum(1 for term in abstract_terms
+        abstract_count = sum(1 for term in ABSTRACT_TERMS
                              if term in question.lower())
-        concrete_count = sum(1 for term in concrete_terms
+        concrete_count = sum(1 for term in CONCRETE_TERMS
                              if term in question.lower())
 
-        if abstract_count > 2 and concrete_count == 0:
+        if abstract_count > MAX_ABSTRACTION_TERMS_COUNT and concrete_count == 0:
             return 'too_high'
-        elif abstract_count == 0 and concrete_count > 2:
+        elif abstract_count == 0 and concrete_count > MAX_ABSTRACTION_TERMS_COUNT:
             return 'too_low'
         return 'optimal'
 
     def _identify_question_type(self, question: str) -> str:
-        question_types = {
-            'descriptive': {'описать', 'рассказать', 'характеризовать'},
-            'analytical': {'анализировать', 'сравнить', 'оценить'},
-            'practical': {'применить', 'использовать', 'реализовать'}
-        }
-
         type_count = Counter()
-        for q_type, keywords in question_types.items():
+        for q_type, keywords in QUESTION_TYPES.items():
             count = sum(1 for keyword in keywords
                         if keyword in question.lower())
             if count > 0:
                 type_count[q_type] = count
 
-        if len(type_count) >= 2:
+        if len(type_count) >= QUESTION_TYPES_THRESHOLD:
             return 'optimal'
         elif len(type_count) == 0:
             return 'too_simple'
         return 'too_complex'
 
     def _match_student_level(self, question: str) -> str:
-        advanced_terms = {
-            'методология', 'парадигма', 'теоретическая модель',
-            'эмпирический анализ', 'статистическая обработка'
-        }
-        basic_terms = {
-            'пример', 'факт', 'данные', 'результат',
-            'показатель', 'число'
-        }
-
-        advanced_count = sum(1 for term in advanced_terms
+        advanced_count = sum(1 for term in ADVANCED_TERMS
                              if term in question.lower())
-        basic_count = sum(1 for term in basic_terms
+        basic_count = sum(1 for term in BASIC_TERMS
                           if term in question.lower())
 
-        if advanced_count > 3:
+        if advanced_count > MAX_STUDENT_LEVEL_TERMS_COUNT:
             return 'too_hard'
-        elif basic_count > 3:
+        elif basic_count > MAX_STUDENT_LEVEL_TERMS_COUNT:
             return 'too_easy'
         return 'optimal'

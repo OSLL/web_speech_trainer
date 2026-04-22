@@ -19,6 +19,10 @@ RUN pip install --no-cache-dir \
     -r requirements.txt \
     -r qg_requirements.txt
 
+RUN python -m nltk.downloader \
+    -d /root/nltk_data \
+    stopwords punkt punkt_tab
+
 COPY . .
 
 CMD ["bash"]

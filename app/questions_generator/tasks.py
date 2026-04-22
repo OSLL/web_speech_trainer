@@ -25,12 +25,6 @@ if getattr(Config, "c", None) is None:
     )
 
 
-@worker_process_init.connect
-def setup_nltk(**kwargs):
-    logger.debug("Инициализация NLTK в worker процессе")
-    ensure_nltk_resources()
-
-
 @celery_app.task(
     bind=True,
     autoretry_for=(Exception,),
