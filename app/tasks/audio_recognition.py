@@ -3,21 +3,22 @@ from app.audio_recognizer import WhisperAudioRecognizer
 from app.config import Config
 from app.mongo_odm import DBManager, TrainingsDBManager
 from app.status import AudioStatus
+from celery.exceptions import Reject
 from app.root_logger import get_root_logger
 
-logger = get_root_logger("celery_recognize_audio_task")
+logger = get_root_logger("audio_recognition_task")
 
 
 @celery.task(bind=True, max_retries=3)
 def recognize_audio_task(self, training_id, presentation_record_file_id):
     """
-    Асинхронная задача распознавания аудио.
+    Задача распознавания аудио.
     """
     logger.info(
-        f"Starting recognize_audio_task for training_id={training_id}, file_id={presentation_record_file_id}"
+        f"Starting recognize_audio_task for training_id={training_id}, presentation_record_file_id={presentation_record_file_id}"
     )
     try:
-        # Обновляем статус
+        # Обновление статуса
         TrainingsDBManager().change_audio_status(training_id, AudioStatus.RECOGNIZING)
 
         presentation_record_file = DBManager().get_file(presentation_record_file_id)
@@ -30,7 +31,7 @@ def recognize_audio_task(self, training_id, presentation_record_file_id):
         recognizer = WhisperAudioRecognizer(url=Config.c.whisper.url)
         recognized_audio = recognizer.recognize(presentation_record_file)
 
-        # Сохраняем результат
+        # Сохранение результата
         recognized_audio_id = DBManager().add_file(repr(recognized_audio))
         TrainingsDBManager().add_recognized_audio_id(training_id, recognized_audio_id)
         TrainingsDBManager().change_audio_status(training_id, AudioStatus.RECOGNIZED)
@@ -44,16 +45,25 @@ def recognize_audio_task(self, training_id, presentation_record_file_id):
             "status": "success",
             "training_id": str(training_id),
             "recognized_audio_id": str(recognized_audio_id),
-            "presentation_record_file_id": str(presentation_record_file_id),
         }
 
-    except Exception as e:
-        logger.error(f"Error in recognize_audio_task: {e}", exc_info=True)
-        # Помечаем как failed
+    except Exception as exc:
+        logger.error(
+            f"Error in recognize_audio_task for training_id={training_id}: {exc}"
+        )
+        # Cообщение отправляется в DLХ после нескольких повторных попыток
+        if self.request.retries < self.max_retries:
+            logger.info(
+                f"Retrying recognize_audio_task for training_id={training_id}, attempt={self.request.retries + 1}"
+            )
+            raise self.retry(exc=exc, countdown=60)
+
         TrainingsDBManager().change_audio_status(
             training_id, AudioStatus.RECOGNITION_FAILED
         )
-        TrainingsDBManager().append_verdict(training_id, f"Recognition failed: {e}")
+        TrainingsDBManager().append_verdict(
+            training_id, f"Recognition failed after all retries: {exc}"
+        )
         TrainingsDBManager().set_score(training_id, 0)
-        # Повторяем задачу с задержкой
-        raise self.retry(exc=e, countdown=60)
+
+        raise Reject(exc, requeue=False)

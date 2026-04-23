@@ -9,20 +9,18 @@ from app.mongo_odm import (
     TaskAttemptsDBManager,
 )
 from app.presentation import Presentation
+from celery.exceptions import Reject
 from app.root_logger import get_root_logger
-from app.status import PresentationStatus, TrainingStatus
+from app.status import TrainingStatus
 from app.training import Training
 
-logger = get_root_logger(service_name="training_processor")
+logger = get_root_logger("training_processing_task")
 
 
-logger = get_root_logger("celery_training_processing")
-
-
-@celery.task(bind=True, max_retries=3, acks_late=True, reject_on_worker_lost=True)
+@celery.task(bind=True, max_retries=3)
 def process_training_task(self, results):
     """
-    Финальная обработка тренировки: вычисление обратной связи по критериям.
+    Финальная обработка тренировки: вычисление оценки по критериям.
     Вызывается как callback после завершения обеих цепочек (audio и presentation).
 
     results: список результатов из group (два элемента: audio и presentation)
@@ -35,59 +33,40 @@ def process_training_task(self, results):
 
     logger.info(f"Starting process_training_task with results: {results}")
 
-    # Извлекаем training_id из любого результата
-    training_id = None
-    for result in results:
-        if result.get("training_id"):
-            training_id = result.get("training_id")
-            break
-
-    if not training_id:
-        error_msg = "No training_id found in results"
-        logger.error(error_msg)
-        return {"status": "failed", "error": error_msg}
-
-    # Проверяем, что все результаты успешны
-    failed_results = [r for r in results if r.get("status") != "success"]
-    if failed_results:
-        error_msg = f"Some chains failed: {failed_results}"
-        logger.error(error_msg)
-        TrainingsDBManager().change_training_status_by_training_id(
-            training_id, TrainingStatus.PREPARATION_FAILED
-        )
-        TrainingsDBManager().append_verdict(training_id, error_msg)
-        TrainingsDBManager().set_score(training_id, 0)
-        return {"status": "failed", "training_id": training_id, "error": error_msg}
-
-    # Извлекаем audio_id и presentation_id из результатов
-    audio_id = None
-    presentation_id = None
-
-    for result in results:
-        if result.get("type") == "audio":
-            audio_id = result.get("audio_id")
-        elif result.get("type") == "presentation":
-            presentation_id = result.get("presentation_id")
-
-    if not audio_id or not presentation_id:
-        error_msg = (
-            f"Missing audio_id ({audio_id}) or presentation_id ({presentation_id})"
-        )
-        logger.error(error_msg)
-        TrainingsDBManager().change_training_status_by_training_id(
-            training_id, TrainingStatus.PROCESSING_FAILED
-        )
-        TrainingsDBManager().append_verdict(training_id, error_msg)
-        TrainingsDBManager().set_score(training_id, 0)
-        return {"status": "failed", "training_id": training_id, "error": error_msg}
-
     try:
-        # Обновляем статус тренировки
+        # Извлечение training_id
+        training_id = None
+        for result in results:
+            if result.get("training_id"):
+                training_id = result.get("training_id")
+                break
+
+        if not training_id:
+            error_msg = "No training_id found in results"
+            raise Exception(error_msg)
+
+        # Извлечение audio_id и presentation_id из результатов
+        audio_id = None
+        presentation_id = None
+
+        for result in results:
+            if result.get("type") == "audio":
+                audio_id = result.get("audio_id")
+            elif result.get("type") == "presentation":
+                presentation_id = result.get("presentation_id")
+
+        if not audio_id or not presentation_id:
+            error_msg = (
+                f"Missing audio_id ({audio_id}) or presentation_id ({presentation_id})"
+            )
+            raise Exception(error_msg)
+
+        # Обновление статуса тренировки
         TrainingsDBManager().change_training_status_by_training_id(
             training_id, TrainingStatus.PROCESSING
         )
 
-        # Загружаем аудио
+        # Загрузка аудио
         audio_file = DBManager().get_file(audio_id)
         if audio_file is None:
             raise Exception(f"Audio file {audio_id} not found")
@@ -95,7 +74,7 @@ def process_training_task(self, results):
         audio_file.close()
         logger.info(f"Loaded audio for training_id={training_id}")
 
-        # Загружаем презентацию
+        # Загрузка презентации
         presentation_file = DBManager().get_file(presentation_id)
         if presentation_file is None:
             raise Exception(f"Presentation file {presentation_id} not found")
@@ -103,12 +82,12 @@ def process_training_task(self, results):
         presentation_file.close()
         logger.info(f"Loaded presentation for training_id={training_id}")
 
-        # Получаем тренировку из БД
+        # Получение тренировки из БД
         training_db = TrainingsDBManager().get_training(training_id)
         if training_db is None:
             raise Exception(f"Training {training_id} not found")
 
-        # Получаем критерии и оценщика
+        # Получение критериев и оценщика
         criteria_pack = CriteriaPackFactory().get_criteria_pack(
             training_db.criteria_pack_id
         )
@@ -124,26 +103,23 @@ def process_training_task(self, results):
             f"Loaded criteria pack and feedback evaluator for training_id={training_id}"
         )
 
-        # Вычисляем обратную связь
+        # Вычисление обратной связи
         training = Training(
             training_id, audio, presentation, criteria_pack, feedback_evaluator
         )
 
-        try:
-            feedback = training.evaluate_feedback()
-            logger.info(
-                f"Feedback evaluated for training_id={training_id}, score={feedback.score}"
-            )
-        except Exception as e:
-            raise Exception(f"Feedback evaluation failed: {e}")
-
-        # Сохраняем результаты
-        TrainingsDBManager().set_score(training_id, feedback.score)
-        TrainingsDBManager().change_training_status_by_training_id(
-            training_id, PresentationStatus.PROCESSED
+        feedback = training.evaluate_feedback()
+        logger.info(
+            f"Feedback evaluated for training_id={training_id}, score={feedback.score}"
         )
 
-        # Обновляем scores в task_attempt
+        # Сохраненеие результатов
+        TrainingsDBManager().set_score(training_id, feedback.score)
+        TrainingsDBManager().change_training_status_by_training_id(
+            training_id, TrainingStatus.PROCESSED
+        )
+
+        # Обновление scores в task_attempt
         task_attempt_id = training_db.task_attempt_id
         if task_attempt_id:
             TaskAttemptsDBManager().update_scores(
@@ -153,43 +129,32 @@ def process_training_task(self, results):
                 f"Updated task_attempt {task_attempt_id} with score={feedback.score}"
             )
 
-        logger.info(
-            f"Successfully completed training processing for training_id={training_id}"
-        )
+        logger.info(f"Finished process_training_task for training_id={training_id}")
 
         return {
-            'status': 'success',
-            'training_id': str(training_id),
-            'task_attempt_id': str(task_attempt_id),
-            'score': feedback.score,
-            'message': 'Training processed successfully'
+            "status": "success",
+            "training_id": str(training_id),
+            "task_attempt_id": str(task_attempt_id),
+            "score": feedback.score,
         }
 
-    except Exception as e:
+    except Exception as exc:
         logger.error(
-            f"Error in process_training_task for training_id={training_id}: {e}",
-            exc_info=True,
+            f"Error in process_training_task for training_id={training_id}: {exc}"
         )
-
-        # Проверяем, можно ли сделать повторную попытку
+        # Cообщение отправляется в DLХ после нескольких повторных попыток
         if self.request.retries < self.max_retries:
             logger.info(
                 f"Retrying process_training_task for training_id={training_id}, attempt={self.request.retries + 1}"
             )
-            raise self.retry(exc=e, countdown=60)
+            raise self.retry(exc=exc, countdown=60)
 
-        # Все попытки исчерпаны — финальная ошибка
         TrainingsDBManager().change_training_status_by_training_id(
             training_id, TrainingStatus.PROCESSING_FAILED
         )
         TrainingsDBManager().append_verdict(
-            training_id, f"Training processing failed after retries: {e}"
+            training_id, f"Training processing failed after all retries: {exc}"
         )
         TrainingsDBManager().set_score(training_id, 0)
 
-        return {
-            "status": "failed",
-            "training_id": str(training_id),
-            "error": str(e),
-            "message": "Training processing failed after all retries",
-        }
+        raise Reject(exc, requeue=False)
