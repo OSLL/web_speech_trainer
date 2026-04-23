@@ -26,9 +26,7 @@ class DLQTask(Task, ABC):
     abstract = True
 
     def on_failure(self, exc, task_id, args, kwargs, einfo):
-        if self.request.retries >= self.max_retries:
-            self._send_to_dlq(args, kwargs)
-
+        self._send_to_dlq(args, kwargs)
         super().on_failure(exc, task_id, args, kwargs, einfo)
 
     def _send_to_dlq(self, args, kwargs):
@@ -45,25 +43,6 @@ dead_letter_args = {
     "x-dead-letter-exchange": DLX_NAME,
     "x-dead-letter-routing-key": DLQ_ROUTING_KEY,
 }
-
-
-class DeclareDLXnDLQ(bootsteps.StartStopStep):
-    """
-    Объявляет DLX и DLQ перед стартом воркера.
-    """
-
-    requires = {"celery.worker.components:Pool"}
-
-    def start(self, worker):
-        dlq = Queue(
-            DLQ_NAME,
-            dlx_exchange,
-            routing_key=DLQ_ROUTING_KEY,
-            durable=True,
-        )
-        with worker.app.pool.acquire() as conn:
-            dlq.bind(conn).declare()
-
 
 task_queues = [
     Queue(
@@ -173,7 +152,5 @@ celery_app.conf.task_routes = {
     "app.tasks.training_processing.process_training_task": {"queue": "training"},
     "app.tasks.passback_processing.send_score_to_lms_task": {"queue": "passback"},
 }
-
-celery_app.steps["worker"].add(DeclareDLXnDLQ)
 
 celery = celery_app
