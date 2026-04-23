@@ -9,7 +9,7 @@ from app.mongo_odms.interview_odms import QuestionsDBManager
 from app.config import Config
 from types import SimpleNamespace
 from celery.signals import worker_process_init
-from check_nltk import ensure_nltk_resources
+from logging_utils import setup_logging
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +23,11 @@ if getattr(Config, "c", None) is None:
             storage_max_size_mbytes=celery_app.conf.storage_max_size_mbytes,
         ),
     )
+
+
+@worker_process_init.connect
+def setup_worker_logging(**kwargs):
+    setup_logging()
 
 
 @celery_app.task(

@@ -12,6 +12,7 @@ result_serializer = "json"
 accept_content = ["json"]
 
 task_track_started = True
+worker_hijack_root_logger = False
 task_time_limit = 60 * 60
 parser = configparser.ConfigParser()
 
