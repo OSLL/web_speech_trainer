@@ -56,13 +56,13 @@ class TrainingManager:
             logger.info(
                 f"Pipeline started: training_id={training_id}, last pipeline task_id={result.id}"
             )
-        except Exception as e:
+        except Exception as exc:
             logger.error(
-                f"Failed to start pipeline for training_id={training_id}: {e}"
+                f"Failed to start pipeline for training_id={training_id}: {exc}"
             )
             TrainingsDBManager().change_training_status_by_training_id(
                 training_id, TrainingStatus.PROCESSING_FAILED
             )
             TrainingsDBManager().append_verdict(
-                training_id, f"Failed to start pipeline: {e}"
+                training_id, f"Failed to start pipeline: {exc}"
             )

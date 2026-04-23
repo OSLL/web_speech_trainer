@@ -1,16 +1,15 @@
-from app.celery_app import celery
+from app.celery_app import celery, DLQTask
 from app.audio import Audio
 from app.recognized_audio import RecognizedAudio
 from app.mongo_odm import DBManager, TrainingsDBManager
-from app.status import TrainingStatus
 from app.status import AudioStatus
-from celery.exceptions import Reject
+from celery.exceptions import SoftTimeLimitExceeded
 from app.root_logger import get_root_logger
 
 logger = get_root_logger("audio_processing_task")
 
 
-@celery.task(bind=True, max_retries=3)
+@celery.task(bind=True, max_retries=3, base=DLQTask)
 def process_recognized_audio_task(self, result):
     """
     Задача обработки распознанного аудио.
@@ -60,8 +59,9 @@ def process_recognized_audio_task(self, result):
         logger.error(
             f"Error in process_recognized_audio_task for training_id={training_id}: {exc}"
         )
-        # Cообщение отправляется в DLХ после нескольких повторных попыток
-        if self.request.retries < self.max_retries:
+        if self.request.retries < self.max_retries and not isinstance(
+            exc, SoftTimeLimitExceeded
+        ):
             logger.info(
                 f"Retrying process_recognized_audio_task for training_id={training_id}, attempt={self.request.retries + 1}"
             )
@@ -75,4 +75,4 @@ def process_recognized_audio_task(self, result):
         )
         TrainingsDBManager().set_score(training_id, 0)
 
-        raise Reject(exc, requeue=False)
+        raise exc

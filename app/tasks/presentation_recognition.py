@@ -1,14 +1,14 @@
-from app.celery_app import celery
+from app.celery_app import celery, DLQTask
 from app.mongo_odm import DBManager, TrainingsDBManager, PresentationFilesDBManager
 from app.presentation_recognizer import PRESENTATION_RECOGNIZERS
 from app.status import PresentationStatus
-from celery.exceptions import Reject
+from celery.exceptions import SoftTimeLimitExceeded
 from app.root_logger import get_root_logger
 
 logger = get_root_logger("presentation_recognition_task")
 
 
-@celery.task(bind=True, max_retries=3)
+@celery.task(bind=True, max_retries=3, base=DLQTask)
 def recognize_presentation_task(self, training_id, presentation_file_id):
     """
     Задача распознавания презентации.
@@ -81,8 +81,9 @@ def recognize_presentation_task(self, training_id, presentation_file_id):
         logger.error(
             f"Error in recognize_presentation_task for training_id={training_id}: {exc}"
         )
-        # Cообщение отправляется в DLХ после нескольких повторных попыток
-        if self.request.retries < self.max_retries:
+        if self.request.retries < self.max_retries and not isinstance(
+            exc, SoftTimeLimitExceeded
+        ):
             logger.info(
                 f"Retrying recognize_presentation_task for training_id={training_id}, attempt={self.request.retries + 1}"
             )
@@ -96,4 +97,4 @@ def recognize_presentation_task(self, training_id, presentation_file_id):
         )
         TrainingsDBManager().set_score(training_id, 0)
 
-        raise Reject(exc, requeue=False)
+        raise exc

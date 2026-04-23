@@ -1,7 +1,7 @@
-from app.celery_app import celery
+from app.celery_app import celery, DLQTask
 from app.mongo_odm import TaskAttemptsDBManager, ConsumersDBManager
 from app.status import PassBackStatus
-from celery.exceptions import Reject
+from celery.exceptions import SoftTimeLimitExceeded
 from app.root_logger import get_root_logger
 from app.utils import is_testing_active
 from lti import ToolProvider
@@ -9,7 +9,7 @@ from lti import ToolProvider
 logger = get_root_logger("passback_processing_task")
 
 
-@celery.task(bind=True, max_retries=3)
+@celery.task(bind=True, max_retries=3, base=DLQTask)
 def send_score_to_lms_task(self, training_result):
     """
     Отправка оценки в LMS после успешной обработки тренировки.
@@ -96,8 +96,9 @@ def send_score_to_lms_task(self, training_result):
         logger.error(
             f"Error in send_score_to_lms_task for training_id={training_id}: {exc}"
         )
-        # Cообщение отправляется в DLХ после нескольких повторных попыток
-        if self.request.retries < self.max_retries:
+        if self.request.retries < self.max_retries and not isinstance(
+            exc, SoftTimeLimitExceeded
+        ):
             logger.info(
                 f"Retrying send_score_to_lms_task for training_id={training_id}, attempt={self.request.retries + 1}"
             )
@@ -109,4 +110,4 @@ def send_score_to_lms_task(self, training_result):
                 task_attempt_db, training_id, PassBackStatus.FAILED
             )
 
-        raise Reject(exc, requeue=False)
+        raise exc

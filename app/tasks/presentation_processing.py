@@ -1,15 +1,15 @@
-from app.celery_app import celery
+from app.celery_app import celery, DLQTask
 from app.mongo_odm import DBManager, TrainingsDBManager
 from app.status import PresentationStatus
 from app.recognized_presentation import RecognizedPresentation
 from app.presentation import Presentation
-from celery.exceptions import Reject
+from celery.exceptions import SoftTimeLimitExceeded
 from app.root_logger import get_root_logger
 
 logger = get_root_logger("presentation_processing_task")
 
 
-@celery.task(bind=True, max_retries=3)
+@celery.task(bind=True, max_retries=3, base=DLQTask)
 def process_recognized_presentation_task(self, result):
     """
     Задача обработки обработки распознанной презентации.
@@ -65,12 +65,13 @@ def process_recognized_presentation_task(self, result):
         logger.error(
             f"Error in process_recognized_presentation_task for training_id={training_id}: {exc}"
         )
-        # Cообщение отправляется в DLХ после нескольких повторных попыток
-        if self.request.retries < self.max_retries:
+        if self.request.retries < self.max_retries and not isinstance(
+            exc, SoftTimeLimitExceeded
+        ):
             logger.info(
                 f"Retrying process_recognized_presentation_task for training_id={training_id}, attempt={self.request.retries + 1}"
             )
-            raise self.retry(exc=exc, countdown=60)
+            raise self.retry(exc=exc, countdown=10)
 
         TrainingsDBManager().change_presentation_status(
             training_id, PresentationStatus.PROCESSING_FAILED
@@ -80,4 +81,4 @@ def process_recognized_presentation_task(self, result):
         )
         TrainingsDBManager().set_score(training_id, 0)
 
-        raise Reject(exc, requeue=False)
+        raise exc

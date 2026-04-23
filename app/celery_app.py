@@ -1,6 +1,7 @@
-from celery import Celery
+from celery import Celery, Task
 from kombu import Exchange, Queue
 from celery import bootsteps
+from abc import ABC
 import os
 from app.config import Config
 
@@ -10,15 +11,33 @@ if not config_path:
     raise RuntimeError("APP_CONF environment variable is not set")
 Config.init_config(config_path)
 
-# Предполагается, что в конфиге есть секция [celery] с параметрами broker_url и result_backend
-# Например: broker_url=amqp://guest:guest@rabbitmq:5672//
-#           result_backend=redis://redis:6379/0
 broker_url = Config.c.celery.broker_url
 result_backend = Config.c.celery.result_backend
 
 DLX_NAME = "dlx"
 DLQ_NAME = "dlq"
 DLQ_ROUTING_KEY = "dlq"
+
+
+class DLQTask(Task, ABC):
+    """
+    Отправляет сообщение в DLQ только после исчерпания всех ретраев.
+    """
+    abstract = True
+
+    def on_failure(self, exc, task_id, args, kwargs, einfo):
+        if self.request.retries >= self.max_retries:
+            self._send_to_dlq(args, kwargs)
+
+        super().on_failure(exc, task_id, args, kwargs, einfo)
+
+    def _send_to_dlq(self, args, kwargs):
+        self.apply_async(
+            args=args,
+            kwargs=kwargs,
+            queue=DLQ_NAME,
+        )
+
 
 dlx_exchange = Exchange(DLX_NAME, type="direct", durable=True)
 

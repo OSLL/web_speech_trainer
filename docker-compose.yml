@@ -13,7 +13,6 @@ services:
     depends_on:
       - db
       - rabbitmq
-      - redis
     volumes:
       - ../database-dump:/app/dump/database-dump/
 
@@ -42,15 +41,6 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
-
-  redis:
-    image: redis:7-alpine
-    command: redis-server --appendonly yes --appendfsync everysec
-    restart: always
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
   
   flower:
     image: wst-image:v0.2
@@ -60,14 +50,15 @@ services:
     environment:
       - APP_CONF=${APP_CONF}
     depends_on:
+      - db
       - rabbitmq
-      - redis
       - celery_worker_audio_rec
       - celery_worker_audio_proc
       - celery_worker_pres_rec
       - celery_worker_pres_proc
       - celery_worker_training
       - celery_worker_passback
+      - celery_worker_default
     restart: always
 
   celery_worker_audio_rec:
@@ -79,7 +70,6 @@ services:
       - db
       - rabbitmq
       - whisper
-      - redis
 
   celery_worker_audio_proc:
     image: wst-image:v0.2
@@ -89,7 +79,6 @@ services:
     depends_on:
       - db
       - rabbitmq
-      - redis
       
   celery_worker_pres_rec:
     image: wst-image:v0.2
@@ -99,7 +88,6 @@ services:
     depends_on:
       - db
       - rabbitmq
-      - redis
 
   celery_worker_pres_proc:
     image: wst-image:v0.2
@@ -109,7 +97,6 @@ services:
     depends_on:
       - db
       - rabbitmq
-      - redis
   
   celery_worker_training:
     image: wst-image:v0.2
@@ -119,7 +106,6 @@ services:
     depends_on:
       - db
       - rabbitmq
-      - redis
 
   celery_worker_passback:
     image: wst-image:v0.2
@@ -129,9 +115,16 @@ services:
     depends_on:
       - db
       - rabbitmq
-      - redis
+
+  celery_worker_default:
+    image: wst-image:v0.2
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=1 -Q default
+    environment:
+      - APP_CONF=${APP_CONF}
+    depends_on:
+      - db
+      - rabbitmq
 
 
 volumes:
   whisper_models:
-  redis_data:

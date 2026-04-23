@@ -1,4 +1,4 @@
-from app.celery_app import celery
+from app.celery_app import celery, DLQTask
 from app.audio import Audio
 from app.criteria_pack import CriteriaPackFactory
 from app.feedback_evaluator import FeedbackEvaluatorFactory
@@ -9,7 +9,7 @@ from app.mongo_odm import (
     TaskAttemptsDBManager,
 )
 from app.presentation import Presentation
-from celery.exceptions import Reject
+from celery.exceptions import SoftTimeLimitExceeded
 from app.root_logger import get_root_logger
 from app.status import TrainingStatus
 from app.training import Training
@@ -17,7 +17,7 @@ from app.training import Training
 logger = get_root_logger("training_processing_task")
 
 
-@celery.task(bind=True, max_retries=3)
+@celery.task(bind=True, max_retries=3, base=DLQTask)
 def process_training_task(self, results):
     """
     Финальная обработка тренировки: вычисление оценки по критериям.
@@ -142,8 +142,9 @@ def process_training_task(self, results):
         logger.error(
             f"Error in process_training_task for training_id={training_id}: {exc}"
         )
-        # Cообщение отправляется в DLХ после нескольких повторных попыток
-        if self.request.retries < self.max_retries:
+        if self.request.retries < self.max_retries and not isinstance(
+            exc, SoftTimeLimitExceeded
+        ):
             logger.info(
                 f"Retrying process_training_task for training_id={training_id}, attempt={self.request.retries + 1}"
             )
@@ -157,4 +158,4 @@ def process_training_task(self, results):
         )
         TrainingsDBManager().set_score(training_id, 0)
 
-        raise Reject(exc, requeue=False)
+        raise exc
