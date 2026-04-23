@@ -15,6 +15,8 @@ services:
       - training_processor
     environment:
       - APP_CONF=${APP_CONF}
+    volumes:
+      - research_logs:/app/logs
 
   audio_processor:
     <<: *wst-service
@@ -95,7 +97,7 @@ services:
     profiles:
       - question_generate_profile
     working_dir: /project/app/questions_generator
-    command: celery -A celery_app.celery_app worker --loglevel=info
+    command: bash -c "python -m nltk.downloader -d /root/nltk_data punkt punkt_tab stopwords && celery -A celery_app.celery_app worker --loglevel=info"
     depends_on:
       - redis
       - db
@@ -103,6 +105,7 @@ services:
       - nltk_data:/root/nltk_data
       - ./app:/project/app
       - ./app_conf:/project/app_conf
+      - research_logs:/app/logs
     environment:
       - PYTHONPATH=/project:/project/app:/project/app/questions_generator
       - APP_CONF=${APP_CONF}
@@ -113,3 +116,4 @@ volumes:
   nltk_data:
   mongo_data:
   rut5_model:
+  research_logs:

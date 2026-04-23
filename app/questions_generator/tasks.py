@@ -10,6 +10,8 @@ from app.config import Config
 from types import SimpleNamespace
 from celery.signals import worker_process_init
 from logging_utils import setup_logging
+from app.research_logging import research_logger
+from app.research_logging.events import InterviewEvent
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +71,12 @@ def generate_questions(self, session_id: str, file_id: str, questions_count: int
                 session_id=session_id,
                 text=q,
             )
+
+        research_logger.log(
+            session_id=session_id,
+            event=InterviewEvent.GENERATION_FINISHED,
+            meta={"questions_count": len(questions)},
+        )
 
         logger.info(
             "Вопросы сохранены session_id=%s count=%d",

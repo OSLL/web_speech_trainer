@@ -36,6 +36,8 @@ from app.mongo_odms.interview_odms import (
 from app.question_generation_task_service import QuestionGenerationTaskService
 from app.root_logger import get_root_logger
 from app.status import AudioStatus
+from app.research_logging import research_logger
+from app.research_logging.events import InterviewEvent
 
 logger = get_root_logger()
 
@@ -314,6 +316,16 @@ def save_interview_recording():
     }
     recording.save()
 
+    research_logger.log(
+        session_id=real_session_id,
+        event=InterviewEvent.INTERVIEW_FINISHED,
+        meta={
+            "duration": duration,
+            "questions_count": len(segments),
+            "score": feedback_payload.get("score"),
+        },
+    )
+
     return ApiResponse.created(
         recording_id=str(recording.pk),
         audio_file_id=str(audio_file_id),
@@ -341,6 +353,7 @@ def get_interview_feedback(recording_id):
         verdict=feedback.verdict,
         criteria_results=feedback.criteria_results,
     ).to_flask()
+
 
 @routes_interview.route('/api/interview/results/<recording_id>/', methods=['GET'])
 def get_interview_results_data(recording_id):

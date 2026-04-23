@@ -6,6 +6,8 @@ from celery.result import AsyncResult
 
 from app.root_logger import get_root_logger
 from app.config import Config
+from app.research_logging import research_logger
+from app.research_logging.events import InterviewEvent
 
 logger = get_root_logger()
 
@@ -91,6 +93,11 @@ class QuestionGenerationTaskService:
                 "questions_count": normalized_questions_count,
                 "generate_llm_questions": generate_llm_questions
             },
+        )
+
+        research_logger.log(
+            session_id=session_id,
+            event=InterviewEvent.GENERATION_STARTED,
         )
 
         logger.info(

@@ -27,6 +27,8 @@ from app.mongo_odms.interview_odms import (
 )
 from app.question_generation_task_service import QuestionGenerationTaskService
 from app.root_logger import get_root_logger
+from app.research_logging import research_logger
+from app.research_logging.events import InterviewEvent
 
 logger = get_root_logger()
 
@@ -90,6 +92,11 @@ def interview_upload_page():
             return PageResponse.redirect(
                 build_upload_redirect_url('Не удалось поставить задачу на генерацию вопросов. Попробуйте еще раз.')
             ).to_flask()
+
+        research_logger.log(
+            session_id=session_id,
+            event=InterviewEvent.FILE_UPLOADED,
+        )
 
         return PageResponse.html(render_upload_page(), 202).to_flask()
 
