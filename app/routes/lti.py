@@ -107,5 +107,5 @@ def lti():
     )
 
     if mode == 'interview':
-        return redirect(url_for('routes_interview.interview_page'))
+        return redirect(url_for('routes_interview.interview_upload_page', force_upload=1))
     return redirect(url_for('routes_trainings.view_training_greeting'))

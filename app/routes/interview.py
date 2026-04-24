@@ -305,7 +305,7 @@ def interview_results_page(recording_id):
         render_template(
             'results.html',
             results_data_url=url_for('routes_interview.get_interview_results_data', recording_id=recording_id),
-            restart_url=url_for('routes_interview.interview_upload_page'),
+            restart_url=url_for('routes_interview.interview_upload_page', force_upload=1),
         ),
         200,
     ).to_flask()

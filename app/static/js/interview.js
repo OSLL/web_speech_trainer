@@ -10,7 +10,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const API = {
     SESSION_DATA_URL: "/api/interview/session-data/",
     RECORDING_URL: "/api/interview/recording",
-    CANCEL_URL: "/api/interview/cancel-session/",
   };
 
   const feedbackPanel = document.getElementById("feedback-panel");
@@ -23,7 +22,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const mainBtn = document.getElementById("main-btn");
   const nextBtn = document.getElementById("next-btn");
-  const stopBtn = document.getElementById("stop-btn");
 
   const questionNumberEl = document.getElementById("question-number");
   const questionTotalEl = document.getElementById("question-total");
@@ -47,7 +45,6 @@ document.addEventListener("DOMContentLoaded", () => {
   if (bootstrapSessionTimerMinutes > 0) {
     CONFIG.totalLimitSec = bootstrapSessionTimerMinutes * 60;
   }
-
 
   let questions = [];
   let dataLoaded = false;
@@ -98,7 +95,6 @@ document.addEventListener("DOMContentLoaded", () => {
     micSpeaking = !!active;
     applyMicIndicator();
   }
-
 
   function getSpeechRecognitionCtor() {
     return window.SpeechRecognition || window.webkitSpeechRecognition || null;
@@ -783,61 +779,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  async function cancelInterviewSession() {
-    if (state === "cancelling") return;
-
-    state = "cancelling";
-    stopBtn.disabled = true;
-    setStatus("Прерываю сессию и удаляю данные…");
-
-    stopTimer();
-    stopMicIndicator();
-
-    if (window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-    }
-
-    stopAnswerSpeechCapture();
-    resetAnswerSpeechMetrics();
-    currentAnswerStartTs = null;
-    questionSegments = [];
-
-    await stopSessionRecording({ upload: false, renderRecording: false });
-
-    try {
-      const resp = await fetch(API.CANCEL_URL, {
-        method: "POST",
-      });
-
-      const data = await resp.json().catch(() => ({}));
-
-      if (!resp.ok) {
-        console.warn("Ошибка при отмене интервью:", resp.status, data);
-        stopBtn.disabled = false;
-        state = "idle";
-        setStatus(data?.error || "Не удалось прервать сессию");
-        return;
-      }
-
-      if (data.redirect_url) {
-        window.location.href = data.redirect_url;
-        return;
-      }
-
-      stopBtn.disabled = false;
-      state = "idle";
-      setStatus("Сессия прервана, но ссылка для перехода не получена");
-    } catch (err) {
-      console.error("Ошибка при прерывании интервью:", err);
-      stopBtn.disabled = false;
-      state = "idle";
-      setStatus("Ошибка при прерывании сессии");
-    }
-  }
-
   mainBtn?.addEventListener("click", async () => {
-    if (state === "cancelling") return;
-
     if (state === "idle" || state === "finished") {
       await startInterview();
       return;
@@ -848,7 +790,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   nextBtn?.addEventListener("click", nextQuestion);
-  stopBtn?.addEventListener("click", cancelInterviewSession);
 
   hideInterviewUI();
   showQuestionPlaceholder("Загружаем вопросы интервью...");
