@@ -23,6 +23,9 @@ from app.interview_utils import (
     get_ready_interview_questions,
     safe_float,
     serialize_questions_for_client,
+    ATTEMPTS_EXHAUSTED_MESSAGE,
+    get_interview_attempts_state,
+    has_interview_attempts_left,
 )
 from app.lti_session_passback.auth_checkers import check_auth
 from app.mongo_models import InterviewRecording
@@ -56,6 +59,15 @@ def get_interview_upload_page_state():
             error_message,
             status_code=404,
             redirect_url=build_upload_redirect_url(error_message),
+        ).to_flask()
+
+    attempts_state = get_interview_attempts_state(session_id)
+    if attempts_state['attempts_exhausted']:
+        return ApiResponse.ok(
+            page_state='attempts_exhausted',
+            error_message=ATTEMPTS_EXHAUSTED_MESSAGE,
+            redirect_url=None,
+            **attempts_state,
         ).to_flask()
 
     task_record = CeleryTaskDBManager().get_task_record(session_id)
@@ -204,6 +216,13 @@ def get_interview_session_data():
             redirect_url=build_upload_redirect_url(error_message),
         ).to_flask()
 
+    if not has_interview_attempts_left(session_id):
+        return ApiResponse.failure(
+            ATTEMPTS_EXHAUSTED_MESSAGE,
+            status_code=403,
+            redirect_url=build_upload_redirect_url(ATTEMPTS_EXHAUSTED_MESSAGE),
+        ).to_flask()
+
     questions = get_ready_interview_questions(session_id)
     if not questions:
         error_message = 'Вопросы для интервью не найдены. Загрузите документ заново.'
@@ -251,6 +270,13 @@ def save_interview_recording():
     real_session_id = session.get('session_id')
     if not real_session_id:
         return ApiResponse.error('Session id not found', status_code=404).to_flask()
+
+    if not has_interview_attempts_left(real_session_id):
+        return ApiResponse.failure(
+            ATTEMPTS_EXHAUSTED_MESSAGE,
+            status_code=403,
+            redirect_url=build_upload_redirect_url(ATTEMPTS_EXHAUSTED_MESSAGE),
+        ).to_flask()
 
     audio_file = request.files.get('audio')
     segments_raw = request.form.get('segments')

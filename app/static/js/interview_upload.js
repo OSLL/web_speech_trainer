@@ -85,6 +85,21 @@
       showElement(element);
     }
 
+    function showAttemptsExhaustedState(message) {
+      stopPolling();
+      hideBootstrapMode();
+      showElement(uploadMode);
+      hideElement(processingMode);
+
+      setUploadError(message || 'Попытки закончились');
+      setCurrentDocument(currentDocument, 'Текущий документ', '');
+      setCurrentDocument(processingCurrentDocument, 'Загруженный документ', '');
+
+      if (uploadForm) {
+        uploadForm.style.display = 'none';
+      }
+    }
+
     function showUploadState(options) {
       var errorMessage = options && options.errorMessage ? options.errorMessage : '';
       var currentDocumentName = options && options.currentDocumentName ? options.currentDocumentName : '';
@@ -100,6 +115,9 @@
       if (uploadSubmitBtn) {
         uploadSubmitBtn.disabled = false;
         uploadSubmitBtn.textContent = 'Продолжить';
+      }
+      if (uploadForm) {
+        uploadForm.style.display = '';
       }
     }
 
@@ -178,6 +196,10 @@
 
         if (payload.redirect_url) {
           window.location.href = payload.redirect_url;
+          return;
+        }
+        if (payload.page_state === 'attempts_exhausted') {
+          showAttemptsExhaustedState(payload.error_message || 'Попытки закончились');
           return;
         }
 

@@ -12,6 +12,7 @@ from app.status import PassBackStatus
 from app.api.trainings import get_training
 
 from app.mongo_models import TaskAttempts
+from app.interview_utils import get_interview_attempts_state
 
 api_task_attempts = Blueprint('api_task_attempts', __name__)
 logger = get_root_logger()
@@ -30,11 +31,33 @@ def get_current_task_attempt() -> tuple[dict, int]:
     """
     if not check_auth():
         return {}, 404
+
     username = session.get('session_id')
     task_id = session.get('task_id')
+    mode = session.get('mode', 'training')
+
+    if mode == 'interview':
+        if not username:
+            return {'message': 'Session id not found'}, 404
+
+        attempts_state = get_interview_attempts_state(username)
+
+        return {
+            'message': 'OK',
+            'mode': 'interview',
+            'training_scores': {},
+            'current_points_sum': 0,
+            'training_number': attempts_state['used_attempts'],
+            'attempt_count': attempts_state['max_attempts'],
+            'used_attempts': attempts_state['used_attempts'],
+            'attempts_left': attempts_state['attempts_left'],
+            'attempts_exhausted': attempts_state['attempts_exhausted'],
+        }, 200
+
     current_task_attempt = TaskAttemptsDBManager().get_current_task_attempt(username, task_id)
     if current_task_attempt is None:
         return {'message': 'No task_attempt with username = {}, task_id = {}.'.format(username, task_id)}, 404
+
     training_id = request.args.get('training_id')
     training_ids = current_task_attempt.training_scores.keys()
     if training_id is not None:
@@ -48,13 +71,19 @@ def get_current_task_attempt() -> tuple[dict, int]:
                 'message': 'No training with training_id = {} in the current_task_attempt with task_attempt_id = {}.'
                 .format(training_id, current_task_attempt.pk)
             }, 404
+
     task_db = TasksDBManager().get_task(task_id)
     if task_db is None:
         return {'message': 'No task with task_id = {}.'.format(task_id)}, 404
-    current_points_sum = \
-        sum([score if score is not None else 0 for score in current_task_attempt.training_scores.values()])
+
+    current_points_sum = sum([
+        score if score is not None else 0
+        for score in current_task_attempt.training_scores.values()
+    ])
+
     return {
         'message': 'OK',
+        'mode': 'training',
         'training_scores': current_task_attempt.training_scores,
         'current_points_sum': current_points_sum,
         'training_number': len(current_task_attempt.training_scores),

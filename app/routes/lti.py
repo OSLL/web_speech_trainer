@@ -87,6 +87,9 @@ def lti():
     session['feedback_evaluator_id'] = feedback_evaluator_id
     session['interview_questions_count'] = interview_questions_count
     session['interview_session_minutes'] = interview_session_minutes
+    session['mode'] = mode
+    session['interview_attempt_count'] = interview_attempt_count
+    session['interview_attempt_count'] = interview_attempt_count
     session['formats'] = pres_formats
 
     if presentation_id and not check_argument_is_convertible_to_object_id(presentation_id):

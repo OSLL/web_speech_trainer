@@ -18,6 +18,9 @@ from app.interview_utils import (
     is_allowed_explanatory_note,
     partial_response_file,
     render_upload_page,
+    ATTEMPTS_EXHAUSTED_MESSAGE,
+    get_interview_attempts_state,
+    has_interview_attempts_left,
 )
 from app.lti_session_passback.auth_checkers import check_admin, check_auth, is_logged_in
 from app.mongo_models import InterviewRecording
@@ -159,6 +162,16 @@ def interview_upload_page():
     logger.debug(session_id)
     if not session_id:
         return PageResponse.text('Session id not found', 404).to_flask()
+    if not has_interview_attempts_left(session_id):
+        if request.method == 'POST':
+            return PageResponse.redirect(
+                build_upload_redirect_url(ATTEMPTS_EXHAUSTED_MESSAGE)
+            ).to_flask()
+
+        return PageResponse.html(
+            render_upload_page(error_message=ATTEMPTS_EXHAUSTED_MESSAGE),
+            200,
+        ).to_flask()
 
     task_manager = CeleryTaskDBManager()
     current_task = task_manager.get_task_record(session_id)
@@ -237,6 +250,11 @@ def interview_page():
     session_id = session.get('session_id')
     if not session_id:
         return PageResponse.text('Session id not found', 404).to_flask()
+
+    if not has_interview_attempts_left(session_id):
+        return PageResponse.redirect(
+            build_upload_redirect_url(ATTEMPTS_EXHAUSTED_MESSAGE)
+        ).to_flask()
 
     questions = get_ready_interview_questions(session_id)
     if not questions:

@@ -32,11 +32,23 @@ $(document).ready(function () {
                         return;
                     }
 
+                    const mode = responseJson["mode"] || "training";
+
+                    if (mode === "interview") {
+                        $("#training-number").html(
+                            `Интервью: ${responseJson["used_attempts"]} / ${responseJson["attempt_count"]}`
+                        );
+
+                        $("#current-points-sum").html("");
+                        return;
+                    }
+
                     $("#training-number").html(
                         `Тренировок в текущей попытке: ${responseJson["training_number"]} / ${responseJson["attempt_count"]}`
                     );
+
                     $("#current-points-sum").html(
-                        `Баллы: ${responseJson["current_points_sum"].toFixed(2)}`
+                        `Баллы: ${Number(responseJson["current_points_sum"] || 0).toFixed(2)}`
                     );
                 });
 

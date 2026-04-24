@@ -6,7 +6,9 @@ from app.mongo_odms.interview_odms import (
     QuestionsDBManager,
 )
 from app.config import Config
+from app.mongo_models import InterviewRecording
 
+ATTEMPTS_EXHAUSTED_MESSAGE = 'Попытки закончились'
 
 def get_config_constants():
     conf = getattr(Config, 'c', None)
@@ -45,6 +47,41 @@ def get_interview_session_minutes():
         session.get('interview_session_minutes'),
         get_default_interview_session_minutes(),
     )
+
+def get_default_interview_attempt_count():
+    constants = get_config_constants()
+    value = getattr(constants, 'default_interview_attempt_count', None) if constants else None
+    return _safe_positive_int(value, 2)
+
+
+def get_interview_attempt_count():
+    return _safe_positive_int(
+        session.get('interview_attempt_count'),
+        get_default_interview_attempt_count(),
+    )
+
+
+def get_interview_used_attempts(session_id: str) -> int:
+    if not session_id:
+        return 0
+    return InterviewRecording.objects.raw({'session_id': session_id}).count()
+
+
+def has_interview_attempts_left(session_id: str) -> bool:
+    return get_interview_used_attempts(session_id) < get_interview_attempt_count()
+
+
+def get_interview_attempts_state(session_id: str) -> dict:
+    max_attempts = get_interview_attempt_count()
+    used_attempts = get_interview_used_attempts(session_id)
+
+    return {
+        'max_attempts': max_attempts,
+        'used_attempts': used_attempts,
+        'attempts_left': max(max_attempts - used_attempts, 0),
+        'attempts_exhausted': used_attempts >= max_attempts,
+        'attempts_exhausted_message': ATTEMPTS_EXHAUSTED_MESSAGE,
+    }
 
 
 def get_interview_criteria_pack_id():
@@ -174,6 +211,19 @@ def build_interview_upload_page_data(
 ) -> dict:
     required_questions_count = get_interview_questions_count()
     task_status = (task_record.status or '').lower() if task_record is not None else ''
+    attempts_state = get_interview_attempts_state(session_id)
+
+    if attempts_state['attempts_exhausted']:
+        return {
+            'page_state': 'attempts_exhausted',
+            'error_message': ATTEMPTS_EXHAUSTED_MESSAGE,
+            'current_document_name': '',
+            'processing_status_text': '',
+            'poll_interval_ms': get_questions_poll_interval_ms(),
+            'required_questions_count': required_questions_count,
+            'redirect_url': None,
+            **attempts_state,
+        }
 
     redirect_url = None
     page_state = 'upload'
@@ -204,6 +254,7 @@ def build_interview_upload_page_data(
         'poll_interval_ms': get_questions_poll_interval_ms(),
         'required_questions_count': required_questions_count,
         'redirect_url': redirect_url,
+        **attempts_state,
     }
 
 import ast
