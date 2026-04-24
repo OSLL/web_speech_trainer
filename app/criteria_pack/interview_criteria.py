@@ -292,6 +292,15 @@ class InterviewPauseDurationCriterion:
         return InterviewCriterionResult(score, verdict)
 
     def evaluate(self, question_segments):
+        transcripts = [extract_segment_transcript(segment) for segment in question_segments or []]
+        full_text = " ".join(filter(None, transcripts)).strip()
+
+        if count_transcript_words(full_text) <= 0:
+            return InterviewCriterionResult(
+                0.0,
+                "Не удалось собрать текст ответа: оценка по паузам 0.",
+            )
+
         all_pauses = []
         for segment in question_segments or []:
             all_pauses.extend(extract_segment_pause_durations(segment))
@@ -324,8 +333,26 @@ def extract_segment_transcript(segment) -> str:
     words_value = segment.get("words")
     if isinstance(words_value, str):
         return words_value.strip()
+
     if isinstance(words_value, list):
-        return " ".join(str(item).strip() for item in words_value if str(item).strip())
+        words = []
+        for item in words_value:
+            if isinstance(item, str):
+                word_text = item.strip()
+            elif isinstance(item, dict):
+                word_text = str(
+                    item.get("word")
+                    or item.get("text")
+                    or item.get("transcript")
+                    or ""
+                ).strip()
+            else:
+                word_text = ""
+
+            if word_text:
+                words.append(word_text)
+
+        return " ".join(words)
 
     return ""
 

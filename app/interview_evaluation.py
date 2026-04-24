@@ -6,6 +6,7 @@ from app.criteria_pack.interview_criteria import (
     InterviewWordsCountCriterion,
     extract_segment_pause_durations,
     extract_segment_transcript,
+    count_transcript_words,
 )
 from app.interview_utils import (
     get_ideal_answer_max_sec,
@@ -76,6 +77,12 @@ def _score_fillers_segment(segment) -> InterviewCriterionResult:
 
 
 def _score_pause_segment(segment) -> InterviewCriterionResult:
+    if count_transcript_words(extract_segment_transcript(segment)) <= 0:
+        return InterviewCriterionResult(
+            0.0,
+            "Не удалось собрать текст ответа: оценка по паузам 0.",
+        )
+
     criterion = InterviewPauseDurationCriterion()
     return criterion.evaluate_pause_durations(extract_segment_pause_durations(segment))
 
