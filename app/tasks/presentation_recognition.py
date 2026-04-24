@@ -13,10 +13,11 @@ def recognize_presentation_task(self, training_id, presentation_file_id):
     """
     Задача распознавания презентации.
     """
-    logger.info(
-        f"Starting recognize_presentation_task for training_id={training_id}, presentation_file_id={presentation_file_id}"
-    )
     try:
+        logger.info(
+            f"Starting recognize_presentation_task for training_id={training_id}, presentation_file_id={presentation_file_id}"
+        )
+
         # Обновление статуса
         TrainingsDBManager().change_presentation_status(
             training_id, PresentationStatus.RECOGNIZING
@@ -78,6 +79,10 @@ def recognize_presentation_task(self, training_id, presentation_file_id):
         }
 
     except Exception as exc:
+        if training_id is None:
+            logger.error(f"Error in recognize_presentation_task")
+            raise exc
+
         logger.error(
             f"Error in recognize_presentation_task for training_id={training_id}: {exc}"
         )

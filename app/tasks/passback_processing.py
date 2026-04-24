@@ -23,8 +23,9 @@ def send_score_to_lms_task(self, training_result):
         'score': 0.85
     }
     """
-    logger.info(f"Starting send_score_to_lms_task with: {training_result}")
     try:
+        logger.info(f"Starting send_score_to_lms_task with: {training_result}")
+
         # Извлечение пришедших данных
         training_id = training_result.get("training_id")
         task_attempt_id = training_result.get("task_attempt_id")
@@ -50,7 +51,7 @@ def send_score_to_lms_task(self, training_result):
             params_for_passback["oauth_consumer_key"]
         )
 
-        # Вычисление нормализованной оценки (среднее по всем тренировкам)
+        # Вычисление нормализованной оценки
         training_count = task_attempt_db.training_count
         if training_count == 0:
             normalized_score = 0
@@ -93,6 +94,10 @@ def send_score_to_lms_task(self, training_result):
             raise Exception(error_msg)
 
     except Exception as exc:
+        if training_id is None:
+            logger.error(f"Error in recognize_audio_task")
+            raise exc
+
         logger.error(
             f"Error in send_score_to_lms_task for training_id={training_id}: {exc}"
         )
@@ -104,10 +109,11 @@ def send_score_to_lms_task(self, training_result):
             )
             raise self.retry(exc=exc, countdown=60)
 
-        task_attempt_db = TaskAttemptsDBManager().get_task_attempt(task_attempt_id)
-        if task_attempt_db:
-            TaskAttemptsDBManager().set_pass_back_status(
-                task_attempt_db, training_id, PassBackStatus.FAILED
-            )
+        if task_attempt_id is not None:
+            task_attempt_db = TaskAttemptsDBManager().get_task_attempt(task_attempt_id)
+            if task_attempt_db:
+                TaskAttemptsDBManager().set_pass_back_status(
+                    task_attempt_db, training_id, PassBackStatus.FAILED
+                )
 
         raise exc

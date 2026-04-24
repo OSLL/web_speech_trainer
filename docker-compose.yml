@@ -34,13 +34,22 @@ services:
     mem_limit: ${WHISPER_MEM_LIMIT:-5g}
     volumes:
       - whisper_models:/root/.cache/whisper
-  
+
   rabbitmq:
     image: rabbitmq:4-management
     restart: always
     ports:
       - "5672:5672"
       - "15672:15672"
+  
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --appendfsync everysec
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
   
   flower:
     image: wst-image:v0.2
@@ -52,6 +61,7 @@ services:
     depends_on:
       - db
       - rabbitmq
+      - redis
       - celery_worker_audio_rec
       - celery_worker_audio_proc
       - celery_worker_pres_rec
@@ -69,6 +79,7 @@ services:
     depends_on:
       - db
       - rabbitmq
+      - redis
       - whisper
 
   celery_worker_audio_proc:
@@ -79,6 +90,7 @@ services:
     depends_on:
       - db
       - rabbitmq
+      - redis
       
   celery_worker_pres_rec:
     image: wst-image:v0.2
@@ -88,6 +100,7 @@ services:
     depends_on:
       - db
       - rabbitmq
+      - redis
 
   celery_worker_pres_proc:
     image: wst-image:v0.2
@@ -97,6 +110,7 @@ services:
     depends_on:
       - db
       - rabbitmq
+      - redis
   
   celery_worker_training:
     image: wst-image:v0.2
@@ -106,6 +120,7 @@ services:
     depends_on:
       - db
       - rabbitmq
+      - redis
 
   celery_worker_passback:
     image: wst-image:v0.2
@@ -115,6 +130,7 @@ services:
     depends_on:
       - db
       - rabbitmq
+      - redis
 
   celery_worker_default:
     image: wst-image:v0.2
@@ -124,7 +140,9 @@ services:
     depends_on:
       - db
       - rabbitmq
+      - redis
 
 
 volumes:
   whisper_models:
+  redis_data:

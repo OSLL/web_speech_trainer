@@ -23,6 +23,7 @@ class DLQTask(Task, ABC):
     """
     Отправляет сообщение в DLQ только после исчерпания всех ретраев.
     """
+
     abstract = True
 
     def on_failure(self, exc, task_id, args, kwargs, einfo):
@@ -120,6 +121,7 @@ celery_app.conf.update(
     task_serializer="json",
     accept_content=["json"],
     result_serializer="json",
+    result_extended=True,
     result_expires=3600,
     timezone="UTC",
     enable_utc=True,

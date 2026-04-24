@@ -30,10 +30,9 @@ def process_training_task(self, results):
         {'status': 'success', 'training_id': '...', 'presentation_id': '...', 'type': 'presentation'}
     ]
     """
-
-    logger.info(f"Starting process_training_task with results: {results}")
-
     try:
+        logger.info(f"Starting process_training_task with results: {results}")
+
         # Извлечение training_id
         training_id = None
         for result in results:
@@ -139,6 +138,10 @@ def process_training_task(self, results):
         }
 
     except Exception as exc:
+        if training_id is None:
+            logger.error(f"Error in recognize_presentation_task")
+            raise exc
+
         logger.error(
             f"Error in process_training_task for training_id={training_id}: {exc}"
         )
