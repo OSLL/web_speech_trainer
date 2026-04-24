@@ -4,7 +4,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 {% endblock %}
 {% block content %}
-<div class="interview-container">
+<div class="interview-container" data-session-timer-minutes="{{ interview_session_minutes|default(3) }}">
   <div class="top-center text-center">
     <div class="headphones-hint">
       Рекомендуется отвечать на вопросы в наушниках

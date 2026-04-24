@@ -1,6 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
   const CONFIG = {
-    TOTAL_LIMIT_SEC: 180,
+    DEFAULT_TOTAL_LIMIT_SEC: 180,
+    totalLimitSec: 180,
     VAD_THRESHOLD: 0.03,
     VAD_HANG_MS: 250,
     TIMER_TICK_MS: 1000,
@@ -32,6 +33,21 @@ document.addEventListener("DOMContentLoaded", () => {
   const statusEl = document.getElementById("status");
   const micIndicator = document.getElementById("mic-indicator");
   const recordingsEl = document.getElementById("recordings");
+  const pageRoot = document.querySelector(".interview-container");
+
+  function normalizePositiveInt(value, fallback) {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+  }
+
+  const bootstrapSessionTimerMinutes = normalizePositiveInt(
+    pageRoot?.dataset?.sessionTimerMinutes,
+    0,
+  );
+  if (bootstrapSessionTimerMinutes > 0) {
+    CONFIG.totalLimitSec = bootstrapSessionTimerMinutes * 60;
+  }
+
 
   let questions = [];
   let dataLoaded = false;
@@ -296,7 +312,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function startGlobalCountdown() {
     if (timer) clearInterval(timer);
 
-    remainingSec = CONFIG.TOTAL_LIMIT_SEC;
+    remainingSec = CONFIG.totalLimitSec || CONFIG.DEFAULT_TOTAL_LIMIT_SEC;
     updateTimer();
 
     timer = setInterval(() => {
@@ -604,6 +620,15 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       questions = Array.isArray(data.questions) ? data.questions : [];
+
+      const apiSessionTimerSeconds = normalizePositiveInt(data.session_timer_seconds, 0);
+      const apiSessionTimerMinutes = normalizePositiveInt(data.session_timer_minutes, 0);
+      if (apiSessionTimerSeconds > 0) {
+        CONFIG.totalLimitSec = apiSessionTimerSeconds;
+      } else if (apiSessionTimerMinutes > 0) {
+        CONFIG.totalLimitSec = apiSessionTimerMinutes * 60;
+      }
+      updateTimer();
 
       if (!questions.length) {
         if (data?.redirect_url) {

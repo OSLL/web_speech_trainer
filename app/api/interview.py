@@ -18,7 +18,8 @@ from app.interview_utils import (
     calculate_duration_from_segments,
     cleanup_interview_session_data,
     extract_task_error_message,
-    get_default_interview_questions_count,
+    get_interview_questions_count,
+    get_interview_session_minutes,
     get_ready_interview_questions,
     safe_float,
     serialize_questions_for_client,
@@ -108,7 +109,7 @@ def questions_generation_status():
             redirect_url=build_upload_redirect_url(error_message),
         ).to_flask()
 
-    required_questions_count = get_default_interview_questions_count()
+    required_questions_count = get_interview_questions_count()
 
     if generation_status == 'success' and questions_db.count_questions_by_session(session_id) >= required_questions_count:
         return ApiResponse.success(
@@ -212,9 +213,13 @@ def get_interview_session_data():
             redirect_url=build_upload_redirect_url(error_message),
         ).to_flask()
 
+    interview_session_minutes = get_interview_session_minutes()
+
     return ApiResponse.ok(
         questions=serialize_questions_for_client(questions),
         total_questions=len(questions),
+        session_timer_minutes=interview_session_minutes,
+        session_timer_seconds=interview_session_minutes * 60,
     ).to_flask()
 
 

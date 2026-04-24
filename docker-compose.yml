@@ -12,15 +12,14 @@ services:
       - "5000:5000"
     depends_on:
       - db
-      - training_processor
     environment:
       - APP_CONF=${APP_CONF}
-    volumes:
-      - research_logs:/app/logs
 
   audio_processor:
     <<: *wst-service
     command: python3 -m audio_processor $APP_CONF
+    profiles:
+      - training_profile
     depends_on:
       - db
       - whisper
@@ -29,6 +28,8 @@ services:
   recognized_audio_processor:
     <<: *wst-service
     command: python3 -m recognized_audio_processor $APP_CONF
+    profiles:
+      - training_profile
     depends_on:
       - db
       - audio_processor
@@ -37,6 +38,8 @@ services:
   presentation_processor:
     <<: *wst-service
     command: python3 -m presentation_processor $APP_CONF
+    profiles:
+      - training_profile
     depends_on:
       - db
     volumes:
@@ -45,6 +48,8 @@ services:
   recognized_presentation_processor:
     <<: *wst-service
     command: python3 -m recognized_presentation_processor $APP_CONF
+    profiles:
+      - training_profile
     depends_on:
       - db
       - presentation_processor
@@ -52,6 +57,8 @@ services:
   training_processor:
     <<: *wst-service
     command: python3 -m training_processor $APP_CONF
+    profiles:
+      - training_profile
     depends_on:
       - db
       - recognized_audio_processor
@@ -62,6 +69,8 @@ services:
   task_attempt_to_pass_back_processor:
     <<: *wst-service
     command: python3 -m task_attempt_to_pass_back_processor $APP_CONF
+    profiles:
+      - training_profile
     depends_on:
       - db
 
@@ -79,6 +88,9 @@ services:
       - ASR_MODEL=${WHISPER_ASR_MODEL:-tiny}
       - ASR_ENGINE=${WHISPER_ASR_ENGINE:-openai_whisper}
     restart: always
+    profiles:
+      - interview_profile
+      - training_profile
     cpuset: ${WHISPER_CPU:-0,1}
     mem_limit: ${WHISPER_MEM_LIMIT:-5g}
     volumes:
@@ -88,16 +100,16 @@ services:
     image: redis:7
     restart: always
     profiles:
-      - question_generate_profile
+      - interview_profile
 
   celery_worker:
     build:
       context: .
       dockerfile: ./app/questions_generator/Dockerfile
     profiles:
-      - question_generate_profile
+      - interview_profile
     working_dir: /project/app/questions_generator
-    command: bash -c "python -m nltk.downloader -d /root/nltk_data punkt punkt_tab stopwords && celery -A celery_app.celery_app worker --loglevel=info"
+    command: celery -A celery_app.celery_app worker --loglevel=info
     depends_on:
       - redis
       - db
@@ -105,7 +117,6 @@ services:
       - nltk_data:/root/nltk_data
       - ./app:/project/app
       - ./app_conf:/project/app_conf
-      - research_logs:/app/logs
     environment:
       - PYTHONPATH=/project:/project/app:/project/app/questions_generator
       - APP_CONF=${APP_CONF}
@@ -116,4 +127,3 @@ volumes:
   nltk_data:
   mongo_data:
   rut5_model:
-  research_logs:

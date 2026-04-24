@@ -1,4 +1,4 @@
-from flask import Response, render_template, request, url_for
+from flask import Response, render_template, request, session, url_for
 
 from app.mongo_odms.interview_odms import (
     CeleryTaskDBManager,
@@ -13,13 +13,38 @@ def get_config_constants():
     return getattr(conf, 'constants', None) if conf is not None else None
 
 
+def _safe_positive_int(value, default: int) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return default
+    return parsed if parsed > 0 else default
+
+
 def get_default_interview_questions_count():
     constants = get_config_constants()
     value = getattr(constants, 'default_interview_questions_count', None) if constants else None
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return 3
+    return _safe_positive_int(value, 3)
+
+
+def get_interview_questions_count():
+    return _safe_positive_int(
+        session.get('interview_questions_count'),
+        get_default_interview_questions_count(),
+    )
+
+
+def get_default_interview_session_minutes():
+    constants = get_config_constants()
+    value = getattr(constants, 'default_interview_session_minutes', None) if constants else None
+    return _safe_positive_int(value, 3)
+
+
+def get_interview_session_minutes():
+    return _safe_positive_int(
+        session.get('interview_session_minutes'),
+        get_default_interview_session_minutes(),
+    )
 
 
 def get_interview_criteria_pack_id():
@@ -108,7 +133,7 @@ def get_ready_interview_questions(session_id: str):
         return []
 
     return list(
-        QuestionsDBManager().get_questions_by_session(session_id)[:get_default_interview_questions_count()]
+        QuestionsDBManager().get_questions_by_session(session_id)[:get_interview_questions_count()]
     )
 
 def serialize_questions_for_client(questions):
@@ -147,7 +172,7 @@ def build_interview_upload_page_data(
     error_message: str | None = None,
     force_upload: bool = False,
 ) -> dict:
-    required_questions_count = get_default_interview_questions_count()
+    required_questions_count = get_interview_questions_count()
     task_status = (task_record.status or '').lower() if task_record is not None else ''
 
     redirect_url = None

@@ -11,7 +11,8 @@ from app.interview_utils import (
     build_invalid_format_message,
     build_upload_redirect_url,
     cleanup_interview_generation_data,
-    get_default_interview_questions_count,
+    get_interview_questions_count,
+    get_interview_session_minutes,
     get_ready_interview_questions,
     is_allowed_explanatory_note,
     partial_response_file,
@@ -60,17 +61,18 @@ def interview_upload_page():
 
         cleanup_interview_generation_data(session_id)
 
+        required_questions_count = get_interview_questions_count()
+
         saved_task = task_manager.add_or_update_task_file(
             session_id=session_id,
             file_obj=uploaded_file,
             filename=uploaded_file.filename,
             content_type=uploaded_file.mimetype,
             task_name=QuestionGenerationTaskService.get_task_name(),
-            metadata={'questions_count': get_default_interview_questions_count()},
+            metadata={'questions_count': required_questions_count},
         )
 
         try:
-            required_questions_count = get_default_interview_questions_count()
             task_payload = QuestionGenerationTaskService.enqueue_generation(
                 session_id=session_id,
                 file_id=str(saved_task.file_id),
@@ -132,6 +134,7 @@ def interview_page():
         render_template(
             'interview.html',
             has_avatar=has_avatar,
+            interview_session_minutes=get_interview_session_minutes(),
         ),
         200,
     ).to_flask()

@@ -54,6 +54,9 @@ def lti():
     task_id = custom_params.get('task_id', '')
     task_description = custom_params.get('task_description', '')
     attempt_count = int(custom_params.get('attempt_count', 1))
+    interview_questions_count = int(custom_params.get('interview_question_count', 3))
+    interview_session_minutes = int(custom_params.get('interview_timer_minutes', 3))
+    interview_attempt_count = int(custom_params.get('interview_attempt_count', 2))
     required_points = float(custom_params.get('required_points', 0))
     criteria_pack_id = CriteriaPackFactory().get_criteria_pack(
         custom_params.get('criteria_pack_id', '')
@@ -82,6 +85,8 @@ def lti():
     session['full_name'] = full_name
     session['criteria_pack_id'] = criteria_pack_id
     session['feedback_evaluator_id'] = feedback_evaluator_id
+    session['interview_questions_count'] = interview_questions_count
+    session['interview_session_minutes'] = interview_session_minutes
     session['formats'] = pres_formats
 
     if presentation_id and not check_argument_is_convertible_to_object_id(presentation_id):
