@@ -199,6 +199,16 @@ def interview_upload_page():
             task_name=QuestionGenerationTaskService.get_task_name(),
             metadata={'questions_count': required_questions_count},
         )
+        research_logger.log(
+            session_id=session_id,
+            event=InterviewEvent.FILE_UPLOADED,
+            meta={
+                "file_id": str(saved_task.file_id),
+                "filename": uploaded_file.filename,
+                "content_type": uploaded_file.mimetype,
+                "questions_count": required_questions_count,
+            },
+        )
 
         try:
             task_payload = QuestionGenerationTaskService.enqueue_generation(
@@ -222,11 +232,6 @@ def interview_upload_page():
             return PageResponse.redirect(
                 build_upload_redirect_url('Не удалось поставить задачу на генерацию вопросов. Попробуйте еще раз.')
             ).to_flask()
-
-        research_logger.log(
-            session_id=session_id,
-            event=InterviewEvent.FILE_UPLOADED,
-        )
 
         return PageResponse.html(render_upload_page(), 202).to_flask()
 

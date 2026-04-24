@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import logging
 from concurrent_log_handler import ConcurrentRotatingFileHandler
 
@@ -32,7 +32,7 @@ class ResearchLogger:
 
     def log(self, session_id: str, event: str, meta: dict | None = None):
         record = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone(timedelta(hours=3))).isoformat(),
             "session_id": session_id,
             "event": event,
             "meta": meta or {},

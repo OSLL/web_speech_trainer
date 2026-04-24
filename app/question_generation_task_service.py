@@ -98,6 +98,13 @@ class QuestionGenerationTaskService:
         research_logger.log(
             session_id=session_id,
             event=InterviewEvent.GENERATION_STARTED,
+            meta={
+                "task_id": result.id,
+                "task_name": task_name,
+                "file_id": str(file_id),
+                "questions_count": normalized_questions_count,
+                "generate_llm_questions": generate_llm_questions,
+            },
         )
 
         logger.info(

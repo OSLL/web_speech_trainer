@@ -10,6 +10,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const API = {
     SESSION_DATA_URL: "/api/interview/session-data/",
     RECORDING_URL: "/api/interview/recording",
+    RESEARCH_EVENT_URL: "/api/interview/research-event/",
   };
 
   const feedbackPanel = document.getElementById("feedback-panel");
@@ -72,6 +73,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function getCurrentQuestion() {
     return questions[questionIndex] || null;
+  }
+
+  function logResearchEvent(event, meta = {}) {
+    return fetch(API.RESEARCH_EVENT_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({ event, meta }),
+    }).catch((err) => {
+      console.warn("Research event log failed:", event, err);
+    });
   }
 
   function applyMicIndicator() {
@@ -412,6 +426,17 @@ document.addEventListener("DOMContentLoaded", () => {
       nextBtn.textContent =
         questionIndex === questions.length - 1 ? "Закончить" : "Следующий вопрос";
     }
+    logResearchEvent("question_shown", {
+      question_id: q?.id || q?._id || null,
+      order: questionIndex,
+      number: questionIndex + 1,
+      total_questions: questions.length,
+      text: q?.text || "",
+      client_time_iso: new Date().toISOString(),
+      session_elapsed_sec: sessionStartTs == null
+        ? null
+        : Number(((performance.now() - sessionStartTs) / 1000).toFixed(2)),
+    });
   }
 
   function speak(text) {
@@ -557,7 +582,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const q = getCurrentQuestion();
     const answerSpeechMetrics = await consumeCurrentAnswerSpeechMetrics(now);
 
-    questionSegments.push({
+    const answerSegment = {
       question_id: q?.id || q?._id || null,
       order: questionIndex,
       start: (currentAnswerStartTs - sessionStartTs) / 1000,
@@ -566,6 +591,15 @@ document.addEventListener("DOMContentLoaded", () => {
       pauses: answerSpeechMetrics.pauses,
       total_pause_sec: answerSpeechMetrics.totalPauseSec,
       max_pause_sec: answerSpeechMetrics.maxPauseSec,
+    };
+
+    questionSegments.push(answerSegment);
+
+    logResearchEvent("answer_transcript_received", {
+      ...answerSegment,
+      question_text: q?.text || "",
+      client_time_iso: new Date().toISOString(),
+      duration_sec: Number((answerSegment.end - answerSegment.start).toFixed(2)),
     });
     currentAnswerStartTs = null;
   }

@@ -148,35 +148,53 @@ def questions_generation_status():
 
     if task_status == 'SUCCESS':
         questions_count = questions_db.count_questions_by_session(session_id)
+
+        research_logger.log(
+            session_id=session_id,
+            event=InterviewEvent.GENERATION_RESPONSE_RECEIVED,
+            meta={
+                "task_id": task_id,
+                "task_status": task_status,
+                "questions_count": questions_count,
+                "required_questions_count": required_questions_count,
+                "result": task_payload.get("result") or {},
+            },
+        )
+
         if questions_count >= required_questions_count:
             task_manager.mark_success(
                 session_id=session_id,
                 task_id=task_id,
                 result_payload=task_payload.get('result') or {},
             )
+
+            generated_questions = list(
+                questions_db.get_questions_by_session(session_id)[:required_questions_count]
+            )
+
+            research_logger.log(
+                session_id=session_id,
+                event=InterviewEvent.GENERATION_FINISHED,
+                meta={
+                    "task_id": task_id,
+                    "status": "success",
+                    "questions_count": questions_count,
+                    "required_questions_count": required_questions_count,
+                    "questions": [
+                        {
+                            "id": str(getattr(question, "pk", "")),
+                            "order": getattr(question, "order", index),
+                            "text": getattr(question, "text", ""),
+                        }
+                        for index, question in enumerate(generated_questions)
+                    ],
+                },
+            )
+
             return ApiResponse.success(
                 redirect_url=url_for('routes_interview.interview_page'),
                 task_status=task_status,
             ).to_flask()
-
-        error_message = (
-            f'Сгенерировано недостаточно вопросов: {questions_count} из {required_questions_count}. '
-            f'Загрузите документ заново.'
-        )
-        questions_db.delete_questions_by_session(session_id)
-        task_manager.mark_failure(
-            session_id=session_id,
-            task_id=task_id,
-            error_message=error_message,
-            result_payload=task_payload.get('result') or {},
-            cleanup_file=True,
-        )
-        return ApiResponse.failure(
-            error_message,
-            status_code=200,
-            redirect_url=build_upload_redirect_url(error_message),
-            task_status=task_status,
-        ).to_flask()
 
     if task_status == 'FAILURE':
         error_message = extract_task_error_message(task_payload)
@@ -187,6 +205,15 @@ def questions_generation_status():
             error_message=error_message,
             result_payload=task_payload.get('error') or {},
             cleanup_file=True,
+        )
+        research_logger.log(
+            session_id=session_id,
+            event=InterviewEvent.GENERATION_FINISHED,
+            meta={
+                "task_id": task_id,
+                "status": "failure",
+                "error": task_payload.get("error") or {},
+            },
         )
         return ApiResponse.failure(
             error_message,
@@ -328,6 +355,21 @@ def save_interview_recording():
         recording=recording,
         questions_count=len(questions),
     )
+    research_logger.log(
+        session_id=real_session_id,
+        event=InterviewEvent.RESULTS_EVALUATED,
+        meta={
+            "recording_id": str(recording.pk),
+            "duration": duration,
+            "questions_count": len(questions),
+            "segments_count": len(segments),
+            "score": feedback_payload.get("score"),
+            "verdict": feedback_payload.get("verdict"),
+            "criteria_pack_id": feedback_payload.get("criteria_pack_id"),
+            "feedback_evaluator_id": feedback_payload.get("feedback_evaluator_id"),
+            "criteria_results": feedback_payload.get("criteria_results") or {},
+        },
+    )
 
     InterviewFeedbackDBManager().upsert_feedback(
         session_id=real_session_id,
@@ -351,9 +393,12 @@ def save_interview_recording():
         session_id=real_session_id,
         event=InterviewEvent.INTERVIEW_FINISHED,
         meta={
+            "recording_id": str(recording.pk),
+            "audio_file_id": str(audio_file_id),
             "duration": duration,
             "questions_count": len(segments),
             "score": feedback_payload.get("score"),
+            "verdict": feedback_payload.get("verdict"),
         },
     )
 
@@ -409,3 +454,33 @@ def get_interview_results_data(recording_id):
         results=results_payload['criteria'],
         question_totals=results_payload['question_totals'],
     ).to_flask()
+
+@routes_interview.route('/api/interview/research-event/', methods=['POST'])
+def log_interview_research_event():
+    user_session = check_auth()
+    if not user_session:
+        return ApiResponse.error('User session not found', status_code=404).to_flask()
+
+    session_id = session.get('session_id')
+    if not session_id:
+        return ApiResponse.error('Session id not found', status_code=404).to_flask()
+
+    payload = request.get_json(silent=True) or {}
+    event_name = payload.get('event')
+    meta = payload.get('meta') or {}
+
+    allowed_events = {
+        InterviewEvent.QUESTION_SHOWN.value,
+        InterviewEvent.ANSWER_TRANSCRIPT_RECEIVED.value,
+    }
+
+    if event_name not in allowed_events:
+        return ApiResponse.error('Unsupported research event', status_code=400).to_flask()
+
+    research_logger.log(
+        session_id=session_id,
+        event=event_name,
+        meta=meta,
+    )
+
+    return ApiResponse.ok().to_flask()
