@@ -14,6 +14,8 @@ services:
       - db
     environment:
       - APP_CONF=${APP_CONF}
+    volumes:
+      - research_logs:/app/logs
 
   audio_processor:
     <<: *wst-service
@@ -117,6 +119,7 @@ services:
       - nltk_data:/root/nltk_data
       - ./app:/project/app
       - ./app_conf:/project/app_conf
+      - research_logs:/app/logs
     environment:
       - PYTHONPATH=/project:/project/app:/project/app/questions_generator
       - APP_CONF=${APP_CONF}
@@ -127,3 +130,4 @@ volumes:
   nltk_data:
   mongo_data:
   rut5_model:
+  research_logs:
