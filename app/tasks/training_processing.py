@@ -140,7 +140,7 @@ def process_training_task(self, results):
     except Exception as exc:
         if training_id is None:
             logger.error(f"Error in recognize_presentation_task")
-            raise exc
+            raise
 
         logger.error(
             f"Error in process_training_task for training_id={training_id}: {exc}"
@@ -161,4 +161,4 @@ def process_training_task(self, results):
         )
         TrainingsDBManager().set_score(training_id, 0)
 
-        raise exc
+        raise

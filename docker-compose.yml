@@ -16,6 +16,8 @@ services:
       - nltk_downloader
     volumes:
       - ../database-dump:/app/dump/database-dump/
+    networks:
+      - network
 
   db:
     image: "mongo:8-noble"
@@ -24,6 +26,8 @@ services:
       - '--wiredTigerCacheSizeGB=2'
     volumes:
       - ../mongo_data:/data/db
+    networks:
+      - network
 
   whisper:
     image: "onerahmet/openai-whisper-asr-webservice:v1.3.0"
@@ -35,6 +39,8 @@ services:
     mem_limit: ${WHISPER_MEM_LIMIT:-5g}
     volumes:
       - whisper_models:/root/.cache/whisper
+    networks:
+      - network
   
   nltk_downloader:
     image: wst-image:v0.2
@@ -42,6 +48,8 @@ services:
     volumes:
       - nltk_data:/root/nltk_data
     restart: no
+    networks:
+      - network
 
   rabbitmq:
     image: rabbitmq:4-management
@@ -49,6 +57,11 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+    networks:
+      - network
   
   redis:
     image: redis:7-alpine
@@ -58,106 +71,16 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-  
-  flower:
-    image: wst-image:v0.2
-    command: celery -A app.celery_app flower --port=5555 --basic_auth=guest:guest --broker_api=http://guest:guest@rabbitmq:15672/api/
-    ports:
-      - "5555:5555"
-    environment:
-      - APP_CONF=${APP_CONF}
-    depends_on:
-      - db
-      - rabbitmq
-      - redis
-      - celery_worker_audio_rec
-      - celery_worker_audio_proc
-      - celery_worker_pres_rec
-      - celery_worker_pres_proc
-      - celery_worker_training
-      - celery_worker_passback
-      - celery_worker_default
-    restart: always
-
-  celery_worker_audio_rec:
-    image: wst-image:v0.2
-    command: celery -A app.celery_app worker --loglevel=info --concurrency=1 -Q audio_recognition
-    environment:
-    - APP_CONF=${APP_CONF}
-    depends_on:
-      - db
-      - rabbitmq
-      - redis
-      - whisper
-
-  celery_worker_audio_proc:
-    image: wst-image:v0.2
-    command: celery -A app.celery_app worker --loglevel=info --concurrency=1 -Q audio_processing
-    environment:
-      - APP_CONF=${APP_CONF}
-    depends_on:
-      - db
-      - rabbitmq
-      - redis
-      
-  celery_worker_pres_rec:
-    image: wst-image:v0.2
-    command: celery -A app.celery_app worker --loglevel=info --concurrency=1 -Q presentation_recognition
-    environment:
-      - APP_CONF=${APP_CONF}
-    depends_on:
-      - db
-      - rabbitmq
-      - redis
-      - nltk_downloader
-    volumes:
-      - nltk_data:/root/nltk_data
-
-  celery_worker_pres_proc:
-    image: wst-image:v0.2
-    command: celery -A app.celery_app worker --loglevel=info --concurrency=1 -Q presentation_processing
-    environment:
-      - APP_CONF=${APP_CONF}
-    depends_on:
-      - db
-      - rabbitmq
-      - redis
-  
-  celery_worker_training:
-    image: wst-image:v0.2
-    command: celery -A app.celery_app worker --loglevel=info --concurrency=1 -Q training
-    environment:
-      - APP_CONF=${APP_CONF}
-    depends_on:
-      - db
-      - rabbitmq
-      - redis
-      - nltk_downloader
-    volumes:
-      - nltk_data:/root/nltk_data
-
-  celery_worker_passback:
-    image: wst-image:v0.2
-    command: celery -A app.celery_app worker --loglevel=info --concurrency=1 -Q passback
-    environment:
-      - APP_CONF=${APP_CONF}
-    depends_on:
-      - db
-      - rabbitmq
-      - redis
-
-  celery_worker_default:
-    image: wst-image:v0.2
-    command: celery -A app.celery_app worker --loglevel=info --concurrency=1 -Q default
-    environment:
-      - APP_CONF=${APP_CONF}
-    depends_on:
-      - db
-      - rabbitmq
-      - redis
+    networks:
+      - network
 
 
 volumes:
   whisper_models:
   redis_data:
   nltk_data: 
+
+
+networks:
+  network:
+    driver: bridge

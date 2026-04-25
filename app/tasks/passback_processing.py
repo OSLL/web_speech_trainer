@@ -96,7 +96,7 @@ def send_score_to_lms_task(self, training_result):
     except Exception as exc:
         if training_id is None:
             logger.error(f"Error in recognize_audio_task")
-            raise exc
+            raise
 
         logger.error(
             f"Error in send_score_to_lms_task for training_id={training_id}: {exc}"
@@ -116,4 +116,4 @@ def send_score_to_lms_task(self, training_result):
                     task_attempt_db, training_id, PassBackStatus.FAILED
                 )
 
-        raise exc
+        raise

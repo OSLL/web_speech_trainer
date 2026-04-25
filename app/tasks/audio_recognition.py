@@ -51,7 +51,7 @@ def recognize_audio_task(self, training_id, presentation_record_file_id):
     except Exception as exc:
         if training_id is None:
             logger.error(f"Error in recognize_audio_task")
-            raise exc
+            raise
 
         logger.error(
             f"Error in recognize_audio_task for training_id={training_id}: {exc}"
@@ -72,4 +72,4 @@ def recognize_audio_task(self, training_id, presentation_record_file_id):
         )
         TrainingsDBManager().set_score(training_id, 0)
 
-        raise exc
+        raise

@@ -61,7 +61,7 @@ def process_recognized_audio_task(self, result):
     except Exception as exc:
         if training_id is None:
             logger.error(f"Error in process_recognized_audio_task")
-            raise exc
+            raise
 
         logger.error(
             f"Error in process_recognized_audio_task for training_id={training_id}: {exc}"
@@ -82,4 +82,4 @@ def process_recognized_audio_task(self, result):
         )
         TrainingsDBManager().set_score(training_id, 0)
 
-        raise exc
+        raise
