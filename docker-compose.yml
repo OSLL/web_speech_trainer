@@ -1,7 +1,7 @@
 x-wst-service: &wst-service
   build:
     context: .
-  image: wst-image:v0.2
+  image: wst-image:v0.3
   restart: always
 
 services:
