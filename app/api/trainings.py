@@ -431,7 +431,7 @@ def get_count_page() -> (dict, int):
 @api_trainings.route('/api/trainings/csv', methods=['GET'])
 def get_csv_all_trainings() -> tuple[dict, int]:
     def format_timestamp_to_str(date):
-        return date.strftime(DATETIME_STR_FORMAT)
+        return date.strftime(DATETIME_STR_FORMAT) if type(date) == datetime else date
 
     data, code = get_all_trainings()
     if code != 200:
