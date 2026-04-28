@@ -23,6 +23,7 @@ from app.localisation import *
 
 api_trainings = Blueprint('api_trainings', __name__)
 logger = get_root_logger()
+DATETIME_STR_FORMAT = r"%d.%m.%Y %H:%M:%S"
 
 
 @check_arguments_are_convertible_to_object_id
@@ -429,6 +430,9 @@ def get_count_page() -> (dict, int):
 
 @api_trainings.route('/api/trainings/csv', methods=['GET'])
 def get_csv_all_trainings() -> tuple[dict, int]:
+    def format_timestamp_to_str(date):
+        return date.strftime(DATETIME_STR_FORMAT)
+
     data, code = get_all_trainings()
     if code != 200:
         return data, code
@@ -454,7 +458,11 @@ def get_csv_all_trainings() -> tuple[dict, int]:
         ]
 
     trainings = data['trainings']
-    print(trainings)
+    timestamp_fields = ('training_start_timestamp', 'processing_start_timestamp', 'processing_finish_timestamp')
+    for training in trainings:
+        for key in timestamp_fields:
+            training[key] = format_timestamp_to_str(training[key])
+
     csv_data = StringIO()
     cw = csv.DictWriter(
         csv_data,
