@@ -35,6 +35,8 @@ class DLQTask(Task, ABC):
             args=args,
             kwargs=kwargs,
             queue=DLQ_NAME,
+            exchange=DLX_NAME,
+            routing_key=DLQ_ROUTING_KEY
         )
 
 
@@ -131,8 +133,7 @@ celery_app.conf.update(
     task_track_started=True,
     task_time_limit=30 * 60,
     task_soft_time_limit=25 * 60,
-    worker_prefetch_multiplier=1,
-    task_create_missing_queues=False,
+    worker_prefetch_multiplier=1
 )
 
 celery_app.conf.task_default_queue = "default"
@@ -142,18 +143,36 @@ celery_app.conf.task_queues = task_queues
 
 
 celery_app.conf.task_routes = {
-    "app.tasks.audio_recognition.recognize_audio_task": {"queue": "audio_recognition"},
+    "app.tasks.audio_recognition.recognize_audio_task": {
+        "queue": "audio_recognition",
+        "exchange": "audio_recognition",
+        "routing_key": "audio_recognition",
+    },
     "app.tasks.audio_processing.process_recognized_audio_task": {
-        "queue": "audio_processing"
+        "queue": "audio_processing",
+        "exchange": "audio_processing",
+        "routing_key": "audio_processing",
     },
     "app.tasks.presentation_recognition.recognize_presentation_task": {
-        "queue": "presentation_recognition"
+        "queue": "presentation_recognition",
+        "exchange": "presentation_recognition",
+        "routing_key": "presentation_recognition",
     },
     "app.tasks.presentation_processing.process_recognized_presentation_task": {
-        "queue": "presentation_processing"
+        "queue": "presentation_processing",
+        "exchange": "presentation_processing",
+        "routing_key": "presentation_processing",
     },
-    "app.tasks.training_processing.process_training_task": {"queue": "training"},
-    "app.tasks.passback_processing.send_score_to_lms_task": {"queue": "passback"},
+    "app.tasks.training_processing.process_training_task": {
+        "queue": "training",
+        "exchange": "training",
+        "routing_key": "training",
+    },
+    "app.tasks.passback_processing.send_score_to_lms_task": {
+        "queue": "passback",
+        "exchange": "passback",
+        "routing_key": "passback",
+    },
 }
 
 celery = celery_app

@@ -52,7 +52,7 @@ services:
       - network
 
   rabbitmq:
-    image: rabbitmq:4-management
+    image: rabbitmq:3-management
     restart: always
     ports:
       - "5672:5672"
