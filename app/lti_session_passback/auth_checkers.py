@@ -1,6 +1,6 @@
 from typing import Optional
 
-from flask import session
+from flask import session, request
 
 from app.config import Config
 from app.mongo_models import Sessions
@@ -47,8 +47,13 @@ def is_logged_in() -> bool:
     return check_auth() is not None
 
 
-def check_admin() -> Optional[Sessions]:
+def check_admin(allow_access_token=False) -> Optional[Sessions]:
     user_session = check_auth()
+
+    #raise Exception(f"{allow_access_token}, {Config.c.constants.access_token}, {request.args.get('TOKEN', '')}, {Config.c.constants.access_token == request.args.get('TOKEN', '')}")
+    if allow_access_token and (Config.c.constants.access_token == request.args.get("TOKEN", "")):
+        return True
+    
     if user_session and user_session.is_admin:
         return user_session
     else:

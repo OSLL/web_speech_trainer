@@ -12,14 +12,14 @@ from app.status import TrainingStatus, AudioStatus, PresentationStatus, PassBack
 
 logger = get_root_logger()
 
-
+DATETIME_STR_FORMAT = r"%d.%m.%Y %H:%M:%S"
 
 class GetAllTrainingsFilterManager():
     simple_filters = ["training_id", "task_attempt_id", "presentation_file_id", "username", "full_name",
                       "presentation_record_duration", "score", "processing_start_timestamp",
-                      "processing_finish_timestamp", "training_status", "audio_status", "presentation_status"]
+                      "processing_finish_timestamp", "training_status", "audio_status", "presentation_status", "criteria_pack_id"]
 
-    complex_filters = ["pass_back_status","training_start_timestamp"]
+    complex_filters = ["pass_back_status","training_start_timestamp", "task_id"]
 
     def __new__(cls):
         if not hasattr(cls, 'init_done'):
@@ -42,6 +42,7 @@ class GetAllTrainingsFilterManager():
         return simple_filters, complex_filters
 
     def __apply_pagination(self, page: int, count: int, trainings: list) -> list:
+        # TODO: делать силами БД
         trainings_page = []
 
         end_index = (page + 1)*count
@@ -63,7 +64,7 @@ class GetAllTrainingsFilterManager():
                 # Полное совпадение
                 logger.info("ELSE ID: " + str(values[0]))
                 mongodb_query[key] = ObjectId(values[0])
-            elif key == "username" or key == "full_name":
+            elif key in ("criteria_pack_id", "username", "full_name"):
                 # Частичное совпадение без учета регистра
                 mongodb_query[key] = {
                     "$regex": regex.escape(values[0], literal_spaces=True),
@@ -86,13 +87,13 @@ class GetAllTrainingsFilterManager():
                 mongodb_query["feedback.score"] = {"$exists": True, "$gte": start_range, "$lte": end_range}
             elif key == "processing_start_timestamp" or key == "processing_finish_timestamp":
                 # Range по датам
-                start_date_string = values[0][:-5] + "Z"
-                start_range = datetime.strptime(start_date_string, "%Y-%m-%dT%H:%M:%SZ").timestamp()
+                start_date_string = values[0]
+                start_range = datetime.strptime(start_date_string, DATETIME_STR_FORMAT).timestamp()
                 start_range = math.floor(start_range)
                 start_mongo = Timestamp(start_range, 0)
 
-                end_date_string = values[1][:-5] + "Z"
-                end_range = datetime.strptime(end_date_string, "%Y-%m-%dT%H:%M:%SZ").timestamp()
+                end_date_string = values[1]
+                end_range = datetime.strptime(end_date_string, DATETIME_STR_FORMAT).timestamp()
                 end_range = math.floor(end_range)
                 end_mongo = Timestamp(end_range, 0)
 
@@ -151,17 +152,19 @@ class GetAllTrainingsFilterManager():
                     return False
             elif key == "training_start_timestamp":
                 start_training = ObjectId(str(training.pk)).generation_time.astimezone(pytz.timezone("Europe/Moscow")).replace(tzinfo=None)
-                start_date_string = values[0][:-5] + "Z"
-                start_range = datetime.strptime(start_date_string, "%Y-%m-%dT%H:%M:%SZ")
+                start_date_string = values[0]
+                start_range = datetime.strptime(start_date_string, DATETIME_STR_FORMAT)
     
 
-                end_date_string = values[1][:-5] + "Z"
-                end_range = datetime.strptime(end_date_string, "%Y-%m-%dT%H:%M:%SZ")
+                end_date_string = values[1]
+                end_range = datetime.strptime(end_date_string, DATETIME_STR_FORMAT)
                 if start_training >= start_range and start_training <= end_range:
                     return True
                 else:
                     return False
-
+            elif key == "task_id":
+                task_attempt = TaskAttemptsDBManager().get_task_attempt(training.task_attempt_id)
+                return values[0].lower() in task_attempt.task_id.lower()
 
         return True
 
