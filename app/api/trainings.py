@@ -467,6 +467,8 @@ def get_csv_all_trainings() -> tuple[dict, int]:
     cw = csv.DictWriter(
         csv_data,
         fieldnames=fieldsname,
+        delimiter=',',
+        lineterminator='\n',
     )
     cw.writeheader()
     cw.writerows(trainings)
