@@ -7,6 +7,7 @@ x-wst-service: &wst-service
 services:
   web:
     <<: *wst-service
+    init: true
     command: bash -c "python3 ./db_versioning/db_versioning.py --mongo mongodb://db:27017 && python3 -m web_speech_trainer $APP_CONF"
     ports:
       - "5000:5000"

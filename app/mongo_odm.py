@@ -204,7 +204,7 @@ class TrainingsDBManager:
         return Trainings.objects.raw(filters).limit(count)
 
     def get_trainings_filtered_all(self, filters):
-        return Trainings.objects.raw(filters)
+        return Trainings.objects.raw(filters).order_by([("_id", pymongo.DESCENDING)])
 
     # Getting count pages for filters and page count chunk
     # def get_count_page(self, filters, count = 10):
