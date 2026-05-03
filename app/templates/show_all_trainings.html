@@ -27,11 +27,7 @@
         <div id="no-filters-text">{{ t("Активные фильтры отсутствуют") }}</div>
         <div id="filter-validation-error">{{ t("Некоторые фильтры (выделенные красным) установлены неправильным образом. Прочитайте описание фильтра, наведясь на его подчеркнутое название, и проверьте введеные данные.") }}</div>
         <div class="content-wrapper">
-
         </div>
-
-
-
     </div>
 </div>
 
@@ -64,8 +60,8 @@
     $(document).ready(async () => {
 
         initFilters("{{ filters }}");
-
-        rowsTotal = document.querySelectorAll("#all-trainings-table tr").length - 1;
+        const table = document.querySelector("#all-trainings-table")
+        const rowsTotal = document.querySelectorAll("#all-trainings-table tr").length - 1;
 
         initPagination("{{ page }}", "{{ count }}")
 

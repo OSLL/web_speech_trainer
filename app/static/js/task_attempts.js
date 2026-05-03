@@ -49,7 +49,7 @@ function TableRowFiller() {
         tableRow["№"].innerHTML = pos++;
         tableRow["training_id"].innerHTML = `<a href="/trainings/statistics/${training.id}/">${training.id}</a>`;
         tableRow["start_timestamp"].innerHTML = get_time_string(training.training_start_timestamp);
-        tableRow["score"].innerHTML = training.score ? training.score.toFixed(2) : "none";
+        tableRow["score"].innerHTML = training.score || "none";
         tableRow["training_status"].innerHTML = training.training_status;
         tableRow["pass_back_status"].innerHTML = training.passedBackStatus || "none";
     }

@@ -1,5 +1,5 @@
 function get_time_string(timestamp){
-    let options = {year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit'}
+    let options = {year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit', timeZone: "UTC"}
     if (!isNaN(timestamp)) {
         let processing_time = new Date(timestamp);
         return processing_time.toLocaleString("ru-RU", options);
@@ -8,8 +8,8 @@ function get_time_string(timestamp){
     }
 }
 
-function buildCurrentTrainingRow(trainingId, trainingJson, isAdmin=false) {
-
+function buildCurrentTrainingRow(trainingJson, isAdmin=false) {
+    const trainingId = trainingJson.training_id;
     const currentTrainingRowElement = document.createElement("tr");
 
     const trainingIdElement = document.createElement("td");
@@ -20,7 +20,7 @@ function buildCurrentTrainingRow(trainingId, trainingJson, isAdmin=false) {
     currentTrainingRowElement.appendChild(trainingIdElement);
 
     const trainingAttemptIdElement = document.createElement("td");
-    if(trainingJson["task_attempt_id"] !== "undefined" && trainingJson["message"] === "OK"){
+    if(trainingJson["task_attempt_id"] !== "undefined"){
         const trainingAttemptIdLink = document.createElement("a");
         trainingAttemptIdLink.href=`/task_attempts/${trainingJson["task_attempt_id"]}`;
         trainingAttemptIdLink.textContent = `...${(trainingJson["task_attempt_id"]).slice(-5)}`;
@@ -38,6 +38,14 @@ function buildCurrentTrainingRow(trainingId, trainingJson, isAdmin=false) {
     const trainingFullNameElement = document.createElement("td");
     trainingFullNameElement.textContent = trainingJson["full_name"];
     currentTrainingRowElement.appendChild(trainingFullNameElement);
+
+    const trainingCritetiaIdElement = document.createElement("td");
+    trainingCritetiaIdElement.textContent = trainingJson["criteria_pack_id"];
+    currentTrainingRowElement.appendChild(trainingCritetiaIdElement);
+
+    const taskIdElement = document.createElement("td");
+    taskIdElement.textContent = trainingJson["task_id"];
+    currentTrainingRowElement.appendChild(taskIdElement);
 
     const presentationRecordDurationElement = document.createElement("td");
     presentationRecordDurationElement.textContent = trainingJson["presentation_record_duration"];
@@ -75,13 +83,11 @@ function buildCurrentTrainingRow(trainingId, trainingJson, isAdmin=false) {
     currentTrainingRowElement.appendChild(trainingPassBackStatusElement);
 
     const trainingScoreElement = document.createElement("td");
-    if (trainingJson["score"] != null) {
-        trainingScoreElement.textContent = trainingJson["score"].toFixed(2);
-    }
+    trainingScoreElement.textContent = trainingJson["score"];
     currentTrainingRowElement.appendChild(trainingScoreElement);
 
     const presentationFileIdElement = document.createElement("td");
-    if(trainingJson["presentation_file_id"] !== "undefined" && trainingJson["message"] === "OK"){
+    if (trainingJson["presentation_file_id"] !== "undefined"){
         const presentationFileIdLink = document.createElement("a");
         presentationFileIdLink.textContent = "..." + String(trainingJson["presentation_file_id"]).slice(-5);
         presentationFileIdLink.href = `/api/files/presentations/by-training/${trainingId}/`;
@@ -91,7 +97,7 @@ function buildCurrentTrainingRow(trainingId, trainingJson, isAdmin=false) {
     currentTrainingRowElement.appendChild(presentationFileIdElement);
 
     const recordingElement = document.createElement("td");
-    if(trainingJson["presentation_record_file_id"] === "None" || trainingJson["message"] !== "OK") {
+    if (trainingJson["presentation_record_file_id"] === "None") {
         recordingElement.textContent = "Аудиозапись отсутствует";
     } else {
         const recordingAudio = document.createElement("audio");
@@ -125,6 +131,8 @@ function buildAllTrainingsTable(trainingsJson) {
         "id попытки",
         "Логин",
         "Имя",
+        "Набор критериев",
+        "Задание",
         "Длительность аудиозаписи",
         "Начало тренировки",
         "Начало обработки",
@@ -151,15 +159,15 @@ function buildAllTrainingsTable(trainingsJson) {
         const titleRow = buildTitleRow(titles);
         allTrainingsTable.appendChild(titleRow);
         
-        Object.keys(arrayTrainings).forEach(trainingId => {
+        Object.keys(arrayTrainings).forEach(index => {
             const currentTrainingRowElement = buildCurrentTrainingRow(
-                trainingId, 
-                arrayTrainings[trainingId], 
+                arrayTrainings[index], 
                 isAdmin
             );
             
             allTrainingsTable.appendChild(currentTrainingRowElement);
         });
+        initVisibilityCheckboxes(allTrainingsTable)
     })
     .catch(err => console.log(err));
 }
@@ -277,4 +285,157 @@ function call_get_all_trainings({filters, page = 0, count}) {
     return fetch(`/api/trainings?${query.toString()}`)
         .then(response => response.json())
         .then(responseJson => buildAllTrainingsTable(responseJson));
+}
+
+function setColumnVisibility(table, columnIndex, visible) {
+    const cells = table.querySelectorAll(`td:nth-child(${columnIndex}), th:nth-child(${columnIndex})`);
+    cells.forEach(cell => {
+        cell.style.display = visible ? '' : 'none';
+    });
+}
+
+function getCurrentVisibility(table) {
+    const firstRow = table.querySelector('tr');
+    if (!firstRow) return [];
+    const colCount = firstRow.cells.length;
+    const visibility = [];
+    for (let i = 1; i <= colCount; i++) {
+        const anyCell = table.querySelector(`td:nth-child(${i}), th:nth-child(${i})`);
+        visibility.push(anyCell ? anyCell.style.display !== 'none' : true);
+    }
+    return visibility;
+}
+
+function applySavedVisibility(table, hiddenIndices) {
+    const colCount = table.querySelector('tr')?.cells.length || 0;
+    for (let i = 1; i <= colCount; i++) {
+        const shouldBeHidden = hiddenIndices.includes(i);
+        setColumnVisibility(table, i, !shouldBeHidden);
+    }
+}
+
+function saveVisibility(table) {
+    const visibility = getCurrentVisibility(table);
+    const hiddenIndices = visibility.reduce((acc, isVisible, idx) => {
+        if (!isVisible) acc.push(idx + 1); // индексы с 1
+        return acc;
+    }, []);
+    localStorage.setItem('hidden_columns', JSON.stringify(hiddenIndices));
+}
+
+function createControlPanel(table) {
+    const headerRow = table.querySelector('tr');
+    const colCount = headerRow ? headerRow.cells.length : (table.querySelector('tr')?.cells.length || 0);
+    const container = document.createElement('div');
+    container.className = 'column-control-panel';
+
+    const title = document.createElement('span');
+    title.textContent = 'Видимость столбцов: ';
+    title.style.fontWeight = 'bold';
+    container.appendChild(title);
+
+    const checkboxes = [];
+
+    for (let i = 1; i <= colCount; i++) {
+        let labelText = `Колонка ${i}`;
+        if (headerRow && headerRow.cells[i - 1]) {
+            labelText = headerRow.cells[i - 1].textContent.trim() || labelText;
+        }
+
+        const label = document.createElement('label');
+        label.style.marginLeft = '10px';
+        label.style.cursor = 'pointer';
+
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = true;
+        cb.dataset.columnIndex = i;
+
+        cb.addEventListener('change', (function (idx, checkbox) {
+            return function () {
+                setColumnVisibility(table, idx, checkbox.checked);
+                saveVisibility(table);
+            };
+        })(i, cb));
+
+        label.appendChild(cb);
+        label.appendChild(document.createTextNode(' ' + labelText));
+        container.appendChild(label);
+        checkboxes.push(cb);
+    }
+
+    const resetBtn = document.createElement('button');
+    resetBtn.textContent = 'Сбросить';
+    resetBtn.style.marginLeft = '20px';
+    resetBtn.addEventListener('click', () => {
+        localStorage.removeItem('hidden_columns');
+        for (let i = 1; i <= colCount; i++) {
+            setColumnVisibility(table, i, true);
+            if (checkboxes[i - 1]) checkboxes[i - 1].checked = true;
+        }
+    });
+    container.appendChild(resetBtn);
+
+    const hidePanelBtn = document.createElement('button');
+    hidePanelBtn.textContent = 'Скрыть панель';
+    hidePanelBtn.style.marginLeft = '10px';
+    hidePanelBtn.addEventListener('click', () => {
+        container.style.display = 'none';
+        showPanelBtn.style.display = 'inline-block';
+        localStorage.removeItem('visibility_panel_show');
+    });
+    container.appendChild(hidePanelBtn);
+
+    const showPanelBtn = document.createElement('button');
+    showPanelBtn.textContent = 'Показать настройку видимости столбцов';
+    showPanelBtn.addEventListener('click', () => {
+        container.style.display = '';
+        showPanelBtn.style.display = 'none';
+        localStorage.setItem('visibility_panel_show', 'true');
+    });
+    document.body.appendChild(showPanelBtn);
+
+    table.parentNode.insertBefore(container, table);
+    container.parentNode.insertBefore(showPanelBtn, container);
+
+    var returnable = new Object();
+    returnable.panelContainer = container;
+    returnable.showPanelBtn = showPanelBtn;
+    returnable.checkboxes = checkboxes;
+    returnable.colCount = colCount;
+
+    return returnable;
+}
+
+var controlPanelReady = false;
+
+function initVisibilityCheckboxes(table) {
+    if (controlPanelReady) return
+
+    const panelObjects = createControlPanel(table);
+    const checkboxes = panelObjects.checkboxes;
+    const saved = localStorage.getItem('hidden_columns');
+    let hiddenIndices = [];
+    if (saved) {
+        try {
+            hiddenIndices = JSON.parse(saved);
+            if (!Array.isArray(hiddenIndices)) hiddenIndices = [];
+        } catch (e) { hiddenIndices = []; }
+    }
+
+    for (let i = 1; i <= panelObjects.colCount; i++) {
+        const hidden = hiddenIndices.includes(i);
+        setColumnVisibility(table, i, !hidden);
+        if (checkboxes[i - 1]) checkboxes[i - 1].checked = !hidden;
+    }
+
+    if (localStorage.getItem('visibility_panel_show') === 'true') {
+        panelObjects.panelContainer.style.display = '';
+        panelObjects.showPanelBtn.style.display = 'none';
+    } else {
+        panelObjects.panelContainer.style.display = 'none';
+        panelObjects.showPanelBtn.style.display = 'inline-block';
+    }
+
+    controlPanelReady = true;
 }
