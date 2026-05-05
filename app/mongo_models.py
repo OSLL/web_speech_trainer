@@ -1,5 +1,8 @@
 from datetime import datetime, timezone
 from pymodm import EmbeddedMongoModel, MongoModel, fields
+from datetime import datetime, timezone
+from pymodm import MongoModel, fields
+from app.status import AudioStatus
 
 
 class Criterion(MongoModel):
@@ -159,3 +162,101 @@ class Logs(MongoModel):
 
 class StorageMeta(MongoModel):
     used_size = fields.IntegerField()
+
+
+class Questions(MongoModel):
+    session_id = fields.CharField()
+    text = fields.CharField()
+    order = fields.IntegerField(blank=True, default=0)
+    created_at = fields.DateTimeField(default=datetime.now(timezone.utc))
+    attributes = fields.DictField(blank=True, default={})
+    generation_metadata = fields.DictField(blank=True, default={})
+
+class InterviewAvatars(MongoModel):
+    session_id = fields.CharField()
+    file_id = fields.ObjectIdField()
+
+    created_at = fields.DateTimeField(default=datetime.now(timezone.utc))
+    last_update = fields.DateTimeField(default=datetime.now(timezone.utc))
+
+    def save(self):
+        self.last_update = datetime.now(timezone.utc)
+        return super().save()
+
+class InterviewRecording(MongoModel):
+    session_id = fields.CharField()
+    audio_file_id = fields.ObjectIdField()
+    duration = fields.FloatField(blank=True)
+    recognized_audio_id = fields.ObjectIdField(blank=True)
+    audio_status = fields.CharField(default=AudioStatus.NEW)
+    transcript = fields.CharField(blank=True)
+    words = fields.ListField(
+        fields.DictField(),
+        blank=True,
+        default=[]
+    )
+    segments = fields.ListField(
+        fields.DictField(),
+        blank=True,
+        default=[]
+    )
+    question_segments = fields.ListField(
+        fields.DictField(),
+        blank=True,
+        default=[]
+    )
+    status = fields.CharField(default="recorded")
+    created_at = fields.DateTimeField(default=lambda: datetime.now(timezone.utc))
+    last_update = fields.DateTimeField(default=lambda: datetime.now(timezone.utc))
+    metadata = fields.DictField(blank=True, default={})
+
+    def save(self):
+        self.last_update = datetime.now(timezone.utc)
+        return super().save()
+
+class InterviewFeedback(MongoModel):
+    session_id = fields.CharField()
+    recording_id = fields.ObjectIdField()
+
+    criteria_pack_id = fields.CharField(blank=True, default="INTERVIEW_SIMPLE_V1")
+    feedback_evaluator_id = fields.IntegerField(blank=True, default=0)
+
+    criteria_results = fields.DictField(blank=True, default={})
+    score = fields.FloatField(blank=True)
+    verdict = fields.CharField(blank=True)
+
+    created_at = fields.DateTimeField(default=lambda: datetime.now(timezone.utc))
+
+class InterviewExplanatoryNote(MongoModel):
+    session_id = fields.CharField()
+    file_id = fields.ObjectIdField()
+    filename = fields.CharField(blank=True)
+    content_type = fields.CharField(blank=True)
+
+    created_at = fields.DateTimeField(default=datetime.now(timezone.utc))
+    last_update = fields.DateTimeField(default=datetime.now(timezone.utc))
+
+    def save(self):
+        self.last_update = datetime.now(timezone.utc)
+        return super().save()
+
+class CeleryTask(MongoModel):
+    session_id = fields.CharField()
+    task_id = fields.CharField(blank=True, default='')
+    task_name = fields.CharField(blank=True, default='')
+    status = fields.CharField(blank=True, default='upload')
+
+    file_id = fields.ObjectIdField(blank=True)
+    filename = fields.CharField(blank=True, default='')
+    content_type = fields.CharField(blank=True, default='')
+
+    error_message = fields.CharField(blank=True, default='')
+    result_payload = fields.DictField(blank=True, default={})
+    metadata = fields.DictField(blank=True, default={})
+
+    created_at = fields.DateTimeField(default=lambda: datetime.now(timezone.utc))
+    last_update = fields.DateTimeField(default=lambda: datetime.now(timezone.utc))
+
+    def save(self):
+        self.last_update = datetime.now(timezone.utc)
+        return super().save()

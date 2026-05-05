@@ -1,0 +1,13 @@
+.interviews-filter {
+    border-radius: .5rem;
+}
+
+.interviews-filter .form-text {
+    margin-bottom: 0;
+}
+
+.interviews-table-wrap[hidden],
+.interviews-empty[hidden],
+#interviewsPagination[hidden] {
+    display: none !important;
+}

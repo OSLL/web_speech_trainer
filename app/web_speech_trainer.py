@@ -32,6 +32,7 @@ from app.routes.trainings import routes_trainings
 from app.routes.task_attempts import routes_task_attempts
 from app.routes.version import routes_version
 from app.routes.capacity import routes_capacity
+from app.routes.interview import routes_interview
 from app.status import PassBackStatus, TrainingStatus
 from app.training_manager import TrainingManager
 from app.utils import ALLOWED_EXTENSIONS, DEFAULT_EXTENSION, versioned_url, calc_static_hash
@@ -57,6 +58,7 @@ app.register_blueprint(routes_trainings)
 app.register_blueprint(routes_task_attempts)
 app.register_blueprint(routes_version)
 app.register_blueprint(routes_capacity)
+app.register_blueprint(routes_interview)
 app.jinja_env.globals['versioned_url'] = versioned_url
 app.config["STATIC_VERSION"] = calc_static_hash(app.static_folder)
 
@@ -151,6 +153,7 @@ if __name__ == '__main__':
     app.logger.propagate = False
     app.wsgi_app = ReverseProxied(app.wsgi_app)
     app.secret_key = Config.c.constants.app_secret_key
+    logger.info("!!!!!!!!!!!!!!FHFHF")
     
     app.config['BUG_REPORT_FORM'] = Config.c.bugreport.form_link
     app.config['BUG_REPORT_MAIL'] = Config.c.bugreport.report_mail
