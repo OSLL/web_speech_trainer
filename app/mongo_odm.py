@@ -315,7 +315,7 @@ class TrainingsDBManager:
             update={'$set': {'audio_status': status, 'audio_status_last_update': datetime.now()}},
         )
         self.check_failed_training_audio(training_id, status)
-        self.check_training_ready_for_processing(training_id, status)
+        # self.check_training_ready_for_processing(training_id, status)
 
     def change_presentation_status(self, training_id, status):
         Trainings.objects.model._mongometa.collection.find_one_and_update(
@@ -323,7 +323,7 @@ class TrainingsDBManager:
             update={'$set': {'presentation_status': status, 'presentation_status_last_update': datetime.now()}},
         )
         self.check_failed_training_presentation(training_id, status)
-        self.check_training_ready_for_processing(training_id, status)
+        # self.check_training_ready_for_processing(training_id, status)
 
     def add_recognized_presentation_id(self, training_id, recognized_presentation_id):
         training = self.get_training(training_id)
@@ -543,7 +543,7 @@ class TaskAttemptsDBManager:
         if task_attempt_db is None:
             return
         task_attempt_db.training_scores[str(training_id)] = score
-        self.submit_scores_for_passback(task_attempt_db, training_id)
+        # self.submit_scores_for_passback(task_attempt_db, training_id)
         return task_attempt_db.save()
 
     def submit_scores_for_passback(self, task_attempt, training_id):

@@ -1,70 +1,22 @@
 services:
   web:
     image: wst-image:v0.2
+    build: .
     init: true
     command: bash -c "python3 ./db_versioning/db_versioning.py --mongo mongodb://db:27017 && python3 -m web_speech_trainer $APP_CONF" 
+    environment:
+    - APP_CONF=${APP_CONF}
     restart: always
     ports:
       - 5000:5000
     depends_on:
       - db
-      - training_processor
+      - rabbitmq
+      - nltk_downloader
     volumes:
       - ../database-dump:/app/dump/database-dump/
-
-  audio_processor:
-    image: wst-image:v0.2
-    command: python3 -m audio_processor $APP_CONF
-    restart: always
-    depends_on:
-      - db
-      - whisper
-      - presentation_processor
-
-  recognized_audio_processor:
-    image: wst-image:v0.2
-    command: python3 -m recognized_audio_processor $APP_CONF
-    restart: always
-    depends_on:
-      - db
-      - audio_processor
-      - presentation_processor
-
-  presentation_processor:
-    image: wst-image:v0.2
-    build: .
-    command: python3 -m presentation_processor $APP_CONF
-    restart: always
-    depends_on:
-      - db
-    volumes:
-      - nltk_data:/root/nltk_data
-
-  recognized_presentation_processor:
-    image: wst-image:v0.2
-    command: python3 -m recognized_presentation_processor $APP_CONF
-    restart: always
-    depends_on:
-      - db
-      - presentation_processor
-
-  training_processor:
-    image: wst-image:v0.2
-    command: python3 -m training_processor $APP_CONF
-    restart: always
-    depends_on:
-      - db
-      - recognized_audio_processor
-      - recognized_presentation_processor
-    volumes:
-      - nltk_data:/root/nltk_data
-
-  task_attempt_to_pass_back_processor:
-    image: wst-image:v0.2
-    command: python3 -m task_attempt_to_pass_back_processor $APP_CONF
-    restart: always
-    depends_on:
-      - db
+    networks:
+      - network
 
   db:
     image: "mongo:8-noble"
@@ -73,6 +25,8 @@ services:
       - '--wiredTigerCacheSizeGB=2'
     volumes:
       - ../mongo_data:/data/db
+    networks:
+      - network
 
   whisper:
     image: "onerahmet/openai-whisper-asr-webservice:v1.3.0"
@@ -84,7 +38,48 @@ services:
     mem_limit: ${WHISPER_MEM_LIMIT:-5g}
     volumes:
       - whisper_models:/root/.cache/whisper
+    networks:
+      - network
+  
+  nltk_downloader:
+    image: wst-image:v0.2
+    command: python3 download_nltk.py
+    volumes:
+      - nltk_data:/root/nltk_data
+    restart: no
+    networks:
+      - network
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+    networks:
+      - network
+  
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --appendfsync everysec
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - network
+
 
 volumes:
   whisper_models:
-  nltk_data:
+  redis_data:
+  nltk_data: 
+
+
+networks:
+  network:
+    driver: bridge
