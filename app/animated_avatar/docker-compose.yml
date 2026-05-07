@@ -1,0 +1,24 @@
+services:
+  animated-avatar:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: animated-avatar
+    ports:
+      - "8001:8001"
+    environment:
+      AVATAR_LOG_PATH: /service/logs/animated_avatar.log
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ./:/service
+      - ../../models/piper/ru_RU-ruslan-medium.onnx:/service/piper_tts/ru_RU-ruslan-medium.onnx:ro
+      - ../../models/piper/ru_RU-ruslan-medium.onnx.json:/service/piper_tts/ru_RU-ruslan-medium.onnx.json:ro
+      - ../../models/wav2lip/wav2lip_gan.pth:/service/wav2lip/Wav2Lip/checkpoints/wav2lip_gan.pth:ro
+      - ../../models/face/face.jpg:/service/assets/face.jpg:ro
+    working_dir: /service
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
