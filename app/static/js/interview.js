@@ -676,7 +676,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       showQuestionPlaceholder("Вопросы появятся здесь после старта интервью");
-      setStatus("Нажмите «Начать», чтобы начать интервью");
+      setStatus("Нажмите «Начать», чтобы увидеть и услышать первый вопрос");
       setButtons({ mainText: "Начать", mainEnabled: true, showNext: false });
     } catch (err) {
       questions = [];
@@ -696,14 +696,27 @@ document.addEventListener("DOMContentLoaded", () => {
     showInterviewUI();
     resetInterviewStateForRestart();
     state = "running";
+    setStatus("Готовлю интервью...");
+    setButtons({ mainText: "Запускаем...", mainEnabled: false, showNext: false });
 
-    renderQuestion();
-    setStatus("Интервью началось");
+    try {
+      await startSessionRecording();
+    } catch (err) {
+      console.error("Не удалось запустить запись интервью:", err);
+      state = "idle";
+      stopTimer();
+      stopMicIndicator();
+      stopMediaStream();
+      sessionStartTs = null;
+      currentAnswerStartTs = null;
+      setStatus("Не удалось получить доступ к микрофону. Разрешите доступ и попробуйте снова.");
+      setButtons({ mainText: "Начать", mainEnabled: true, showNext: false });
+      return;
+    }
 
-    setButtons({ mainText: "Озвучить вопрос", mainEnabled: true, showNext: false });
-
-    await startSessionRecording();
     startGlobalCountdown();
+    renderQuestion();
+    await askQuestion();
   }
 
   async function askQuestion() {

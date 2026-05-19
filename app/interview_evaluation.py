@@ -1,4 +1,3 @@
-from app.feedback_evaluator import FeedbackEvaluatorFactory
 from app.criteria_pack.interview_criteria import (
     InterviewCriterionResult,
     InterviewFillerWordsCriterion,
@@ -17,10 +16,15 @@ from app.interview_utils import (
 
 TARGET_WORDS_PER_SEC = 2.0
 
-INTERVIEW_CRITERION_WEIGHTS = {
-    "InterviewFillerWordsCriterion": 0.34,
-    "InterviewWordsCountCriterion": 0.33,
-    "InterviewPauseDurationCriterion": 0.33,
+INTERVIEW_CRITERION_DISPLAY_NAMES = {
+    "InterviewFillerWordsCriterion": "Слова-паразиты",
+    "InterviewWordsCountCriterion": "Количество слов",
+    "InterviewPauseDurationCriterion": "Паузы",
+}
+
+INTERVIEW_CRITERION_RESULT_KEYS = {
+    display_name: result_key
+    for result_key, display_name in INTERVIEW_CRITERION_DISPLAY_NAMES.items()
 }
 
 
@@ -55,6 +59,91 @@ def _build_segments_by_order(question_segments):
             result[order] = segment
 
     return result
+
+
+def _safe_int(value, default=None):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _question_id(question) -> str:
+    value = getattr(question, "pk", None) or getattr(question, "_id", None) or getattr(question, "id", None)
+    return str(value) if value is not None else ""
+
+
+def _segment_question_id(segment) -> str:
+    if not isinstance(segment, dict):
+        return ""
+
+    value = (
+        segment.get("question_id")
+        or segment.get("questionId")
+        or segment.get("question_pk")
+        or segment.get("questionPk")
+    )
+    return str(value) if value is not None else ""
+
+
+def _build_question_segment_order_map(question_segments) -> dict:
+    result = {}
+
+    for segment in question_segments or []:
+        if not isinstance(segment, dict):
+            continue
+
+        question_id = _segment_question_id(segment)
+        order = _safe_int(segment.get("order"))
+
+        if not question_id or order is None:
+            continue
+
+        previous = result.get(question_id)
+        if previous is None or order < previous:
+            result[question_id] = order
+
+    return result
+
+
+def _question_declared_order(question, fallback: int) -> int:
+    order = _safe_int(getattr(question, "order", None))
+    return order if order is not None else fallback
+
+
+def _sort_questions_for_results(questions, question_segments):
+    question_segment_order = _build_question_segment_order_map(question_segments)
+    fallback_questions = [
+        question
+        for _, question in sorted(
+            enumerate(questions),
+            key=lambda item: (_question_declared_order(item[1], item[0]), item[0]),
+        )
+    ]
+
+    if not question_segment_order:
+        return fallback_questions
+
+    ordered_questions = [None for _ in fallback_questions]
+    postponed_questions = []
+
+    for question in fallback_questions:
+        segment_order = question_segment_order.get(_question_id(question))
+
+        if (
+            segment_order is not None
+            and 0 <= segment_order < len(ordered_questions)
+            and ordered_questions[segment_order] is None
+        ):
+            ordered_questions[segment_order] = question
+        else:
+            postponed_questions.append(question)
+
+    postponed_iterator = iter(postponed_questions)
+    return [
+        question if question is not None else next(postponed_iterator)
+        for question in ordered_questions
+    ]
 
 
 def _build_words_count_criterion(min_seconds, max_seconds, multiplier=1.0):
@@ -107,49 +196,7 @@ def _build_question_level_rows(question_segments, questions_count):
     }
 
 
-def evaluate_interview_recording(recording, questions_count: int) -> dict:
-    """
-    Считает общий feedback, который сохраняется в InterviewFeedback.
-    """
-    safe_questions_count = max(1, int(questions_count or 0))
-
-    filler_criterion = InterviewFillerWordsCriterion()
-    words_count_criterion = _build_words_count_criterion(
-        get_ideal_answer_min_sec(),
-        get_ideal_answer_max_sec(),
-        multiplier=safe_questions_count,
-    )
-    pause_criterion = InterviewPauseDurationCriterion()
-
-    criteria_results = {
-        "InterviewFillerWordsCriterion": filler_criterion.evaluate(recording.question_segments),
-        "InterviewWordsCountCriterion": words_count_criterion.evaluate(recording.question_segments),
-        "InterviewPauseDurationCriterion": pause_criterion.evaluate(recording.question_segments),
-    }
-
-    evaluator_cls = FeedbackEvaluatorFactory().get_feedback_evaluator(
-        get_interview_feedback_evaluation_id()
-    )
-    evaluator = evaluator_cls(INTERVIEW_CRITERION_WEIGHTS.copy())
-    feedback = evaluator.evaluate_feedback(criteria_results)
-
-    return {
-        "criteria_pack_id": get_interview_criteria_pack_id(),
-        "feedback_evaluator_id": get_interview_feedback_evaluation_id(),
-        "score": round(feedback.score, 2),
-        "verdict": _build_verdict(feedback.score),
-        "criteria_results": {
-            name: result.to_dict()
-            for name, result in criteria_results.items()
-        }
-    }
-
-def build_interview_results_data(recording, questions) -> dict:
-    questions = list(questions or [])
-    questions_count = len(questions)
-
-    rows_map = _build_question_level_rows(recording.question_segments, questions_count)
-
+def _build_results_summary(rows_map, questions_count: int) -> dict:
     criteria = []
     question_totals = [0.0 for _ in range(questions_count)]
 
@@ -172,21 +219,82 @@ def build_interview_results_data(recording, questions) -> dict:
     question_totals = [round(value, 2) for value in question_totals]
     total_score = round(sum(question_totals), 2)
     max_score = round(len(criteria) * questions_count, 2)
+    normalized_score = round((total_score / max_score) if max_score else 0.0, 2)
 
-    normalized_score = (total_score / max_score) if max_score else 0.0
+    return {
+        "criteria": criteria,
+        "question_totals": question_totals,
+        "total_score": total_score,
+        "max_score": max_score,
+        "normalized_score": normalized_score,
+    }
+
+
+def _build_feedback_criteria_results(rows_map, questions_count: int) -> dict:
+    result = {}
+    max_score = max(1, int(questions_count or 0))
+
+    for display_name, cells in rows_map.items():
+        criterion_key = INTERVIEW_CRITERION_RESULT_KEYS.get(display_name, display_name)
+        row_total = sum(cell.result for cell in cells)
+        score = row_total / max_score
+        result[criterion_key] = InterviewCriterionResult(
+            score,
+            f"Итог по критерию: {row_total:.2f} из {max_score:.2f}.",
+        )
+
+    return result
+
+
+def evaluate_interview_recording(recording, questions_count: int) -> dict:
+    """
+    Считает общий feedback, который сохраняется в InterviewFeedback.
+
+    Важно: score должен совпадать со страницей результатов. Поэтому считаем его
+    из тех же ячеек таблицы: total_score / max_score.
+    """
+    safe_questions_count = max(1, int(questions_count or 0))
+    rows_map = _build_question_level_rows(recording.question_segments, safe_questions_count)
+    results_summary = _build_results_summary(rows_map, safe_questions_count)
+    normalized_score = results_summary["normalized_score"]
+    criteria_results = _build_feedback_criteria_results(rows_map, safe_questions_count)
+
+    return {
+        "criteria_pack_id": get_interview_criteria_pack_id(),
+        "feedback_evaluator_id": get_interview_feedback_evaluation_id(),
+        "score": normalized_score,
+        "verdict": _build_verdict(results_summary["normalized_score"]),
+        "criteria_results": {
+            name: result.to_dict()
+            for name, result in criteria_results.items()
+        },
+        "total_score": results_summary["total_score"],
+        "max_score": results_summary["max_score"],
+    }
+
+def build_interview_results_data(recording, questions) -> dict:
+    question_segments = recording.question_segments or []
+    questions = _sort_questions_for_results(list(questions or []), question_segments)
+    questions_count = len(questions)
+
+    rows_map = _build_question_level_rows(question_segments, questions_count)
+
+    results_summary = _build_results_summary(rows_map, questions_count)
 
     return {
         "questions": [
             {
                 "number": index + 1,
+                "id": _question_id(question),
+                "order": _question_declared_order(question, index),
                 "text": question.text,
             }
             for index, question in enumerate(questions)
         ],
-        "criteria": criteria,
-        "question_totals": question_totals,
-        "total_score": total_score,
-        "max_score": max_score,
-        "normalized_score": round(normalized_score, 2),
-        "verdict": _build_verdict(normalized_score),
+        "criteria": results_summary["criteria"],
+        "question_totals": results_summary["question_totals"],
+        "total_score": results_summary["total_score"],
+        "max_score": results_summary["max_score"],
+        "normalized_score": results_summary["normalized_score"],
+        "verdict": _build_verdict(results_summary["normalized_score"]),
     }

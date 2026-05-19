@@ -385,6 +385,8 @@ def save_interview_recording():
     recording.metadata = {
         **(recording.metadata or {}),
         'score': feedback_payload['score'],
+        'score_total': feedback_payload.get('total_score'),
+        'score_max': feedback_payload.get('max_score'),
         'verdict': feedback_payload['verdict'],
     }
     recording.save()
@@ -449,6 +451,8 @@ def get_interview_results_data(recording_id):
         recording_id=str(recording.pk),
         total_score=results_payload['total_score'],
         max_score=results_payload['max_score'],
+        normalized_score=results_payload['normalized_score'],
+        score=results_payload['normalized_score'],
         verdict=results_payload['verdict'],
         questions=results_payload['questions'],
         results=results_payload['criteria'],

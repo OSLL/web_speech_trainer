@@ -28,7 +28,8 @@ from app.mongo_odms.interview_odms import (
     InterviewAvatarsDBManager,
     InterviewFeedbackDBManager,
     InterviewRecordingDBManager,
-    CeleryTaskDBManager
+    CeleryTaskDBManager,
+    QuestionsDBManager,
 )
 from app.question_generation_task_service import QuestionGenerationTaskService
 from app.root_logger import get_root_logger
@@ -131,10 +132,28 @@ def _format_score(value) -> str:
         return '—'
 
 
+def _calculate_recording_table_score(recording):
+    try:
+        questions = list(QuestionsDBManager().get_questions_by_session(recording.session_id))
+        results_payload = build_interview_results_data(recording, questions)
+        return (
+            results_payload.get('normalized_score'),
+            results_payload.get('verdict'),
+        )
+    except Exception:
+        logger.exception(
+            'Failed to calculate table score for recording_id=%s.',
+            getattr(recording, 'pk', ''),
+        )
+        return None, None
+
+
 def _build_interview_item(recording, feedback_map: dict) -> dict:
     feedback = feedback_map.get(str(recording.pk))
     meta = recording.metadata or {}
-    score = feedback.score if feedback else meta.get('score')
+    table_score, table_verdict = _calculate_recording_table_score(recording)
+    score = table_score if table_score is not None else (feedback.score if feedback else meta.get('score'))
+    verdict = table_verdict or (feedback.verdict if feedback else meta.get('verdict', ''))
 
     return {
         'recording_id': str(recording.pk),
@@ -148,7 +167,7 @@ def _build_interview_item(recording, feedback_map: dict) -> dict:
         'task_id': meta.get('task_id', '') or '',
         'score': score,
         'score_text': _format_score(score),
-        'verdict': (feedback.verdict if feedback else meta.get('verdict', '')) or '',
+        'verdict': verdict or '',
     }
 
 

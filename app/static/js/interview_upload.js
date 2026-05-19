@@ -28,6 +28,7 @@
     var pollTimer = null;
     var pollIntervalMs = config.defaultPollIntervalMs;
     var currentProcessingDocumentName = '';
+    var currentUploadDocumentName = '';
 
     function showElement(element) {
       if (element) {
@@ -85,6 +86,30 @@
       showElement(element);
     }
 
+    function refreshUploadFormState() {
+      var selectedFile = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+
+      if (fileInput) {
+        fileInput.required = !currentUploadDocumentName;
+      }
+
+      if (selectedFileName) {
+        if (selectedFile) {
+          selectedFileName.textContent = 'Выбран новый файл: ' + selectedFile.name;
+        } else if (currentUploadDocumentName) {
+          selectedFileName.textContent = 'Будет использован текущий файл: ' + currentUploadDocumentName;
+        } else {
+          selectedFileName.textContent = '';
+        }
+      }
+
+      if (uploadSubmitBtn && !uploadSubmitBtn.disabled) {
+        uploadSubmitBtn.textContent = currentUploadDocumentName && !selectedFile
+          ? 'Продолжить с текущим файлом'
+          : 'Продолжить';
+      }
+    }
+
     function showAttemptsExhaustedState(message) {
       stopPolling();
       hideBootstrapMode();
@@ -92,8 +117,10 @@
       hideElement(processingMode);
 
       setUploadError(message || 'Попытки закончились');
+      currentUploadDocumentName = '';
       setCurrentDocument(currentDocument, 'Текущий документ', '');
       setCurrentDocument(processingCurrentDocument, 'Загруженный документ', '');
+      refreshUploadFormState();
 
       if (uploadForm) {
         uploadForm.style.display = 'none';
@@ -108,14 +135,15 @@
       hideBootstrapMode();
       showElement(uploadMode);
       hideElement(processingMode);
+      currentUploadDocumentName = currentDocumentName;
       setUploadError(errorMessage);
       setCurrentDocument(currentDocument, 'Текущий документ', currentDocumentName);
       setCurrentDocument(processingCurrentDocument, 'Загруженный документ', '');
 
       if (uploadSubmitBtn) {
         uploadSubmitBtn.disabled = false;
-        uploadSubmitBtn.textContent = 'Продолжить';
       }
+      refreshUploadFormState();
       if (uploadForm) {
         uploadForm.style.display = '';
       }
@@ -131,6 +159,7 @@
         currentProcessingDocumentName = currentDocumentName;
       }
 
+      currentUploadDocumentName = '';
       setCurrentDocument(currentDocument, 'Текущий документ', '');
       setCurrentDocument(processingCurrentDocument, 'Загруженный документ', currentProcessingDocumentName);
 
@@ -263,7 +292,9 @@
       event.preventDefault();
 
       var selectedFile = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
-      if (!selectedFile) {
+      var useCurrentFile = !selectedFile && Boolean(currentUploadDocumentName);
+
+      if (!selectedFile && !useCurrentFile) {
         showUploadState({
           errorMessage: 'Выберите файл для загрузки.',
           currentDocumentName: ''
@@ -271,15 +302,17 @@
         return;
       }
 
-      currentProcessingDocumentName = selectedFile.name;
+      currentProcessingDocumentName = selectedFile ? selectedFile.name : currentUploadDocumentName;
 
       if (uploadSubmitBtn) {
         uploadSubmitBtn.disabled = true;
-        uploadSubmitBtn.textContent = 'Загружаем...';
+        uploadSubmitBtn.textContent = selectedFile ? 'Загружаем...' : 'Запускаем...';
       }
 
       showProcessingState(
-        'Загружаем документ и запускаем генерацию вопросов...',
+        selectedFile
+          ? 'Загружаем документ и запускаем генерацию вопросов...'
+          : 'Запускаем генерацию вопросов по текущему документу...',
         currentProcessingDocumentName
       );
 
@@ -287,6 +320,10 @@
 
       try {
         var formData = new FormData(uploadForm);
+        if (useCurrentFile) {
+          formData.delete('document');
+          formData.append('use_current_file', '1');
+        }
 
         var response = await fetch(config.uploadUrl, {
           method: 'POST',
@@ -317,11 +354,8 @@
       }
     }
 
-    if (fileInput && selectedFileName) {
-      fileInput.addEventListener('change', function () {
-        var file = fileInput.files && fileInput.files[0];
-        selectedFileName.textContent = file ? ('Выбран файл: ' + file.name) : '';
-      });
+    if (fileInput) {
+      fileInput.addEventListener('change', refreshUploadFormState);
     }
 
     if (uploadForm) {

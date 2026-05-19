@@ -250,10 +250,10 @@ class InterviewFillerWordsCriterion:
 class InterviewPauseDurationCriterion:
     def __init__(
         self,
-        good_max_pause_sec=1.5,
-        bad_max_pause_sec=7.0,
-        good_total_pause_sec=3.0,
-        bad_total_pause_sec=18.0,
+        good_max_pause_sec=3.0,
+        bad_max_pause_sec=12.0,
+        good_total_pause_sec=8.0,
+        bad_total_pause_sec=35.0,
         neutral_score_if_no_data=0.5,
     ):
         self.good_max_pause_sec = good_max_pause_sec

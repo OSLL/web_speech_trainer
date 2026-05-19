@@ -28,13 +28,21 @@ logger = get_root_logger()
 
 class QuestionsDBManager:
 
-    def add_question(self, session_id: str, text: str):
-        question = Questions(session_id=session_id, text=text)
+    def add_question(self, session_id: str, text: str, order: int | None = None):
+        question_kwargs = {
+            "session_id": session_id,
+            "text": text,
+        }
+
+        if order is not None:
+            question_kwargs["order"] = int(order)
+
+        question = Questions(**question_kwargs)
         return question.save()
 
     def get_questions_by_session(self, session_id):
         return Questions.objects.raw({"session_id": session_id}).order_by(
-            [("order", 1), ("created_at", 1)]
+            [("order", 1), ("created_at", 1), ("_id", 1)]
         )
 
     def delete_by_session(self, session_id: str):
