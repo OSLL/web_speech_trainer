@@ -1,10 +1,8 @@
 import json
 
 from flask import request, session, url_for
-import json
 
 from bson import ObjectId
-from flask import request, session, url_for
 
 from app.interview_evaluation import (
     build_interview_results_data,
@@ -195,6 +193,45 @@ def questions_generation_status():
                 redirect_url=url_for('routes_interview.interview_page'),
                 task_status=task_status,
             ).to_flask()
+
+        error_message = (
+            f'Не удалось сгенерировать достаточное количество вопросов. '
+            f'Получено: {questions_count}, требуется: {required_questions_count}. '
+            f'Загрузите документ заново.'
+        )
+
+        questions_db.delete_questions_by_session(session_id)
+        task_manager.mark_failure(
+            session_id=session_id,
+            task_id=task_id,
+            error_message=error_message,
+            result_payload={
+                "task_result": task_payload.get('result') or {},
+                "questions_count": questions_count,
+                "required_questions_count": required_questions_count,
+            },
+            cleanup_file=True,
+        )
+
+        research_logger.log(
+            session_id=session_id,
+            event=InterviewEvent.GENERATION_FINISHED,
+            meta={
+                "task_id": task_id,
+                "status": "failure",
+                "reason": "insufficient_questions",
+                "questions_count": questions_count,
+                "required_questions_count": required_questions_count,
+                "result": task_payload.get("result") or {},
+            },
+        )
+
+        return ApiResponse.failure(
+            error_message,
+            status_code=200,
+            redirect_url=build_upload_redirect_url(error_message),
+            task_status=task_status,
+        ).to_flask()
 
     if task_status == 'FAILURE':
         error_message = extract_task_error_message(task_payload)
@@ -458,6 +495,7 @@ def get_interview_results_data(recording_id):
         results=results_payload['criteria'],
         question_totals=results_payload['question_totals'],
     ).to_flask()
+
 
 @routes_interview.route('/api/interview/research-event/', methods=['POST'])
 def log_interview_research_event():
