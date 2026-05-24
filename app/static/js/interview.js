@@ -790,9 +790,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function buildUploadSegments() {
-    // SECURITY: transcript/pauses collected in the browser are not trusted and must not
-    // be used for scoring. Send only timing markers; server-side ASR should produce
-    // the trusted transcript later.
     return questionSegments.map((segment) => ({
       question_id: segment.question_id,
       order: segment.order,

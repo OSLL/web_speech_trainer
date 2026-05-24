@@ -393,8 +393,6 @@ def save_interview_recording():
     if validation_error:
         return ApiResponse.error(validation_error, status_code=400).to_flask()
 
-    # SECURITY: client data may be forged. Persist only timings as markers.
-    # Transcript/pauses used for scoring are built below from server-side Whisper ASR.
     safe_segments = build_client_timing_segments(segments)
     duration = calculate_duration_from_segments(safe_segments)
 
