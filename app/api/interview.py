@@ -1,6 +1,4 @@
 import json
-import math
-import secrets
 
 from flask import request, session, url_for
 
@@ -10,21 +8,29 @@ from app.interview_evaluation import (
     build_interview_results_data,
 )
 from app.interview import routes_interview
-from app.interview_evaluation import evaluate_interview_recording
+from app.interview_audio_service import (
+    schedule_interview_recording_audio_processing,
+)
 from app.interview_response import ApiResponse
 from app.interview_utils import (
+    ATTEMPTS_EXHAUSTED_MESSAGE,
+    MIN_INTERVIEW_AUDIO_FILE_BYTES,
+    build_client_timing_segments,
     build_interview_upload_page_data,
     build_upload_redirect_url,
     calculate_duration_from_segments,
     cleanup_interview_session_data,
     extract_task_error_message,
+    get_interview_attempts_state,
     get_interview_questions_count,
+    get_interview_recording_max_duration_seconds,
     get_interview_session_minutes,
     get_ready_interview_questions,
-    serialize_questions_for_client,
-    ATTEMPTS_EXHAUSTED_MESSAGE,
-    get_interview_attempts_state,
     has_interview_attempts_left,
+    recording_is_evaluated,
+    serialize_questions_for_client,
+    uploaded_file_size,
+    validate_interview_recording_segments,
 )
 from app.lti_session_passback.auth_checkers import check_auth
 from app.mongo_models import InterviewRecording
@@ -43,112 +49,6 @@ from app.research_logging import research_logger
 from app.research_logging.events import InterviewEvent
 
 logger = get_root_logger()
-
-
-RECORDING_TOKEN_SESSION_KEY = 'interview_recording_token'
-RECORDING_DURATION_GRACE_SECONDS = 15
-
-
-def _issue_interview_recording_token() -> str:
-    token = secrets.token_urlsafe(32)
-    session[RECORDING_TOKEN_SESSION_KEY] = token
-    return token
-
-
-def _has_valid_interview_recording_token() -> bool:
-    expected_token = session.get(RECORDING_TOKEN_SESSION_KEY)
-    provided_token = (
-        request.form.get('recording_token')
-        or request.headers.get('X-Interview-Recording-Token')
-        or ''
-    )
-
-    if not expected_token or not provided_token:
-        return False
-
-    return secrets.compare_digest(str(expected_token), str(provided_token))
-
-
-def _clear_interview_recording_token():
-    session.pop(RECORDING_TOKEN_SESSION_KEY, None)
-
-
-def _question_id(question) -> str:
-    value = getattr(question, 'pk', None) or getattr(question, '_id', None) or getattr(question, 'id', None)
-    return str(value) if value is not None else ''
-
-
-def _segment_question_id(segment) -> str:
-    if not isinstance(segment, dict):
-        return ''
-
-    value = (
-        segment.get('question_id')
-        or segment.get('questionId')
-        or segment.get('question_pk')
-        or segment.get('questionPk')
-    )
-    return str(value) if value is not None else ''
-
-
-def _segment_order(segment):
-    try:
-        return int(segment.get('order'))
-    except (TypeError, ValueError, AttributeError):
-        return None
-
-
-def _segment_float(segment, key: str):
-    try:
-        value = float(segment.get(key, 0) or 0)
-    except (TypeError, ValueError, AttributeError):
-        return None
-
-    return value if math.isfinite(value) else None
-
-
-def _validate_recording_segments(segments, questions, max_duration_sec: float) -> str | None:
-    if len(segments) != len(questions):
-        return 'segments count does not match interview questions count'
-
-    expected_question_ids = [_question_id(question) for question in questions]
-    seen_orders = set()
-
-    for segment in segments:
-        if not isinstance(segment, dict):
-            return 'each segment must be an object'
-
-        order = _segment_order(segment)
-        if order is None or order < 0 or order >= len(questions):
-            return 'segment order is invalid'
-
-        if order in seen_orders:
-            return 'segment order must be unique'
-
-        seen_orders.add(order)
-
-        expected_question_id = expected_question_ids[order]
-        provided_question_id = _segment_question_id(segment)
-
-        if expected_question_id and provided_question_id != expected_question_id:
-            return 'segment question_id does not match interview question'
-
-        start = _segment_float(segment, 'start')
-        end = _segment_float(segment, 'end')
-
-        if start is None or end is None:
-            return 'segment start/end must be finite numbers'
-
-        if start < 0 or end < start:
-            return 'segment time range is invalid'
-
-        if end > max_duration_sec:
-            return 'segment duration exceeds interview time limit'
-
-    if seen_orders != set(range(len(questions))):
-        return 'segments must contain exactly one answer for each interview question'
-
-    return None
 
 
 
@@ -411,7 +311,6 @@ def get_interview_session_data():
         total_questions=len(questions),
         session_timer_minutes=interview_session_minutes,
         session_timer_seconds=interview_session_minutes * 60,
-        recording_token=_issue_interview_recording_token(),
     ).to_flask()
 
 
@@ -422,7 +321,6 @@ def cancel_interview_session():
         return ApiResponse.error('Session id not found', status_code=404).to_flask()
 
     cleanup_result = cleanup_interview_session_data(session_id)
-    _clear_interview_recording_token()
     logger.info(
         'Interview session reset (history preserved) for session_id=%s, cleanup=%s',
         session_id,
@@ -452,8 +350,6 @@ def save_interview_recording():
             redirect_url=build_upload_redirect_url(ATTEMPTS_EXHAUSTED_MESSAGE),
         ).to_flask()
 
-    if not _has_valid_interview_recording_token():
-        return ApiResponse.error('Invalid interview recording token', status_code=403).to_flask()
 
     questions = get_ready_interview_questions(real_session_id)
     if not questions:
@@ -468,13 +364,17 @@ def save_interview_recording():
     segments_raw = request.form.get('segments')
 
     logger.debug(
-        'save_interview_recording: audio_file=%s, segments_raw_len=%s',
+        'save_interview_recording: audio_file=%s, audio_size=%s, segments_raw_len=%s',
         'yes' if audio_file else 'no',
+        uploaded_file_size(audio_file),
         len(segments_raw) if segments_raw else 0,
     )
 
     if not audio_file or not segments_raw:
         return ApiResponse.error('audio and segments are required', status_code=400).to_flask()
+
+    if uploaded_file_size(audio_file) < MIN_INTERVIEW_AUDIO_FILE_BYTES:
+        return ApiResponse.error('audio file is too small', status_code=400).to_flask()
 
     try:
         segments = json.loads(segments_raw)
@@ -484,8 +384,8 @@ def save_interview_recording():
     if not isinstance(segments, list):
         return ApiResponse.error('segments must be a JSON array', status_code=400).to_flask()
 
-    max_duration_sec = get_interview_session_minutes() * 60 + RECORDING_DURATION_GRACE_SECONDS
-    validation_error = _validate_recording_segments(
+    max_duration_sec = get_interview_recording_max_duration_seconds()
+    validation_error = validate_interview_recording_segments(
         segments=segments,
         questions=questions,
         max_duration_sec=max_duration_sec,
@@ -493,7 +393,10 @@ def save_interview_recording():
     if validation_error:
         return ApiResponse.error(validation_error, status_code=400).to_flask()
 
-    duration = calculate_duration_from_segments(segments)
+    # SECURITY: client data may be forged. Persist only timings as markers.
+    # Transcript/pauses used for scoring are built below from server-side Whisper ASR.
+    safe_segments = build_client_timing_segments(segments)
+    duration = calculate_duration_from_segments(safe_segments)
 
     storage = DBManager()
     audio_file_id = storage.add_file(
@@ -505,7 +408,7 @@ def save_interview_recording():
         session_id=real_session_id,
         audio_file_id=audio_file_id,
         duration=duration,
-        question_segments=segments,
+        question_segments=safe_segments,
         status='recorded',
         audio_status=AudioStatus.NEW,
         metadata={
@@ -513,69 +416,21 @@ def save_interview_recording():
             'full_name': session.get('full_name', ''),
             'task_id': session.get('task_id', ''),
             'criteria_pack_id': session.get('criteria_pack_id', ''),
+            'evaluation_status': 'server_transcription_started',
+            'client_transcript_ignored': True,
         },
     ).save()
 
-    feedback_payload = evaluate_interview_recording(
-        recording=recording,
-        questions_count=len(questions),
-    )
-    research_logger.log(
-        session_id=real_session_id,
-        event=InterviewEvent.RESULTS_EVALUATED,
-        meta={
-            "recording_id": str(recording.pk),
-            "duration": duration,
-            "questions_count": len(questions),
-            "segments_count": len(segments),
-            "score": feedback_payload.get("score"),
-            "verdict": feedback_payload.get("verdict"),
-            "criteria_pack_id": feedback_payload.get("criteria_pack_id"),
-            "feedback_evaluator_id": feedback_payload.get("feedback_evaluator_id"),
-            "criteria_results": feedback_payload.get("criteria_results") or {},
-        },
-    )
-
-    InterviewFeedbackDBManager().upsert_feedback(
-        session_id=real_session_id,
-        recording_id=recording.pk,
-        criteria_pack_id=feedback_payload['criteria_pack_id'],
-        feedback_evaluator_id=feedback_payload['feedback_evaluator_id'],
-        criteria_results=feedback_payload['criteria_results'],
-        score=feedback_payload['score'],
-        verdict=feedback_payload['verdict'],
-    )
-
-    recording.status = 'evaluated'
-    recording.metadata = {
-        **(recording.metadata or {}),
-        'score': feedback_payload['score'],
-        'score_total': feedback_payload.get('total_score'),
-        'score_max': feedback_payload.get('max_score'),
-        'verdict': feedback_payload['verdict'],
-    }
-    recording.save()
-
-    research_logger.log(
-        session_id=real_session_id,
-        event=InterviewEvent.INTERVIEW_FINISHED,
-        meta={
-            "recording_id": str(recording.pk),
-            "audio_file_id": str(audio_file_id),
-            "duration": duration,
-            "questions_count": len(segments),
-            "score": feedback_payload.get("score"),
-            "verdict": feedback_payload.get("verdict"),
-        },
-    )
-
-    _clear_interview_recording_token()
+    schedule_interview_recording_audio_processing(recording.pk)
 
     return ApiResponse.created(
         recording_id=str(recording.pk),
         audio_file_id=str(audio_file_id),
-        segments_count=len(segments),
-        feedback=feedback_payload,
+        segments_count=len(recording.question_segments or []),
+        status=recording.status,
+        audio_status=recording.audio_status,
+        processing=True,
+        message='Запись интервью сохранена. Обрабатываем аудио.',
         results_url=url_for('routes_interview.interview_results_page', recording_id=str(recording.pk)),
     ).to_flask()
 
@@ -611,11 +466,47 @@ def get_interview_results_data(recording_id):
     except Exception:
         return ApiResponse.error('Recording not found', status_code=404).to_flask()
 
+    session_id = session.get('session_id')
+    if recording.session_id != session_id:
+        return ApiResponse.error('Recording not found', status_code=404).to_flask()
+
     questions = list(QuestionsDBManager().get_questions_by_session(recording.session_id))
+
+    status = (recording.status or 'recorded').lower()
+    metadata = recording.metadata or {}
+
+    if status in {'recognition_failed', 'processing_failed'}:
+        return ApiResponse.ok(
+            recording_id=str(recording.pk),
+            status=recording.status or 'recognition_failed',
+            audio_status=recording.audio_status,
+            processing=False,
+            error=True,
+            message=metadata.get('evaluation_error') or 'Не удалось распознать аудио интервью. Попробуйте пройти интервью заново.',
+            questions=serialize_questions_for_client(questions),
+            results=[],
+            question_totals=[],
+        ).to_flask()
+
+    if not recording_is_evaluated(recording, len(questions)):
+        return ApiResponse.ok(
+            recording_id=str(recording.pk),
+            status=recording.status or 'recorded',
+            audio_status=recording.audio_status,
+            processing=True,
+            message='Обрабатываем аудио интервью. Результаты появятся автоматически.',
+            questions=serialize_questions_for_client(questions),
+            results=[],
+            question_totals=[],
+        ).to_flask()
+
     results_payload = build_interview_results_data(recording, questions)
 
     return ApiResponse.ok(
         recording_id=str(recording.pk),
+        status=recording.status or 'evaluated',
+        audio_status=recording.audio_status,
+        processing=False,
         total_score=results_payload['total_score'],
         max_score=results_payload['max_score'],
         normalized_score=results_payload['normalized_score'],
@@ -625,7 +516,6 @@ def get_interview_results_data(recording_id):
         results=results_payload['criteria'],
         question_totals=results_payload['question_totals'],
     ).to_flask()
-
 
 @routes_interview.route('/api/interview/research-event/', methods=['POST'])
 def log_interview_research_event():

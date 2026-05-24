@@ -1,3 +1,4 @@
+import math
 from flask import Response, render_template, request, session, url_for
 
 from app.mongo_odms.interview_odms import (
@@ -390,3 +391,179 @@ def calculate_duration_from_segments(segments):
     if not segments:
         return 0.0
     return max(safe_float(segment.get('end'), 0.0) for segment in segments)
+
+# Interview recording security / validation helpers
+
+RECORDING_DURATION_GRACE_SECONDS = 15
+MIN_INTERVIEW_AUDIO_FILE_BYTES = 1024
+SERVER_TRANSCRIPT_SOURCES = {'server_asr', 'server_transcription', 'server'}
+
+def get_interview_question_id(question) -> str:
+    value = getattr(question, 'pk', None) or getattr(question, '_id', None) or getattr(question, 'id', None)
+    return str(value) if value is not None else ''
+
+
+def get_segment_question_id(segment) -> str:
+    if not isinstance(segment, dict):
+        return ''
+
+    value = (
+        segment.get('question_id')
+        or segment.get('questionId')
+        or segment.get('question_pk')
+        or segment.get('questionPk')
+    )
+    return str(value) if value is not None else ''
+
+
+def get_segment_order(segment):
+    try:
+        return int(segment.get('order'))
+    except (TypeError, ValueError, AttributeError):
+        return None
+
+
+def get_segment_float(segment, key: str):
+    try:
+        value = float(segment.get(key, 0) or 0)
+    except (TypeError, ValueError, AttributeError):
+        return None
+
+    return value if math.isfinite(value) else None
+
+
+def get_interview_recording_max_duration_seconds(base_duration_sec: float | None = None) -> float:
+    if base_duration_sec is not None:
+        try:
+            parsed_duration = float(base_duration_sec or 0)
+        except (TypeError, ValueError):
+            parsed_duration = 0
+
+        if math.isfinite(parsed_duration) and parsed_duration > 0:
+            return parsed_duration + RECORDING_DURATION_GRACE_SECONDS
+
+    return get_interview_session_minutes() * 60 + RECORDING_DURATION_GRACE_SECONDS
+
+
+def validate_interview_recording_segments(segments, questions, max_duration_sec: float | None = None) -> str | None:
+    if max_duration_sec is None:
+        max_duration_sec = get_interview_recording_max_duration_seconds()
+
+    if len(segments) != len(questions):
+        return 'segments count does not match interview questions count'
+
+    expected_question_ids = [get_interview_question_id(question) for question in questions]
+    seen_orders = set()
+
+    for segment in segments:
+        if not isinstance(segment, dict):
+            return 'each segment must be an object'
+
+        order = get_segment_order(segment)
+        if order is None or order < 0 or order >= len(questions):
+            return 'segment order is invalid'
+
+        if order in seen_orders:
+            return 'segment order must be unique'
+
+        seen_orders.add(order)
+
+        expected_question_id = expected_question_ids[order]
+        provided_question_id = get_segment_question_id(segment)
+
+        if expected_question_id and provided_question_id != expected_question_id:
+            return 'segment question_id does not match interview question'
+
+        start = get_segment_float(segment, 'start')
+        end = get_segment_float(segment, 'end')
+
+        if start is None or end is None:
+            return 'segment start/end must be finite numbers'
+
+        if start < 0 or end < start:
+            return 'segment time range is invalid'
+
+        if end > max_duration_sec:
+            return 'segment duration exceeds interview time limit'
+
+    if seen_orders != set(range(len(questions))):
+        return 'segments must contain exactly one answer for each interview question'
+
+    return None
+
+
+def uploaded_file_size(file_storage) -> int:
+    if not file_storage:
+        return 0
+
+    stream = getattr(file_storage, 'stream', None)
+    if stream is None:
+        return 0
+
+    try:
+        current_pos = stream.tell()
+        stream.seek(0, 2)
+        size = stream.tell()
+        stream.seek(current_pos)
+        return int(size or 0)
+    except Exception:
+        return 0
+
+
+def build_client_timing_segments(segments) -> list[dict]:
+    """
+    Client segments are useful only as rough timing markers.
+    Never persist client-provided transcript/pauses as trusted evaluation data.
+    """
+    safe_segments = []
+
+    for segment in segments:
+        safe_segments.append({
+            'question_id': get_segment_question_id(segment),
+            'order': get_segment_order(segment),
+            'start': get_segment_float(segment, 'start'),
+            'end': get_segment_float(segment, 'end'),
+            'transcript': '',
+            'pauses': [],
+            'total_pause_sec': 0,
+            'max_pause_sec': 0,
+            'source': 'client_timing_only',
+        })
+
+    return safe_segments
+
+
+def segment_is_server_processed(segment) -> bool:
+    if not isinstance(segment, dict):
+        return False
+
+    # Transcript may legitimately be empty if the user was silent. What matters
+    # for security is that the segment was produced by server-side ASR, not by
+    # browser-provided transcript/pauses.
+    source = str(segment.get('source') or '').strip().lower()
+    return source in SERVER_TRANSCRIPT_SOURCES
+
+
+def recording_has_server_processed_segments(recording, questions_count: int) -> bool:
+    segments = getattr(recording, 'question_segments', None) or []
+    if len(segments) < questions_count:
+        return False
+
+    by_order = {}
+    for segment in segments:
+        order = get_segment_order(segment)
+        if order is None:
+            continue
+        by_order[order] = segment
+
+    return all(
+        segment_is_server_processed(by_order.get(order))
+        for order in range(questions_count)
+    )
+
+
+def recording_is_evaluated(recording, questions_count: int) -> bool:
+    return (
+        (getattr(recording, 'status', '') or '').lower() == 'evaluated'
+        and recording_has_server_processed_segments(recording, questions_count)
+    )

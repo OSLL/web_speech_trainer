@@ -17,6 +17,7 @@ from app.interview_utils import (
     get_ready_interview_questions,
     is_allowed_explanatory_note,
     partial_response_file,
+    recording_is_evaluated,
     render_upload_page,
     ATTEMPTS_EXHAUSTED_MESSAGE,
     get_interview_attempts_state,
@@ -135,6 +136,10 @@ def _format_score(value) -> str:
 def _calculate_recording_table_score(recording):
     try:
         questions = list(QuestionsDBManager().get_questions_by_session(recording.session_id))
+
+        if not recording_is_evaluated(recording, len(questions)):
+            return None, None
+
         results_payload = build_interview_results_data(recording, questions)
         return (
             results_payload.get('normalized_score'),

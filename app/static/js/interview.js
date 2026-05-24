@@ -55,7 +55,6 @@ document.addEventListener("DOMContentLoaded", () => {
   let sessionStartTs = null;
   let currentAnswerStartTs = null;
   let questionSegments = [];
-  let recordingToken = "";
 
   let mediaStream = null;
   let micArmed = false;
@@ -627,8 +626,6 @@ document.addEventListener("DOMContentLoaded", () => {
   async function loadInterviewData() {
     dataLoaded = false;
     questions = [];
-    recordingToken = "";
-
     setButtons({ mainText: "Загрузка...", mainEnabled: false, showNext: false });
     showQuestionPlaceholder("Загружаем вопросы интервью...");
     setStatus("Загружаю данные интервью...");
@@ -653,12 +650,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       questions = Array.isArray(data.questions) ? data.questions : [];
-      recordingToken = data.recording_token || data.recordingToken || "";
-
-      if (!recordingToken) {
-        throw new Error("Не удалось получить токен записи интервью");
-      }
-
       const apiSessionTimerSeconds = normalizePositiveInt(data.session_timer_seconds, 0);
       const apiSessionTimerMinutes = normalizePositiveInt(data.session_timer_minutes, 0);
       if (apiSessionTimerSeconds > 0) {
@@ -798,24 +789,31 @@ document.addEventListener("DOMContentLoaded", () => {
     recordingsEl.appendChild(card);
   }
 
+  function buildUploadSegments() {
+    // SECURITY: transcript/pauses collected in the browser are not trusted and must not
+    // be used for scoring. Send only timing markers; server-side ASR should produce
+    // the trusted transcript later.
+    return questionSegments.map((segment) => ({
+      question_id: segment.question_id,
+      order: segment.order,
+      start: segment.start,
+      end: segment.end,
+    }));
+  }
+
   async function sendSessionToBackend(blob) {
-    if (!recordingToken) {
-      setStatus("Не удалось отправить интервью: отсутствует токен записи");
-      return;
-    }
+    setStatus("Отправляю запись интервью...");
 
     const form = new FormData();
     form.append("audio", blob, "interview_full.webm");
-    form.append("segments", JSON.stringify(questionSegments));
+    form.append("segments", JSON.stringify(buildUploadSegments()));
     form.append("duration", String(recordedDurationSec.toFixed(2)));
-    form.append("recording_token", recordingToken);
 
     try {
       const resp = await fetch(API.RECORDING_URL, {
         method: "POST",
         headers: {
           Accept: "application/json",
-          "X-Interview-Recording-Token": recordingToken,
         },
         credentials: "same-origin",
         body: form,
@@ -825,19 +823,30 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (!resp.ok) {
         console.warn("Ошибка отправки записи:", resp.status, data);
+
+        if (data.results_url) {
+          window.location.href = data.results_url;
+          return;
+        }
+
         setStatus(data?.error || "Не удалось сохранить интервью");
         return;
       }
 
       if (data.results_url) {
-        recordingToken = "";
         window.location.href = data.results_url;
         return;
       }
 
+      if (data.processing) {
+        setStatus(data.message || "Интервью сохранено. Результаты появятся после обработки аудио.");
+        return;
+      }
+
       if (data.feedback) {
-        recordingToken = "";
         renderFeedback(data.feedback);
+        setStatus("Интервью завершено");
+        return;
       }
 
       setStatus("Интервью завершено, но не удалось открыть страницу результатов");

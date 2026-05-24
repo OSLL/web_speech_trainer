@@ -1,8 +1,15 @@
 (function () {
+  const RESULTS_POLL_INTERVAL_MS = 3000;
+
   function normalizeResultsPayload(rawPayload) {
     const payload = rawPayload?.data || rawPayload?.result || rawPayload || {};
 
     return {
+      processing: Boolean(payload.processing),
+      error: Boolean(payload.error),
+      status: payload.status || "",
+      audioStatus: payload.audio_status || payload.audioStatus || "",
+      message: payload.message || "",
       totalScore: Number(payload.total_score ?? payload.totalScore ?? 0),
       maxScore: Number(payload.max_score ?? payload.maxScore ?? 0),
       verdict: payload.verdict || "",
@@ -22,7 +29,14 @@
     const resultsFoot = document.getElementById("results-foot");
     const resultsUrl = pageRoot?.dataset?.resultsUrl;
 
+    let pollTimer = null;
+
     let DATA = {
+      processing: false,
+      error: false,
+      status: "",
+      audioStatus: "",
+      message: "",
       totalScore: 0,
       maxScore: 0,
       verdict: "",
@@ -31,19 +45,55 @@
       questionTotals: []
     };
 
-    function setLoadingState() {
-      if (totalScoreEl) totalScoreEl.textContent = "Загрузка...";
-      if (resultsVerdictEl) resultsVerdictEl.textContent = "";
+    function clearPollTimer() {
+      if (pollTimer) {
+        clearTimeout(pollTimer);
+        pollTimer = null;
+      }
+    }
+
+    function clearTable() {
       if (questionsLegendEl) questionsLegendEl.innerHTML = "";
       if (resultsHead) resultsHead.innerHTML = "";
       if (resultsBody) resultsBody.innerHTML = "";
       if (resultsFoot) resultsFoot.innerHTML = "";
     }
 
+    function setLoadingState() {
+      if (totalScoreEl) totalScoreEl.textContent = "Загрузка...";
+      if (resultsVerdictEl) resultsVerdictEl.textContent = "";
+      clearTable();
+    }
+
+    function setProcessingState(message) {
+      const text = message || "Запись интервью сохранена. Результаты появятся после обработки аудио.";
+
+      if (totalScoreEl) {
+        totalScoreEl.textContent = "Обработка...";
+        totalScoreEl.classList.remove("score-high", "score-medium", "score-low");
+      }
+
+      if (resultsVerdictEl) resultsVerdictEl.textContent = text;
+      clearTable();
+
+      if (!resultsBody) return;
+
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 100;
+      td.className = "criterion-name-cell";
+      td.textContent = text;
+      tr.appendChild(td);
+      resultsBody.appendChild(tr);
+    }
+
     function setErrorState(message) {
       const text = message || "Не удалось загрузить результаты интервью.";
 
-      if (totalScoreEl) totalScoreEl.textContent = "—";
+      if (totalScoreEl) {
+        totalScoreEl.textContent = "—";
+        totalScoreEl.classList.remove("score-high", "score-medium", "score-low");
+      }
       if (resultsVerdictEl) resultsVerdictEl.textContent = text;
       if (questionsLegendEl) questionsLegendEl.innerHTML = "";
       if (resultsHead) resultsHead.innerHTML = "";
@@ -215,13 +265,14 @@
       resultsFoot.appendChild(tr);
     }
 
-    async function loadResults() {
+    async function loadResults({ showLoading = true } = {}) {
       if (!resultsUrl) {
         setErrorState("Не задан URL для загрузки результатов интервью.");
         return;
       }
 
-      setLoadingState();
+      if (showLoading) setLoadingState();
+      clearPollTimer();
 
       try {
         const response = await fetch(resultsUrl, {
@@ -240,6 +291,17 @@
 
         DATA = normalizeResultsPayload(rawPayload);
 
+        if (DATA.error) {
+          setErrorState(DATA.message || "Не удалось обработать аудио интервью.");
+          return;
+        }
+
+        if (DATA.processing) {
+          setProcessingState(DATA.message);
+          pollTimer = setTimeout(() => loadResults({ showLoading: false }), RESULTS_POLL_INTERVAL_MS);
+          return;
+        }
+
         renderTotalScore();
         renderQuestionsLegend();
         renderHeader();
@@ -250,6 +312,7 @@
       }
     }
 
+    window.addEventListener("beforeunload", clearPollTimer);
     loadResults();
   }
 
