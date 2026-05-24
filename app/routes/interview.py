@@ -17,10 +17,8 @@ from app.interview_utils import (
     get_ready_interview_questions,
     is_allowed_explanatory_note,
     partial_response_file,
-    recording_is_evaluated,
     render_upload_page,
     ATTEMPTS_EXHAUSTED_MESSAGE,
-    get_interview_attempts_state,
     has_interview_attempts_left,
 )
 from app.lti_session_passback.auth_checkers import check_admin, check_auth, is_logged_in
@@ -28,7 +26,6 @@ from app.mongo_models import InterviewRecording
 from app.mongo_odms.interview_odms import (
     InterviewAvatarsDBManager,
     InterviewFeedbackDBManager,
-    InterviewRecordingDBManager,
     CeleryTaskDBManager,
     QuestionsDBManager,
 )
@@ -40,34 +37,57 @@ from app.research_logging.events import InterviewEvent
 logger = get_root_logger()
 
 
-def _sanitize_search_query(value: str | None) -> str:
+def _sanitize_filter_value(value: str | None) -> str:
     return (value or '').strip()
 
 
-def _build_recordings_query(username: str, search_query: str, is_admin_user: bool) -> dict:
-    """
-    Для админа:
-      - без username и без q показывает все записи;
-      - с username показывает записи выбранного пользователя;
-      - с q ищет частичное совпадение по session_id, metadata.username, metadata.full_name.
+def _safe_score_gt(value: str | None):
+    raw = (value or '').strip().replace(',', '.')
+    if not raw:
+        return None
 
-    Для обычного пользователя всегда ограничиваем выдачу его session_id.
-    """
-    if not is_admin_user:
-        return {'session_id': username}
+    try:
+        parsed = float(raw)
+    except (TypeError, ValueError):
+        return None
 
+    if parsed < 0 or parsed > 1:
+        return None
+
+    return parsed
+
+
+def _exact_case_insensitive_regex(value: str) -> dict:
+    return {
+        '$regex': f'^{re.escape(value)}$',
+        '$options': 'i',
+    }
+
+
+def _build_recordings_query(
+    username: str,
+    full_name: str,
+    user_query: str,
+    is_admin_user: bool,
+) -> dict:
     query_parts = []
 
-    if username:
+    if not is_admin_user:
+        query_parts.append({'session_id': username})
+    elif username:
         query_parts.append({'session_id': username})
 
-    if search_query:
-        search_regex = {'$regex': re.escape(search_query), '$options': 'i'}
+    if full_name:
+        query_parts.append({
+            'metadata.full_name': _exact_case_insensitive_regex(full_name),
+        })
+
+    if user_query:
+        user_regex = _exact_case_insensitive_regex(user_query)
         query_parts.append({
             '$or': [
-                {'session_id': search_regex},
-                {'metadata.username': search_regex},
-                {'metadata.full_name': search_regex},
+                {'session_id': user_regex},
+                {'metadata.username': user_regex},
             ],
         })
 
@@ -82,18 +102,6 @@ def _build_recordings_query(username: str, search_query: str, is_admin_user: boo
 
 def _get_recordings_queryset(query: dict):
     return InterviewRecording.objects.raw(query).order_by([('created_at', -1)])
-
-
-def _paginate_recordings(queryset, skip: int, limit: int):
-    if skip:
-        queryset = queryset.skip(skip)
-    if limit is not None:
-        queryset = queryset.limit(limit)
-    return queryset
-
-
-def _count_recordings(query: dict) -> int:
-    return InterviewRecording.objects.raw(query).count()
 
 
 def _get_feedback_map(recordings) -> dict:
@@ -134,12 +142,11 @@ def _format_score(value) -> str:
 
 
 def _calculate_recording_table_score(recording):
+    if (getattr(recording, 'status', '') or '').lower() != 'evaluated':
+        return None, None
+
     try:
         questions = list(QuestionsDBManager().get_questions_by_session(recording.session_id))
-
-        if not recording_is_evaluated(recording, len(questions)):
-            return None, None
-
         results_payload = build_interview_results_data(recording, questions)
         return (
             results_payload.get('normalized_score'),
@@ -156,17 +163,39 @@ def _calculate_recording_table_score(recording):
 def _build_interview_item(recording, feedback_map: dict) -> dict:
     feedback = feedback_map.get(str(recording.pk))
     meta = recording.metadata or {}
+    status = recording.status or ''
+
     table_score, table_verdict = _calculate_recording_table_score(recording)
-    score = table_score if table_score is not None else (feedback.score if feedback else meta.get('score'))
-    verdict = table_verdict or (feedback.verdict if feedback else meta.get('verdict', ''))
+
+    if table_score is not None:
+        score = table_score
+    elif feedback is not None and status.lower() == 'evaluated':
+        score = feedback.score
+    elif status.lower() == 'evaluated':
+        score = meta.get('score')
+    else:
+        score = None
+
+    if table_verdict:
+        verdict = table_verdict
+    elif feedback is not None and status.lower() == 'evaluated':
+        verdict = feedback.verdict
+    elif status.lower() == 'evaluated':
+        verdict = meta.get('verdict', '')
+    else:
+        verdict = ''
 
     return {
         'recording_id': str(recording.pk),
+        'results_url': url_for(
+            'routes_interview.interview_results_page',
+            recording_id=str(recording.pk),
+        ),
         'created_at': getattr(recording, 'created_at', None),
         'created_at_text': _format_datetime(getattr(recording, 'created_at', None)),
         'duration': float(recording.duration or 0),
         'duration_text': _format_duration(recording.duration),
-        'status': recording.status or '',
+        'status': status,
         'username': meta.get('username', recording.session_id) or '',
         'full_name': meta.get('full_name', '') or '',
         'task_id': meta.get('task_id', '') or '',
@@ -174,6 +203,35 @@ def _build_interview_item(recording, feedback_map: dict) -> dict:
         'score_text': _format_score(score),
         'verdict': verdict or '',
     }
+
+
+def _filter_interview_items_by_score(interviews: list[dict], score_gt):
+    if score_gt is None:
+        return interviews
+
+    result = []
+
+    for item in interviews:
+        score = item.get('score')
+        if score is None:
+            continue
+
+        try:
+            parsed_score = float(score)
+        except (TypeError, ValueError):
+            continue
+
+        if parsed_score > score_gt:
+            result.append(item)
+
+    return result
+
+
+def _paginate_items(items: list, skip: int, limit: int):
+    if limit is None:
+        return items[skip:]
+
+    return items[skip:skip + limit]
 
 
 @routes_interview.route('/interview/upload/', methods=['GET', 'POST'])
@@ -184,8 +242,10 @@ def interview_upload_page():
 
     session_id = session.get('session_id')
     logger.debug(session_id)
+
     if not session_id:
         return PageResponse.text('Session id not found', 404).to_flask()
+
     if not has_interview_attempts_left(session_id):
         if request.method == 'POST':
             return PageResponse.redirect(
@@ -223,14 +283,15 @@ def interview_upload_page():
             task_name=QuestionGenerationTaskService.get_task_name(),
             metadata={'questions_count': required_questions_count},
         )
+
         research_logger.log(
             session_id=session_id,
             event=InterviewEvent.FILE_UPLOADED,
             meta={
-                "file_id": str(saved_task.file_id),
-                "filename": uploaded_file.filename,
-                "content_type": uploaded_file.mimetype,
-                "questions_count": required_questions_count,
+                'file_id': str(saved_task.file_id),
+                'filename': uploaded_file.filename,
+                'content_type': uploaded_file.mimetype,
+                'questions_count': required_questions_count,
             },
         )
 
@@ -239,7 +300,7 @@ def interview_upload_page():
                 session_id=session_id,
                 file_id=str(saved_task.file_id),
                 questions_count=required_questions_count,
-                generate_llm_questions=False
+                generate_llm_questions=False,
             )
             task_manager.mark_processing(
                 session_id=session_id,
@@ -265,8 +326,10 @@ def interview_upload_page():
         error_message=request.args.get('error'),
         force_upload=force_upload,
     )
+
     if upload_page_data.get('redirect_url'):
         return PageResponse.redirect(upload_page_data['redirect_url']).to_flask()
+
     return PageResponse.html(render_upload_page(), 200).to_flask()
 
 
@@ -342,8 +405,12 @@ def interview_results_page(recording_id):
 
 @routes_interview.route('/show_all_interviews/', methods=['GET'])
 def view_all_interviews():
-    username = (request.args.get('username') or '').strip()
-    search_query = _sanitize_search_query(request.args.get('q'))
+    username = _sanitize_filter_value(request.args.get('username'))
+    full_name = _sanitize_filter_value(request.args.get('full_name'))
+    user_query = _sanitize_filter_value(request.args.get('user_query'))
+    score_gt_raw = _sanitize_filter_value(request.args.get('score_gt'))
+    score_gt = _safe_score_gt(score_gt_raw)
+
     is_admin_user = check_admin()
     current_session_id = session.get('session_id', '')
 
@@ -359,6 +426,10 @@ def view_all_interviews():
 
     if count <= 0:
         count = 10
+
+    if count > 100:
+        count = 100
+
     if page < 0:
         page = 0
 
@@ -368,25 +439,38 @@ def view_all_interviews():
     if not (is_admin_user or (is_logged_in() and current_session_id == username)):
         return PageResponse.empty(404).to_flask()
 
-    skip = page * count
     recordings_query = _build_recordings_query(
         username=username,
-        search_query=search_query,
+        full_name=full_name,
+        user_query=user_query,
         is_admin_user=is_admin_user,
     )
 
-    total_count = _count_recordings(recordings_query)
-    recordings = list(
-        _paginate_recordings(
-            _get_recordings_queryset(recordings_query),
-            skip=skip,
-            limit=count,
-        )
+    recordings = list(_get_recordings_queryset(recordings_query))
+    feedback_map = _get_feedback_map(recordings)
+
+    all_interviews = [
+        _build_interview_item(recording, feedback_map)
+        for recording in recordings
+    ]
+
+    filtered_interviews = _filter_interview_items_by_score(
+        all_interviews,
+        score_gt,
     )
 
-    feedback_map = _get_feedback_map(recordings)
-    interviews = [_build_interview_item(recording, feedback_map) for recording in recordings]
+    total_count = len(filtered_interviews)
     page_count = max(1, math.ceil(total_count / count))
+
+    if page >= page_count:
+        page = page_count - 1
+
+    skip = page * count
+    interviews = _paginate_items(
+        filtered_interviews,
+        skip=skip,
+        limit=count,
+    )
 
     if is_admin_user and not username:
         page_title = 'Список интервью'
@@ -398,7 +482,9 @@ def view_all_interviews():
             'show_all_interviews.html',
             page_title=page_title,
             username=username,
-            search_query=search_query,
+            full_name=full_name,
+            user_query=user_query,
+            score_gt=score_gt_raw if score_gt is not None else '',
             interviews=interviews,
             total_count=total_count,
             current_page=page,
