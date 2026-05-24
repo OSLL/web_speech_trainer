@@ -1,4 +1,6 @@
 import json
+import math
+import secrets
 
 from flask import request, session, url_for
 
@@ -19,7 +21,6 @@ from app.interview_utils import (
     get_interview_questions_count,
     get_interview_session_minutes,
     get_ready_interview_questions,
-    safe_float,
     serialize_questions_for_client,
     ATTEMPTS_EXHAUSTED_MESSAGE,
     get_interview_attempts_state,
@@ -42,6 +43,113 @@ from app.research_logging import research_logger
 from app.research_logging.events import InterviewEvent
 
 logger = get_root_logger()
+
+
+RECORDING_TOKEN_SESSION_KEY = 'interview_recording_token'
+RECORDING_DURATION_GRACE_SECONDS = 15
+
+
+def _issue_interview_recording_token() -> str:
+    token = secrets.token_urlsafe(32)
+    session[RECORDING_TOKEN_SESSION_KEY] = token
+    return token
+
+
+def _has_valid_interview_recording_token() -> bool:
+    expected_token = session.get(RECORDING_TOKEN_SESSION_KEY)
+    provided_token = (
+        request.form.get('recording_token')
+        or request.headers.get('X-Interview-Recording-Token')
+        or ''
+    )
+
+    if not expected_token or not provided_token:
+        return False
+
+    return secrets.compare_digest(str(expected_token), str(provided_token))
+
+
+def _clear_interview_recording_token():
+    session.pop(RECORDING_TOKEN_SESSION_KEY, None)
+
+
+def _question_id(question) -> str:
+    value = getattr(question, 'pk', None) or getattr(question, '_id', None) or getattr(question, 'id', None)
+    return str(value) if value is not None else ''
+
+
+def _segment_question_id(segment) -> str:
+    if not isinstance(segment, dict):
+        return ''
+
+    value = (
+        segment.get('question_id')
+        or segment.get('questionId')
+        or segment.get('question_pk')
+        or segment.get('questionPk')
+    )
+    return str(value) if value is not None else ''
+
+
+def _segment_order(segment):
+    try:
+        return int(segment.get('order'))
+    except (TypeError, ValueError, AttributeError):
+        return None
+
+
+def _segment_float(segment, key: str):
+    try:
+        value = float(segment.get(key, 0) or 0)
+    except (TypeError, ValueError, AttributeError):
+        return None
+
+    return value if math.isfinite(value) else None
+
+
+def _validate_recording_segments(segments, questions, max_duration_sec: float) -> str | None:
+    if len(segments) != len(questions):
+        return 'segments count does not match interview questions count'
+
+    expected_question_ids = [_question_id(question) for question in questions]
+    seen_orders = set()
+
+    for segment in segments:
+        if not isinstance(segment, dict):
+            return 'each segment must be an object'
+
+        order = _segment_order(segment)
+        if order is None or order < 0 or order >= len(questions):
+            return 'segment order is invalid'
+
+        if order in seen_orders:
+            return 'segment order must be unique'
+
+        seen_orders.add(order)
+
+        expected_question_id = expected_question_ids[order]
+        provided_question_id = _segment_question_id(segment)
+
+        if expected_question_id and provided_question_id != expected_question_id:
+            return 'segment question_id does not match interview question'
+
+        start = _segment_float(segment, 'start')
+        end = _segment_float(segment, 'end')
+
+        if start is None or end is None:
+            return 'segment start/end must be finite numbers'
+
+        if start < 0 or end < start:
+            return 'segment time range is invalid'
+
+        if end > max_duration_sec:
+            return 'segment duration exceeds interview time limit'
+
+    if seen_orders != set(range(len(questions))):
+        return 'segments must contain exactly one answer for each interview question'
+
+    return None
+
 
 
 @routes_interview.route('/api/interview/upload-page-state/', methods=['GET'])
@@ -303,6 +411,7 @@ def get_interview_session_data():
         total_questions=len(questions),
         session_timer_minutes=interview_session_minutes,
         session_timer_seconds=interview_session_minutes * 60,
+        recording_token=_issue_interview_recording_token(),
     ).to_flask()
 
 
@@ -313,6 +422,7 @@ def cancel_interview_session():
         return ApiResponse.error('Session id not found', status_code=404).to_flask()
 
     cleanup_result = cleanup_interview_session_data(session_id)
+    _clear_interview_recording_token()
     logger.info(
         'Interview session reset (history preserved) for session_id=%s, cleanup=%s',
         session_id,
@@ -342,15 +452,25 @@ def save_interview_recording():
             redirect_url=build_upload_redirect_url(ATTEMPTS_EXHAUSTED_MESSAGE),
         ).to_flask()
 
+    if not _has_valid_interview_recording_token():
+        return ApiResponse.error('Invalid interview recording token', status_code=403).to_flask()
+
+    questions = get_ready_interview_questions(real_session_id)
+    if not questions:
+        error_message = 'Вопросы для интервью не найдены. Загрузите документ заново.'
+        return ApiResponse.failure(
+            error_message,
+            status_code=404,
+            redirect_url=build_upload_redirect_url(error_message),
+        ).to_flask()
+
     audio_file = request.files.get('audio')
     segments_raw = request.form.get('segments')
-    duration_raw = request.form.get('duration')
 
     logger.debug(
-        'save_interview_recording: audio_file=%s, segments_raw_len=%s, duration_raw=%s',
+        'save_interview_recording: audio_file=%s, segments_raw_len=%s',
         'yes' if audio_file else 'no',
         len(segments_raw) if segments_raw else 0,
-        duration_raw,
     )
 
     if not audio_file or not segments_raw:
@@ -364,7 +484,16 @@ def save_interview_recording():
     if not isinstance(segments, list):
         return ApiResponse.error('segments must be a JSON array', status_code=400).to_flask()
 
-    duration = safe_float(duration_raw, calculate_duration_from_segments(segments))
+    max_duration_sec = get_interview_session_minutes() * 60 + RECORDING_DURATION_GRACE_SECONDS
+    validation_error = _validate_recording_segments(
+        segments=segments,
+        questions=questions,
+        max_duration_sec=max_duration_sec,
+    )
+    if validation_error:
+        return ApiResponse.error(validation_error, status_code=400).to_flask()
+
+    duration = calculate_duration_from_segments(segments)
 
     storage = DBManager()
     audio_file_id = storage.add_file(
@@ -387,7 +516,6 @@ def save_interview_recording():
         },
     ).save()
 
-    questions = list(QuestionsDBManager().get_questions_by_session(real_session_id))
     feedback_payload = evaluate_interview_recording(
         recording=recording,
         questions_count=len(questions),
@@ -440,6 +568,8 @@ def save_interview_recording():
             "verdict": feedback_payload.get("verdict"),
         },
     )
+
+    _clear_interview_recording_token()
 
     return ApiResponse.created(
         recording_id=str(recording.pk),

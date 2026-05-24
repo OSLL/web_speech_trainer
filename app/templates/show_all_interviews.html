@@ -19,31 +19,80 @@
         <input type="hidden" name="count" value="{{ count }}">
         <input type="hidden" name="username" value="{{ username }}">
 
-        <label class="form-label" for="interviewsSearchInput">
-            Найти интервью
-        </label>
-        <div class="input-group">
-            <input
-                id="interviewsSearchInput"
-                class="form-control"
-                type="search"
-                name="q"
-                value="{{ search_query }}"
-                placeholder="Имя, фамилия или username/session_id — например: Вла"
-                autocomplete="off"
-            >
-            <button class="btn btn-outline-primary" type="submit">Найти</button>
-            <button
-                id="interviewsSearchReset"
-                class="btn btn-outline-secondary"
-                type="button"
-                data-base-url="{{ url_for('routes_interview.view_all_interviews') }}"
-            >
-                Сбросить
-            </button>
+        <div class="row g-3 align-items-end">
+            <div class="col-12 col-md-4">
+                <label class="form-label" for="interviewsFullNameInput">
+                    ФИО
+                </label>
+                <input
+                    id="interviewsFullNameInput"
+                    class="form-control"
+                    type="search"
+                    name="full_name"
+                    value="{{ full_name|default('', true) }}"
+                    placeholder="Полное ФИО"
+                    autocomplete="off"
+                >
+                <div class="form-text">
+                    Полное совпадение без учета регистра.
+                </div>
+            </div>
+
+            <div class="col-12 col-md-4">
+                <label class="form-label" for="interviewsUserQueryInput">
+                    Username / session_id
+                </label>
+                <input
+                    id="interviewsUserQueryInput"
+                    class="form-control"
+                    type="search"
+                    name="user_query"
+                    value="{{ user_query|default('', true) }}"
+                    placeholder="username или session_id"
+                    autocomplete="off"
+                >
+                <div class="form-text">
+                    Полное совпадение по username или session_id.
+                </div>
+            </div>
+
+            <div class="col-12 col-md-2">
+                <label class="form-label" for="interviewsScoreGtInput">
+                    Балл больше
+                </label>
+                <input
+                    id="interviewsScoreGtInput"
+                    class="form-control"
+                    type="number"
+                    name="score_gt"
+                    value="{{ score_gt|default('', true) }}"
+                    placeholder="0.70"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                >
+                <div class="form-text">
+                    От 0 до 1.
+                </div>
+            </div>
+
+            <div class="col-12 col-md-2 d-flex gap-2">
+                <button class="btn btn-outline-primary flex-fill" type="submit">
+                    Найти
+                </button>
+                <button
+                    id="interviewsSearchReset"
+                    class="btn btn-outline-secondary flex-fill"
+                    type="button"
+                    data-base-url="{{ url_for('routes_interview.view_all_interviews') }}"
+                >
+                    Сбросить
+                </button>
+            </div>
         </div>
-        <div class="form-text">
-            Поиск работает по частичному совпадению в ФИО и username/session_id.
+
+        <div class="form-text mt-3">
+            Фильтры применяются вместе: ФИО — полное совпадение, username/session_id — полное совпадение, балл — строго больше введенного значения от 0 до 1.
         </div>
     </form>
 
@@ -87,7 +136,9 @@
         aria-label="Pagination"
         data-base-url="{{ url_for('routes_interview.view_all_interviews') }}"
         data-username="{{ username }}"
-        data-query="{{ search_query }}"
+        data-full-name="{{ full_name|default('', true) }}"
+        data-user-query="{{ user_query|default('', true) }}"
+        data-score-gt="{{ score_gt|default('', true) }}"
         data-current-page="{{ current_page }}"
         data-page-count="{{ page_count }}"
         data-count="{{ count }}"

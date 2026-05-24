@@ -9,8 +9,9 @@
 
         Object.keys(params).forEach(function (key) {
             var value = params[key];
+
             if (value !== null && value !== undefined && String(value).trim() !== '') {
-                url.searchParams.set(key, value);
+                url.searchParams.set(key, String(value).trim());
             }
         });
 
@@ -25,11 +26,15 @@
         item.classList.toggle('disabled', disabled);
         link.setAttribute('aria-disabled', disabled ? 'true' : 'false');
         link.tabIndex = disabled ? -1 : 0;
-        link.href = disabled ? '#' : buildUrl(baseUrl, Object.assign({}, baseParams, { page: targetPage }));
+        link.href = disabled ? '#' : buildUrl(
+            baseUrl,
+            Object.assign({}, baseParams, { page: targetPage })
+        );
     }
 
     function initPagination() {
         var pagination = document.getElementById('interviewsPagination');
+
         if (!pagination) {
             return;
         }
@@ -38,9 +43,12 @@
         var pageCount = parseIntData(pagination.dataset.pageCount, 1);
         var count = parseIntData(pagination.dataset.count, 10);
         var baseUrl = pagination.dataset.baseUrl || window.location.pathname;
+
         var baseParams = {
             username: pagination.dataset.username || '',
-            q: pagination.dataset.query || '',
+            full_name: pagination.dataset.fullName || '',
+            user_query: pagination.dataset.userQuery || '',
+            score_gt: pagination.dataset.scoreGt || '',
             count: count
         };
 
@@ -50,8 +58,23 @@
         var nextLink = pagination.querySelector('[data-pagination-link="next"]');
         var label = pagination.querySelector('[data-pagination-label]');
 
-        setPaginationItem(prevItem, prevLink, currentPage - 1, currentPage <= 0, baseParams, baseUrl);
-        setPaginationItem(nextItem, nextLink, currentPage + 1, currentPage + 1 >= pageCount, baseParams, baseUrl);
+        setPaginationItem(
+            prevItem,
+            prevLink,
+            currentPage - 1,
+            currentPage <= 0,
+            baseParams,
+            baseUrl
+        );
+
+        setPaginationItem(
+            nextItem,
+            nextLink,
+            currentPage + 1,
+            currentPage + 1 >= pageCount,
+            baseParams,
+            baseUrl
+        );
 
         if (label) {
             label.textContent = 'Страница ' + (currentPage + 1) + ' из ' + pageCount;
@@ -78,14 +101,19 @@
         }
     }
 
+    function trimFormInputs(form) {
+        form.querySelectorAll('input[type="search"], input[type="number"]').forEach(function (input) {
+            input.value = input.value.trim();
+        });
+    }
+
     function initFilterForm() {
         var form = document.getElementById('interviewsFilterForm');
         var resetButton = document.getElementById('interviewsSearchReset');
-        var input = document.getElementById('interviewsSearchInput');
 
-        if (form && input) {
+        if (form) {
             form.addEventListener('submit', function () {
-                input.value = input.value.trim();
+                trimFormInputs(form);
             });
         }
 

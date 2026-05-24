@@ -55,6 +55,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let sessionStartTs = null;
   let currentAnswerStartTs = null;
   let questionSegments = [];
+  let recordingToken = "";
 
   let mediaStream = null;
   let micArmed = false;
@@ -626,6 +627,7 @@ document.addEventListener("DOMContentLoaded", () => {
   async function loadInterviewData() {
     dataLoaded = false;
     questions = [];
+    recordingToken = "";
 
     setButtons({ mainText: "Загрузка...", mainEnabled: false, showNext: false });
     showQuestionPlaceholder("Загружаем вопросы интервью...");
@@ -637,6 +639,7 @@ document.addEventListener("DOMContentLoaded", () => {
         headers: {
           Accept: "application/json",
         },
+        credentials: "same-origin",
       });
 
       const data = await resp.json().catch(() => ({}));
@@ -650,6 +653,11 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       questions = Array.isArray(data.questions) ? data.questions : [];
+      recordingToken = data.recording_token || data.recordingToken || "";
+
+      if (!recordingToken) {
+        throw new Error("Не удалось получить токен записи интервью");
+      }
 
       const apiSessionTimerSeconds = normalizePositiveInt(data.session_timer_seconds, 0);
       const apiSessionTimerMinutes = normalizePositiveInt(data.session_timer_minutes, 0);
@@ -791,14 +799,25 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function sendSessionToBackend(blob) {
+    if (!recordingToken) {
+      setStatus("Не удалось отправить интервью: отсутствует токен записи");
+      return;
+    }
+
     const form = new FormData();
     form.append("audio", blob, "interview_full.webm");
     form.append("segments", JSON.stringify(questionSegments));
     form.append("duration", String(recordedDurationSec.toFixed(2)));
+    form.append("recording_token", recordingToken);
 
     try {
       const resp = await fetch(API.RECORDING_URL, {
         method: "POST",
+        headers: {
+          Accept: "application/json",
+          "X-Interview-Recording-Token": recordingToken,
+        },
+        credentials: "same-origin",
         body: form,
       });
 
@@ -811,11 +830,13 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       if (data.results_url) {
+        recordingToken = "";
         window.location.href = data.results_url;
         return;
       }
 
       if (data.feedback) {
+        recordingToken = "";
         renderFeedback(data.feedback);
       }
 
