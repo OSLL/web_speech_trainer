@@ -392,7 +392,6 @@ def calculate_duration_from_segments(segments):
         return 0.0
     return max(safe_float(segment.get('end'), 0.0) for segment in segments)
 
-# Interview recording security / validation helpers
 
 RECORDING_DURATION_GRACE_SECONDS = 15
 MIN_INTERVIEW_AUDIO_FILE_BYTES = 1024
@@ -511,10 +510,6 @@ def uploaded_file_size(file_storage) -> int:
 
 
 def build_client_timing_segments(segments) -> list[dict]:
-    """
-    Client segments are useful only as rough timing markers.
-    Never persist client-provided transcript/pauses as trusted evaluation data.
-    """
     safe_segments = []
 
     for segment in segments:
@@ -537,9 +532,6 @@ def segment_is_server_processed(segment) -> bool:
     if not isinstance(segment, dict):
         return False
 
-    # Transcript may legitimately be empty if the user was silent. What matters
-    # for security is that the segment was produced by server-side ASR, not by
-    # browser-provided transcript/pauses.
     source = str(segment.get('source') or '').strip().lower()
     return source in SERVER_TRANSCRIPT_SOURCES
 
