@@ -143,10 +143,17 @@ def cleanup_interview_generation_data(session_id: str) -> dict:
     deleted_note = InterviewExplanatoryNoteDBManager().delete_note(session_id)
     deleted_task = CeleryTaskDBManager().delete_task(session_id, cleanup_file=True)
 
+    avatar_manager = InterviewAvatarsDBManager()
+    deleted_avatar = 0
+    if avatar_manager.get_avatar_record(session_id) is not None:
+        avatar_manager.delete_avatar(session_id)
+        deleted_avatar = 1
+
     return {
         'questions_deleted': getattr(deleted_questions_result, 'deleted_count', 0),
         'note_deleted': 1 if deleted_note else 0,
         'task_deleted': 1 if deleted_task else 0,
+        'avatar_deleted': deleted_avatar,
     }
 
 def cleanup_interview_session_data(session_id: str) -> dict:

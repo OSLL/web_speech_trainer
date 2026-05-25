@@ -34,7 +34,7 @@ class InterviewAvatarService:
             result_path.unlink()
 
         text = cls.build_text(questions)
-        
+
         if not avatar_dir.exists():
             raise FileNotFoundError(f'Avatar dir not found: {avatar_dir}')
 
@@ -60,9 +60,8 @@ class InterviewAvatarService:
         manager = InterviewAvatarsDBManager()
 
         with result_path.open('rb') as video_file:
-            return manager.save_avatar_file(
+            return manager.add_or_update_avatar(
                 session_id=session_id,
                 file_obj=video_file,
                 filename=f'interview_avatar_{session_id}.mp4',
-                content_type='video/mp4',
-            )
+    )
