@@ -4,7 +4,7 @@ from typing import Iterable
 
 from bson import ObjectId
 
-from app.audio_recognizer_interview import WhisperAudioRecognizer
+from app.audio_recognizer_interview import build_interview_audio_recognizer
 from app.config import Config
 from app.interview_evaluation import evaluate_interview_recording
 from app.mongo_models import InterviewRecording
@@ -37,10 +37,6 @@ def _audio_status(name: str, fallback: str):
 
 
 def _word_to_text(word_obj) -> str:
-    """
-    RecognizedWord.word is normally app.word.Word. Keep this robust because Word
-    implementations in older branches differ.
-    """
     if word_obj is None:
         return ''
 
@@ -89,8 +85,6 @@ def _recognized_words_for_segment(recognized_words: Iterable, start: float, end:
         except Exception:
             continue
 
-        # Keep words that overlap the answer segment. This is more tolerant than
-        # requiring a word to be fully inside the segment.
         if word_end >= start and word_start <= end:
             words.append(recognized_word)
 
@@ -239,13 +233,6 @@ def evaluate_interview_recording_from_server_segments(recording, server_segments
 
 
 def process_interview_recording_audio(recording) -> dict:
-    """
-    Synchronous interview ASR pipeline:
-      raw GridFS audio -> Whisper word timestamps -> trusted question_segments -> score.
-
-    This intentionally ignores browser-provided transcript/pauses. The browser may
-    only provide timing markers that are validated before recording creation.
-    """
     audio_file_id = getattr(recording, 'audio_file_id', None)
     if not audio_file_id:
         raise InterviewAudioProcessingError('recording has no audio_file_id')
@@ -264,7 +251,7 @@ def process_interview_recording_audio(recording) -> dict:
         raise InterviewAudioProcessingError('Config.c.whisper.url is not configured')
 
     try:
-        recognizer = WhisperAudioRecognizer(url=whisper_url)
+        recognizer = build_interview_audio_recognizer(whisper_url)
         recognized_audio = recognizer.recognize(audio_file)
     except Exception as exc:
         raise InterviewAudioProcessingError(f'Audio recognition failed: {exc}') from exc
@@ -335,14 +322,6 @@ def _process_interview_recording_audio_thread(recording_id: str):
 
 
 def schedule_interview_recording_audio_processing(recording_id) -> threading.Thread:
-    """
-    Fire-and-forget interview ASR processing.
-
-    The upload API returns results_url immediately, while this background thread
-    converts raw audio into trusted server-side question_segments and evaluates
-    the interview. For production-scale traffic this can later be replaced with
-    a Celery queue without changing the API contract.
-    """
     thread = threading.Thread(
         target=_process_interview_recording_audio_thread,
         args=(str(recording_id),),
