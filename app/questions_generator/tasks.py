@@ -12,6 +12,7 @@ from celery.signals import worker_process_init
 from logging_utils import setup_logging
 from app.research_logging import research_logger
 from app.research_logging.events import InterviewEvent
+from app.animated_avatar.interview_avatar_task_service import InterviewAvatarTaskService
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +77,13 @@ def generate_questions(self, session_id: str, file_id: str, questions_count: int
             "Вопросы сохранены session_id=%s count=%d",
             session_id,
             len(questions),
+        )
+
+        InterviewAvatarTaskService.run_generation(session_id, questions)
+
+        logger.info(
+            "Аватар сгенерирован session_id=%s",
+            session_id,
         )
 
         return {

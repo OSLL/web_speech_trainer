@@ -3,6 +3,7 @@ import re
 from bson import ObjectId
 from flask import render_template, request, session, url_for
 
+from app.animated_avatar.interview_avatar_task_service import InterviewAvatarTaskService
 from app.interview import routes_interview
 from app.interview_response import PageResponse
 from app.interview_routes_utils import (

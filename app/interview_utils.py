@@ -5,6 +5,7 @@ from app.mongo_odms.interview_odms import (
     CeleryTaskDBManager,
     InterviewExplanatoryNoteDBManager,
     QuestionsDBManager,
+    InterviewAvatarsDBManager,
 )
 from app.config import Config
 from app.mongo_models import InterviewRecording
@@ -559,3 +560,24 @@ def recording_is_evaluated(recording, questions_count: int) -> bool:
         (getattr(recording, 'status', '') or '').lower() == 'evaluated'
         and recording_has_server_processed_segments(recording, questions_count)
     )
+
+def cleanup_interview_generation_data(session_id: str) -> dict:
+    questions_db = QuestionsDBManager()
+    deleted_questions_result = questions_db.delete_questions_by_session(session_id)
+    deleted_note = InterviewExplanatoryNoteDBManager().delete_note(session_id)
+    deleted_task = CeleryTaskDBManager().delete_task(session_id, cleanup_file=True)
+
+    avatar_manager = InterviewAvatarsDBManager()
+    deleted_avatar = 0
+
+    if hasattr(avatar_manager, 'delete_avatar'):
+        deleted_avatar = 1 if avatar_manager.delete_avatar(session_id) else 0
+    elif hasattr(avatar_manager, 'delete_avatar_by_session'):
+        deleted_avatar = 1 if avatar_manager.delete_avatar_by_session(session_id) else 0
+
+    return {
+        'questions_deleted': getattr(deleted_questions_result, 'deleted_count', 0),
+        'note_deleted': 1 if deleted_note else 0,
+        'task_deleted': 1 if deleted_task else 0,
+        'avatar_deleted': deleted_avatar,
+    }
