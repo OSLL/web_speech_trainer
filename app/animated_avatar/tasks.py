@@ -22,13 +22,22 @@ if getattr(Config, "c", None) is None:
     )
 
 
+def get_avatar_task_name():
+    constants = Config.c.constants
+    return getattr(
+        constants,
+        "interview_avatar_generation_task_name",
+        "interview_avatar_generation",
+    )
+
+
 @worker_process_init.connect
 def setup_worker_logging(**kwargs):
     setup_logging()
 
 
 @celery_app.task(
-    name="interview_avatar_generation",
+    name=get_avatar_task_name(),
     bind=True,
     autoretry_for=(Exception,),
     retry_backoff=True,
