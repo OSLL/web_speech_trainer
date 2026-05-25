@@ -80,7 +80,6 @@ class VkrQuestionValidator:
         with log_timed(self.logger, "проверка релевантности", длина=len(question)):
             score = 0
             score += bool(set(question.lower().split()) & self.keywords["theme"])
-            score += self._calculate_actuality_score(question)
             result = score >= RELEVANCE_THRESHOLD
 
         self.logger.info(
@@ -90,12 +89,6 @@ class VkrQuestionValidator:
             question,
         )
         return result
-
-    def _calculate_actuality_score(self, question: str) -> int:
-        current_year = datetime.now().year
-        year_mentions = [int(word) for word in question.split()
-                         if word.isdigit() and 1900 <= int(word) <= current_year]
-        return max(0, min(1, len(year_mentions)))
 
     def check_completeness(self, questions_list: List[str]) -> bool:
         with log_timed(
@@ -139,11 +132,11 @@ class VkrQuestionValidator:
             q_lower = q.lower()
             depth = 0
             if any(ind in q_lower for ind in DEPTH_INDICATORS['low']):
-                depth = 2
+                depth = 0
             elif any(ind in q_lower for ind in DEPTH_INDICATORS['medium']):
                 depth = 1
             elif any(ind in q_lower for ind in DEPTH_INDICATORS['high']):
-                depth = 0
+                depth = 2
             depths.append(depth)
 
         return sum(depths) / (len(depths) * 2) if depths else 0
@@ -225,10 +218,10 @@ class VkrQuestionValidator:
                 type_count[q_type] = count
 
         if len(type_count) >= QUESTION_TYPES_THRESHOLD:
-            return 'optimal'
+            return 'too_complex'
         elif len(type_count) == 0:
             return 'too_simple'
-        return 'too_complex'
+        return 'optimal'
 
     def _match_student_level(self, question: str) -> str:
         advanced_count = sum(1 for term in ADVANCED_TERMS
