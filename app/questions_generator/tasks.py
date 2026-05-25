@@ -79,11 +79,12 @@ def generate_questions(self, session_id: str, file_id: str, questions_count: int
             len(questions),
         )
 
-        InterviewAvatarTaskService.run_generation(session_id, questions)
+        avatar_task_payload = InterviewAvatarTaskService.enqueue_generation(session_id, questions)
 
         logger.info(
-            "Аватар сгенерирован session_id=%s",
+            "Задача генерации аватара поставлена в очередь session_id=%s avatar_task_id=%s",
             session_id,
+            avatar_task_payload["task_id"],
         )
 
         return {

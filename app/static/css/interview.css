@@ -30,6 +30,26 @@
     box-shadow: 0 8px 24px rgba(0,0,0,0.08);
 }
 
+.avatar-video-section {
+  max-width: 760px;
+  margin: 0 auto 24px;
+}
+
+.avatar-video-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.avatar-video {
+  width: 100%;
+  max-height: 420px;
+  border-radius: 12px;
+  display: block;
+  background: #000;
+}
+
 .timer-section {
     width: min(100%, 760px);
     margin: 0 auto;

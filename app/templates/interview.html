@@ -9,6 +9,22 @@
     <div class="headphones-hint">
       Рекомендуется отвечать на вопросы в наушниках
     </div>
+    
+    {% if has_avatar %}
+    <div class="avatar-video-section mb-4">
+      <div class="avatar-video-card">
+        <video
+          id="interview-avatar-video"
+          class="avatar-video"
+          controls
+          playsinline
+          preload="metadata"
+          src="{{ url_for('routes_interview.avatar_video') }}">
+          Ваш браузер не поддерживает видео.
+        </video>
+      </div>
+    </div>
+    {% endif %}
 
     <div class="timer-section is-hidden">
       <div class="question-card">
