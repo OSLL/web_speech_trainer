@@ -1,0 +1,52 @@
+FROM python:3.10-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    git \
+    curl \
+    bash \
+    libgl1 \
+    libglib2.0-0 \
+    libimage-exiftool-perl \
+    libmagic1 \
+     && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /project
+
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_DEFAULT_TIMEOUT=120 \
+    PYTHONUNBUFFERED=1 \
+    AVATAR_LOG_PATH=/project/app/animated_avatar/logs/animated_avatar.log
+
+# Install main Python deps (celery, pymongo, pymodm, etc.) - cached unless requirements.txt changes
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Install piper venv - cached unless piper requirements change
+COPY app/animated_avatar/piper_tts/requirements.txt /tmp/piper_requirements.txt
+RUN python3 -m venv /project/app/animated_avatar/piper_tts/.venv \
+    && /project/app/animated_avatar/piper_tts/.venv/bin/pip install --no-cache-dir --upgrade pip \
+    && /project/app/animated_avatar/piper_tts/.venv/bin/pip install --no-cache-dir \
+       -r /tmp/piper_requirements.txt
+
+# Install wav2lip venv - cached unless wav2lip requirements change
+COPY app/animated_avatar/wav2lip/requirements.txt /tmp/wav2lip_requirements.txt
+RUN python3 -m venv /project/app/animated_avatar/wav2lip/Wav2Lip/venv \
+    && /project/app/animated_avatar/wav2lip/Wav2Lip/venv/bin/pip install --no-cache-dir --upgrade pip \
+    && /project/app/animated_avatar/wav2lip/Wav2Lip/venv/bin/pip install --no-cache-dir \
+       -r /tmp/wav2lip_requirements.txt
+
+# Copy project code (this layer changes frequently but is fast)
+COPY . .
+
+RUN mkdir -p /project/app/animated_avatar/output \
+             /project/app/animated_avatar/logs
+
+RUN chmod +x \
+    /project/app/animated_avatar/run.sh \
+    /project/app/animated_avatar/setup.sh \
+    /project/app/animated_avatar/piper_tts/run_piper.sh \
+    /project/app/animated_avatar/wav2lip/run_wav2lip.sh
+
+CMD ["bash"]

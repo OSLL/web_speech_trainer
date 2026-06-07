@@ -263,7 +263,12 @@
         var payload = result.payload || {};
 
         if (payload.status === 'success') {
-          window.location.href = payload.redirect_url || config.interviewUrl;
+          expectedTotalQuestions = Number(payload.total_questions || 0);
+          showProcessingState(
+            'Вопросы готовы. Генерируем видео-аватар...',
+            currentProcessingDocumentName
+          );
+          pollAvatarReadiness();
           return;
         }
 
@@ -286,6 +291,35 @@
       }
 
       pollTimer = window.setTimeout(pollStatus, pollIntervalMs);
+    }
+
+    var expectedTotalQuestions = 0;
+
+    async function pollAvatarReadiness() {
+      try {
+        var result = await fetchJson('/api/interview_avatar_status');
+        var payload = result.payload || {};
+        var readyCount = (payload.ready_indices || []).length;
+        var total = expectedTotalQuestions || readyCount;
+
+        if (total > 0 && readyCount >= total) {
+          window.location.href = config.interviewUrl;
+          return;
+        }
+
+        var progressText = total > 0
+          ? 'Генерируем видео-аватар... (' + readyCount + ' из ' + total + ')'
+          : 'Генерируем видео-аватар...';
+
+        showProcessingState(progressText, currentProcessingDocumentName);
+      } catch (e) {
+        showProcessingState(
+          'Генерируем видео-аватар...',
+          currentProcessingDocumentName
+        );
+      }
+
+      pollTimer = window.setTimeout(pollAvatarReadiness, 3000);
     }
 
     async function submitUploadForm(event) {

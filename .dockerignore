@@ -6,3 +6,8 @@ venv
 __pycache__
 Dockerfile*
 app/playground
+app/animated_avatar/wav2lip/Wav2Lip/venv
+app/animated_avatar/wav2lip/Wav2Lip/.git
+app/animated_avatar/piper_tts/.venv
+app/animated_avatar/output
+app/animated_avatar/logs

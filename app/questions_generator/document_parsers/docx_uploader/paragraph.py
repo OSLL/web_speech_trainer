@@ -1,23 +1,31 @@
 import pandas
 
 
+def _safe_attr(obj, attr):
+    try:
+        return getattr(obj, attr)
+    except (ValueError, TypeError):
+        return None
+
+
 class Paragraph:
 
     def __init__(self, paragraph):
         self.paragraph_text = paragraph.text
         self.paragraph_style_name = paragraph.style.name
-        self.paragraph_alignment = paragraph.paragraph_format.alignment
-        self.paragraph_left_indent = paragraph.paragraph_format.left_indent
-        self.paragraph_right_indent = paragraph.paragraph_format.right_indent
-        self.paragraph_first_line_indent = paragraph.paragraph_format.first_line_indent
-        self.paragraph_space_after = paragraph.paragraph_format.space_after
-        self.paragraph_space_before = paragraph.paragraph_format.space_before
-        self.paragraph_line_spacing = paragraph.paragraph_format.line_spacing
-        self.paragraph_line_spacing_rule = paragraph.paragraph_format.line_spacing_rule
-        self.paragraph_keep_together = paragraph.paragraph_format.keep_together
-        self.paragraph_keep_with_next = paragraph.paragraph_format.keep_with_next
-        self.paragraph_page_break_before = paragraph.paragraph_format.page_break_before
-        self.paragraph_widow_control = paragraph.paragraph_format.widow_control
+        fmt = paragraph.paragraph_format
+        self.paragraph_alignment = _safe_attr(fmt, 'alignment')
+        self.paragraph_left_indent = _safe_attr(fmt, 'left_indent')
+        self.paragraph_right_indent = _safe_attr(fmt, 'right_indent')
+        self.paragraph_first_line_indent = _safe_attr(fmt, 'first_line_indent')
+        self.paragraph_space_after = _safe_attr(fmt, 'space_after')
+        self.paragraph_space_before = _safe_attr(fmt, 'space_before')
+        self.paragraph_line_spacing = _safe_attr(fmt, 'line_spacing')
+        self.paragraph_line_spacing_rule = _safe_attr(fmt, 'line_spacing_rule')
+        self.paragraph_keep_together = _safe_attr(fmt, 'keep_together')
+        self.paragraph_keep_with_next = _safe_attr(fmt, 'keep_with_next')
+        self.paragraph_page_break_before = _safe_attr(fmt, 'page_break_before')
+        self.paragraph_widow_control = _safe_attr(fmt, 'widow_control')
         self.modify()
 
     def to_string(self):

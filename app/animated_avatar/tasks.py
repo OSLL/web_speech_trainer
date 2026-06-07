@@ -22,36 +22,29 @@ if getattr(Config, "c", None) is None:
     )
 
 
-def get_avatar_task_name():
-    constants = Config.c.constants
-    return getattr(
-        constants,
-        "interview_avatar_generation_task_name",
-        "interview_avatar_generation",
-    )
-
-
 @worker_process_init.connect
 def setup_worker_logging(**kwargs):
     setup_logging()
 
 
 @celery_app.task(
-    name=get_avatar_task_name(),
     bind=True,
     autoretry_for=(Exception,),
     retry_backoff=True,
     retry_kwargs={"max_retries": 3},
 )
-def generate_avatar(self, session_id: str, questions: list[str]):
-    logger.info("Начало генерации аватара session_id=%s", session_id)
+def generate_avatar(self, session_id: str, question_text: str, question_index: int):
+    logger.info(
+        "Начало генерации аватара session_id=%s q=%d", session_id, question_index
+    )
 
-    result = InterviewAvatarService.generate(session_id, questions)
+    result = InterviewAvatarService.generate_single(session_id, question_text, question_index)
 
-    logger.info("Аватар сгенерирован session_id=%s", session_id)
+    logger.info("Аватар сгенерирован session_id=%s q=%d", session_id, question_index)
 
     return {
         "session_id": session_id,
+        "question_index": question_index,
         "avatar_generated": True,
         "avatar_record_id": str(getattr(result, "pk", "")),
     }

@@ -20,7 +20,7 @@ from pymodm.errors import DoesNotExist
 from app.mongo_models import InterviewFeedback
 
 from app.config import Config
-from app.mongo_models import (InterviewAvatars, Questions, InterviewRecording,
+from app.mongo_models import (InterviewAvatars, TrainingAvatars, Questions, InterviewRecording,
                               InterviewExplanatoryNote, CeleryTask)
 from app.mongo_odm import DBManager
 
@@ -74,56 +74,69 @@ class InterviewAvatarsDBManager:
             cls.init_done = True
         return cls.instance
 
-    def get_by_session_id(self, session_id: str):
+    def get_by_session_and_index(self, session_id: str, question_index: int):
         try:
-            return InterviewAvatars.objects.get({'session_id': session_id})
+            return InterviewAvatars.objects.get({
+                'session_id': session_id,
+                'question_index': question_index,
+            })
         except InterviewAvatars.DoesNotExist:
             return None
 
-    def add_or_update_avatar(self, session_id: str, file_obj, filename: str | None = None):
+    def get_all_for_session(self, session_id: str):
+        return list(
+            InterviewAvatars.objects.raw({'session_id': session_id})
+            .order_by([('question_index', 1)])
+        )
+
+    def count_ready(self, session_id: str) -> int:
+        return InterviewAvatars.objects.raw({'session_id': session_id}).count()
+
+    def add_or_update_avatar(self, session_id: str, question_index: int, file_obj, filename: str | None = None):
         storage = DBManager()
         if filename is None:
             filename = str(uuid.uuid4())
         avatar_file_id = storage.add_file(file_obj, filename)
-        avatar = self.get_by_session_id(session_id)
+        avatar = self.get_by_session_and_index(session_id, question_index)
         if avatar is None:
-            avatar = InterviewAvatars(session_id=session_id, file_id=avatar_file_id)
+            avatar = InterviewAvatars(
+                session_id=session_id,
+                question_index=question_index,
+                file_id=avatar_file_id,
+            )
         else:
             try:
                 storage.delete_file(avatar.file_id)
             except Exception:
-                logger.warning('Failed to delete old avatar file for session_id = {}.'.format(session_id))
+                logger.warning('Failed to delete old avatar file for session_id=%s q=%d.', session_id, question_index)
             avatar.file_id = avatar_file_id
 
         saved = avatar.save()
-        logger.info('Avatar saved for session_id = {}, file_id = {}.'.format(session_id, avatar_file_id))
+        logger.info('Avatar saved for session_id=%s q=%d file_id=%s.', session_id, question_index, avatar_file_id)
         return saved
 
-    def get_avatar_record(self, session_id: str) -> Union[InterviewAvatars, None]:
-        return self.get_by_session_id(session_id)
+    def get_avatar_record(self, session_id: str, question_index: int = 0):
+        return self.get_by_session_and_index(session_id, question_index)
 
-    def get_avatar_file(self, session_id: str):
-        avatar = self.get_by_session_id(session_id)
+    def get_avatar_file(self, session_id: str, question_index: int = 0):
+        avatar = self.get_by_session_and_index(session_id, question_index)
         if avatar is None:
-            logger.info('No avatar for session_id = {}.'.format(session_id))
             return None
-
         storage = DBManager()
         return storage.get_file(avatar.file_id)
 
-    def delete_avatar(self, session_id: str):
-        avatar = self.get_by_session_id(session_id)
-        if avatar is None:
+    def delete_avatars(self, session_id: str):
+        avatars = self.get_all_for_session(session_id)
+        if not avatars:
             return
-
         storage = DBManager()
-        try:
-            storage.delete_file(avatar.file_id)
-        except Exception as e:
-            logger.warning('Error deleting avatar file for session_id = {}: {}.'.format(session_id, e))
-
-        avatar.delete()
-        logger.info('Avatar deleted for session_id = {}.'.format(session_id))
+        for avatar in avatars:
+            try:
+                storage.delete_file(avatar.file_id)
+            except Exception as e:
+                logger.warning('Error deleting avatar file for session_id=%s q=%d: %s.', session_id, avatar.question_index, e)
+            avatar.delete()
+        logger.info('All avatars deleted for session_id=%s count=%d.', session_id, len(avatars))
 
 class InterviewRecordingDBManager:
     def __new__(cls):
@@ -487,3 +500,64 @@ class CeleryTaskDBManager:
 
         task_record.delete()
         logger.info('Celery task deleted for session_id = {}.'.format(session_id))
+
+
+class TrainingAvatarsDBManager:
+    def __new__(cls):
+        if not hasattr(cls, 'init_done'):
+            cls.instance = super(TrainingAvatarsDBManager, cls).__new__(cls)
+            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
+            cls.init_done = True
+        return cls.instance
+
+    def get_by_task_id(self, task_id: str):
+        try:
+            return TrainingAvatars.objects.get({'task_id': task_id})
+        except TrainingAvatars.DoesNotExist:
+            return None
+
+    def get_record(self, task_id: str):
+        return self.get_by_task_id(task_id)
+
+    def mark_generating(self, task_id: str):
+        record = self.get_by_task_id(task_id)
+        if record is None:
+            record = TrainingAvatars(task_id=task_id, status='generating')
+        else:
+            record.status = 'generating'
+        return record.save()
+
+    def save_avatar(self, task_id: str, file_obj, filename: str | None = None):
+        storage = DBManager()
+        if filename is None:
+            filename = f'training_avatar_{task_id}.mp4'
+        file_id = storage.add_file(file_obj, filename)
+
+        record = self.get_by_task_id(task_id)
+        if record is None:
+            record = TrainingAvatars(task_id=task_id)
+        elif record.file_id:
+            try:
+                storage.delete_file(record.file_id)
+            except Exception:
+                logger.warning('Failed to delete old training avatar for task_id=%s', task_id)
+
+        record.file_id = file_id
+        record.status = 'ready'
+        saved = record.save()
+        logger.info('Training avatar saved for task_id=%s, file_id=%s', task_id, file_id)
+        return saved
+
+    def mark_failed(self, task_id: str):
+        record = self.get_by_task_id(task_id)
+        if record is None:
+            record = TrainingAvatars(task_id=task_id)
+        record.status = 'failed'
+        return record.save()
+
+    def get_avatar_file(self, task_id: str):
+        record = self.get_by_task_id(task_id)
+        if record is None or record.status != 'ready' or not record.file_id:
+            return None
+        storage = DBManager()
+        return storage.get_file(record.file_id)

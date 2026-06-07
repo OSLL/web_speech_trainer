@@ -31,26 +31,18 @@
 }
 
 .avatar-video-section {
-  max-width: 760px;
-  margin: 0 auto 24px;
-}
-
-.avatar-video-card {
-  background: #fff;
-  border-radius: 16px;
-  padding: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  margin-top: 8px;
 }
 
 .avatar-video {
   width: 100%;
   max-height: 420px;
-  border-radius: 12px;
+  border-radius: 16px;
   display: block;
-  background: #000;
+  background: #111;
 }
 
-.timer-section {
+.interview-info {
     width: min(100%, 760px);
     margin: 0 auto;
     text-align: left;
@@ -107,42 +99,7 @@
     color: #6b7280;
 }
 
-#question-text,
-.question-placeholder {
-    min-height: 220px;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    border-radius: 22px;
-    padding: 24px 26px;
-    background: linear-gradient(180deg, rgba(245, 247, 255, 0.95), rgba(255, 255, 255, 0.96));
-    border: 1px solid rgba(0,0,0,0.06);
-}
-
-#question-text {
-    font-size: 2rem;
-    font-weight: 700;
-    line-height: 1.35;
-    color: #1f2937;
-}
-
-.question-placeholder {
-    font-size: 1.35rem;
-    line-height: 1.5;
-    color: #6b7280;
-}
-
-.timer-section.is-hidden .question-card-top {
-    opacity: 0.55;
-}
-
-.timer-section.is-hidden #question-text {
-    display: none;
-}
-
-.timer-section:not(.is-hidden) .question-placeholder {
+.interview-info.is-hidden {
     display: none;
 }
 
@@ -319,12 +276,6 @@
     .question-card {
         padding: 22px;
     }
-
-    #question-text,
-    .question-placeholder {
-        min-height: 180px;
-        font-size: 1.7rem;
-    }
 }
 
 @media (max-width: 520px) {
@@ -353,13 +304,6 @@
     #timer,
     .question-progress h3 {
         font-size: 2rem;
-    }
-
-    #question-text,
-    .question-placeholder {
-        min-height: 150px;
-        padding: 18px;
-        font-size: 1.35rem;
     }
 
     .recordings-panel {

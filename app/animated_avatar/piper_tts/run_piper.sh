@@ -4,9 +4,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VENV_DIR="$SCRIPT_DIR/.venv"
 PYTHON_BIN="$VENV_DIR/bin/python3"
-TEXT_FILE="$SCRIPT_DIR/text.txt"
+TEXT_FILE="${1:-$SCRIPT_DIR/text.txt}"
 VOICE_MODEL="$SCRIPT_DIR/ru_RU-ruslan-medium.onnx"
-OUT_FILE="$SCRIPT_DIR/output.wav"
+OUT_FILE="${2:-$SCRIPT_DIR/output.wav}"
 
 if [[ ! -x "$PYTHON_BIN" ]]; then
   echo "Ошибка: не найден Python в окружении Piper: $PYTHON_BIN"

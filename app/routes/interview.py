@@ -161,34 +161,53 @@ def interview_page():
     if not questions:
         return PageResponse.redirect(url_for('routes_interview.interview_upload_page')).to_flask()
 
-    avatar_record = InterviewAvatarsDBManager().get_avatar_record(session_id)
-    has_avatar = avatar_record is not None
+    manager = InterviewAvatarsDBManager()
+    avatars_ready = manager.count_ready(session_id)
+    total_questions = len(questions)
 
     return PageResponse.html(
         render_template(
             'interview.html',
-            has_avatar=has_avatar,
+            avatars_ready=avatars_ready,
+            total_questions=total_questions,
             interview_session_minutes=get_interview_session_minutes(),
         ),
         200,
     ).to_flask()
 
 
-@routes_interview.route('/avatar_video')
-def avatar_video():
+@routes_interview.route('/avatar_video/<int:question_index>')
+def avatar_video(question_index: int):
     user_session = check_auth()
     if not user_session:
         return PageResponse.empty(404).to_flask()
+
 
     session_id = session.get('session_id')
     if not session_id:
         return PageResponse.empty(404).to_flask()
 
-    grid_out = InterviewAvatarsDBManager().get_avatar_file(session_id)
+    grid_out = InterviewAvatarsDBManager().get_avatar_file(session_id, question_index)
     if grid_out is None:
         return PageResponse.empty(404).to_flask()
 
-    return PageResponse.html(partial_response_file(grid_out)).to_flask()
+    return partial_response_file(grid_out)
+
+
+@routes_interview.route('/api/interview_avatar_status')
+def interview_avatar_status():
+    session_id = session.get('session_id')
+    if not session_id:
+        return {'status': 'error'}, 404
+
+    manager = InterviewAvatarsDBManager()
+    avatars = manager.get_all_for_session(session_id)
+    ready_indices = [a.question_index for a in avatars]
+
+    return {
+        'ready_indices': ready_indices,
+        'count': len(ready_indices),
+    }
 
 
 @routes_interview.route('/interview/results/<recording_id>/', methods=['GET'])

@@ -5,7 +5,8 @@ import os
 import pytz
 
 from bson import ObjectId
-from flask import Blueprint, render_template, request, session
+from flask import Blueprint, render_template, request, session, Response
+
 from app.localisation import *
 
 from app.api.trainings import add_training, get_training_statistics
@@ -14,12 +15,49 @@ from app.criteria_pack import CriteriaPackFactory
 from app.feedback_evaluator import FeedbackEvaluatorFactory
 from app.lti_session_passback.auth_checkers import check_admin, check_auth, is_logged_in
 from app.mongo_odm import CriterionPackDBManager, TasksDBManager, TaskAttemptsDBManager
+from app.mongo_odms.interview_odms import TrainingAvatarsDBManager
+from app.animated_avatar.training_avatar_service import TrainingAvatarService
 from app.status import TrainingStatus, AudioStatus, PresentationStatus
 from app.utils import check_arguments_are_convertible_to_object_id
 
 routes_trainings = Blueprint('routes_trainings', __name__)
 logger = get_root_logger()
 
+
+
+@routes_trainings.route('/training_avatar_video/<task_id>')
+def training_avatar_video(task_id: str):
+    user_session = check_auth()
+    if not user_session:
+        return {}, 404
+
+    grid_out = TrainingAvatarsDBManager().get_avatar_file(task_id)
+    if grid_out is None:
+        return {}, 404
+
+    def generate():
+        while True:
+            chunk = grid_out.read(65536)
+            if not chunk:
+                break
+            yield chunk
+
+    response = Response(generate(), mimetype='video/mp4')
+    response.headers['Accept-Ranges'] = 'bytes'
+    response.headers['Content-Disposition'] = f'inline; filename="training_avatar_{task_id}.mp4"'
+    return response
+
+
+@routes_trainings.route('/api/training_avatar_status/<task_id>')
+def training_avatar_status(task_id: str):
+    user_session = check_auth()
+    if not user_session:
+        return {'status': 'error'}, 404
+
+    record = TrainingAvatarsDBManager().get_record(task_id)
+    if record is None:
+        return {'status': 'pending'}
+    return {'status': record.status}
 
 
 @check_arguments_are_convertible_to_object_id
@@ -194,8 +232,17 @@ def view_training_greeting():
     criteria_pack_description = criteria_pack.get_criteria_pack_weights_description(
         CriterionPackDBManager().get_criterion_pack_by_name(criteria_pack_id).criterion_weights,
     )
-    # immediately create training if task has presentation 
+    # immediately create training if task has presentation
     presentation_id, training_id = (str(task_db.presentation_id), add_training(str(task_db.presentation_id))[0].get('training_id')) if task_db.presentation_id else (None, None)
+
+    # trigger training avatar generation in background if needed
+    avatar_record = TrainingAvatarsDBManager().get_record(task_id)
+    if avatar_record is None or avatar_record.status == 'failed':
+        try:
+            TrainingAvatarService.enqueue(task_id, task_description)
+        except Exception:
+            logger.exception('Failed to enqueue training avatar for task_id=%s', task_id)
+    avatar_status = avatar_record.status if avatar_record else 'pending'
 
     return render_template(
         'training_greeting.html',
@@ -210,5 +257,6 @@ def view_training_greeting():
         criteria_pack_id=criteria_pack_id,
         criteria_pack_description=criteria_pack_description,
         training_id=training_id,
-        presentation_id=presentation_id
+        presentation_id=presentation_id,
+        avatar_status=avatar_status,
     )

@@ -174,7 +174,20 @@ class Questions(MongoModel):
 
 class InterviewAvatars(MongoModel):
     session_id = fields.CharField()
+    question_index = fields.IntegerField(default=0)
     file_id = fields.ObjectIdField()
+
+    created_at = fields.DateTimeField(default=datetime.now(timezone.utc))
+    last_update = fields.DateTimeField(default=datetime.now(timezone.utc))
+
+    def save(self):
+        self.last_update = datetime.now(timezone.utc)
+        return super().save()
+
+class TrainingAvatars(MongoModel):
+    task_id = fields.CharField()
+    file_id = fields.ObjectIdField(blank=True)
+    status = fields.CharField(default='pending')  # pending | generating | ready | failed
 
     created_at = fields.DateTimeField(default=datetime.now(timezone.utc))
     last_update = fields.DateTimeField(default=datetime.now(timezone.utc))

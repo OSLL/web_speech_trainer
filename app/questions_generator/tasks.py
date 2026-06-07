@@ -24,6 +24,10 @@ if getattr(Config, "c", None) is None:
         ),
         constants=SimpleNamespace(
             storage_max_size_mbytes=celery_app.conf.storage_max_size_mbytes,
+            interview_avatar_generation_task_name=celery_app.conf.interview_avatar_generation_task_name,
+        ),
+        redis=SimpleNamespace(
+            redis_url=celery_app.conf.broker_url,
         ),
     )
 
@@ -79,13 +83,19 @@ def generate_questions(self, session_id: str, file_id: str, questions_count: int
             len(questions),
         )
 
-        avatar_task_payload = InterviewAvatarTaskService.enqueue_generation(session_id, questions)
-
-        logger.info(
-            "Задача генерации аватара поставлена в очередь session_id=%s avatar_task_id=%s",
-            session_id,
-            avatar_task_payload["task_id"],
-        )
+        try:
+            avatar_tasks = InterviewAvatarTaskService.enqueue_generation(session_id, questions)
+            logger.info(
+                "Задачи генерации аватаров поставлены в очередь session_id=%s count=%d",
+                session_id,
+                len(avatar_tasks),
+            )
+        except Exception:
+            logger.warning(
+                "Генерация аватара недоступна (возможно, не настроен Redis). session_id=%s",
+                session_id,
+                exc_info=True,
+            )
 
         return {
             "session_id": session_id,

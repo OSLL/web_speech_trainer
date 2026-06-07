@@ -14,6 +14,7 @@ accept_content = ["json"]
 task_track_started = True
 worker_hijack_root_logger = False
 task_time_limit = 60 * 60
+
 parser = configparser.ConfigParser()
 
 if not APP_CONF:
@@ -26,7 +27,7 @@ if not read_files:
 mongodb_url = parser.get(
     "mongodb",
     "url",
-    fallback=os.getenv("MONGODB_URL", "mongodb://db:27017/")
+    fallback=os.getenv("MONGODB_URL", "mongodb://db:27017/"),
 )
 
 if not mongodb_url.endswith("/"):
@@ -38,14 +39,14 @@ mongodb_database_name = parser.get(
     fallback=parser.get(
         "mongodb",
         "database",
-        fallback=os.getenv("MONGODB_DATABASE_NAME", "web_speech_trainer")
-    )
+        fallback=os.getenv("MONGODB_DATABASE_NAME", "web_speech_trainer"),
+    ),
 )
 
 storage_max_size_mbytes = parser.get(
     "constants",
     "storage_max_size_mbytes",
-    fallback=os.getenv("STORAGE_MAX_SIZE_MBYTES", "1024")
+    fallback=os.getenv("STORAGE_MAX_SIZE_MBYTES", "1024"),
 )
 
 interview_avatar_generation_task_name = parser.get(

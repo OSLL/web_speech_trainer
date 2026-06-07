@@ -132,6 +132,7 @@ def questions_generation_status():
     if generation_status == 'success' and questions_db.count_questions_by_session(session_id) >= required_questions_count:
         return ApiResponse.success(
             redirect_url=url_for('routes_interview.interview_page'),
+            total_questions=required_questions_count,
         ).to_flask()
 
     task_id = task_record.task_id
@@ -306,9 +307,16 @@ def get_interview_session_data():
 
     interview_session_minutes = get_interview_session_minutes()
 
+    serialized = serialize_questions_for_client(questions)
+    for i, q in enumerate(serialized):
+        q['avatar_video_url'] = url_for(
+            'routes_interview.avatar_video',
+            question_index=i,
+        )
+
     return ApiResponse.ok(
-        questions=serialize_questions_for_client(questions),
-        total_questions=len(questions),
+        questions=serialized,
+        total_questions=len(serialized),
         session_timer_minutes=interview_session_minutes,
         session_timer_seconds=interview_session_minutes * 60,
     ).to_flask()

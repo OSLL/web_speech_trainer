@@ -126,6 +126,23 @@ services:
       - APP_CONF=${APP_CONF}
       - NLTK_DATA=/root/nltk_data
 
+  avatar_celery_worker:
+    build:
+      context: .
+      dockerfile: ./app/animated_avatar/Dockerfile.worker
+    profiles:
+      - interview_profile
+    working_dir: /project/app/animated_avatar
+    command: celery -A celery_app.celery_app worker -Q avatar --loglevel=info
+    depends_on:
+      - redis
+      - db
+    volumes:
+      - ./app_conf:/project/app_conf
+    environment:
+      - PYTHONPATH=/project:/project/app:/project/app/animated_avatar
+      - APP_CONF=${APP_CONF}
+
 volumes:
   whisper_models:
   nltk_data:

@@ -55,73 +55,41 @@ class InterviewAvatarTaskService:
         cls,
         session_id: str,
         questions: list[str],
-    ) -> dict[str, Any]:
+    ) -> list[dict[str, Any]]:
         if not session_id:
             raise ValueError("session_id is required")
         if not questions:
             raise ValueError("questions are required")
 
-        normalized_questions = [str(q).strip() for q in questions if str(q).strip()]
-        if not normalized_questions:
+        normalized = [str(q).strip() for q in questions if str(q).strip()]
+        if not normalized:
             raise ValueError("questions are empty after normalization")
 
         task_name = cls.get_task_name()
         celery_app = cls.get_celery_app()
+        results = []
 
-        logger.info(
-            "Queueing avatar generation task: session_id=%s task_name=%s",
-            session_id,
-            task_name,
-        )
+        for index, question_text in enumerate(normalized):
+            logger.info(
+                "Queueing avatar task: session_id=%s q=%d task_name=%s",
+                session_id, index, task_name,
+            )
+            result = celery_app.send_task(
+                task_name,
+                kwargs={
+                    "session_id": session_id,
+                    "question_text": question_text,
+                    "question_index": index,
+                },
+                queue="avatar",
+            )
+            results.append({
+                "task_id": result.id,
+                "question_index": index,
+            })
+            logger.info(
+                "Avatar task queued: task_id=%s session_id=%s q=%d",
+                result.id, session_id, index,
+            )
 
-        result = celery_app.send_task(
-            task_name,
-            kwargs={
-                "session_id": session_id,
-                "questions": normalized_questions,
-            },
-        )
-
-        logger.info(
-            "Avatar generation task queued: task_id=%s session_id=%s",
-            result.id,
-            session_id,
-        )
-
-        return {
-            "task_id": result.id,
-            "status": result.status,
-            "session_id": session_id,
-        }
-
-    @classmethod
-    def get_task_status(cls, task_id: str) -> dict[str, Any]:
-        if not task_id:
-            raise ValueError("task_id is required")
-
-        async_result = AsyncResult(task_id, app=cls.get_celery_app())
-
-        payload: dict[str, Any] = {
-            "task_id": task_id,
-            "status": async_result.status,
-            "ready": async_result.ready(),
-            "result": None,
-            "error": None,
-            "meta": None,
-        }
-
-        if async_result.successful():
-            payload["result"] = async_result.result
-            return payload
-
-        if async_result.failed():
-            payload["error"] = {
-                "type": type(async_result.result).__name__,
-                "message": str(async_result.result),
-            }
-            return payload
-
-        if async_result.info is not None:
-            payload["meta"] = async_result.info
-
-        return payload
+        return results
