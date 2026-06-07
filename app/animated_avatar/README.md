@@ -27,7 +27,9 @@ animated_avatar/
 └── setup.sh
 ```
 
-## Первый запуск
+## Первый запуск  
+
+Из корня проекта:
 
 ```bash
 docker-compose --profile interview_profile up --build
