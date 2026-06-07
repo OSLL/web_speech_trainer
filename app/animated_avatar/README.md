@@ -29,35 +29,15 @@ animated_avatar/
 
 ## Первый запуск
 
-Выдать права:
-
 ```bash
-chmod +x run.sh setup.sh piper_tts/run_piper.sh wav2lip/run_wav2lip.sh
+docker-compose --profile interview_profile up --build
 ```
 
-Подготовить окружение:
-
-```bash
-./setup.sh
-```
-
-## Генерация видео
-
-```bash
-./run.sh "Привет, это тест генерации видео"
-```
-
-Итоговый файл:
-
-```bash
-output/result.mp4
-```
-
-## Что нужно положить вручную
+## Что нужно положить вручную!!!
 
 ```text
 assets/face.jpg
+piper_tts/ru_RU-irina-medium.onnx
 piper_tts/ru_RU-ruslan-medium.onnx
-piper_tts/ru_RU-ruslan-medium.onnx.json
 wav2lip/Wav2Lip/checkpoints/wav2lip_gan.pth
 ```
