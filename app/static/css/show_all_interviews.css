@@ -1,0 +1,73 @@
+.interviews-page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.interviews-filter {
+    border-radius: .75rem;
+}
+
+.interviews-filter .form-label {
+    font-weight: 600;
+    margin-bottom: .35rem;
+}
+
+.interviews-filter .form-control {
+    min-height: 38px;
+}
+
+.interviews-filter .form-text {
+    min-height: 1.25rem;
+    margin-bottom: 0;
+    line-height: 1.25;
+}
+
+.interviews-filter-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .5rem;
+}
+
+.interviews-filter-actions .btn {
+    min-height: 38px;
+    white-space: nowrap;
+}
+
+.interviews-table {
+    margin-bottom: 0;
+}
+
+.interviews-table th,
+.interviews-table td {
+    vertical-align: middle;
+}
+
+.interviews-table th {
+    white-space: nowrap;
+}
+
+.interview-results-cell {
+    width: 1%;
+}
+
+.interviews-pagination {
+    margin-top: 1rem;
+}
+
+.interviews-table-wrap[hidden],
+.interviews-empty[hidden],
+#interviewsPagination[hidden] {
+    display: none !important;
+}
+
+@media (max-width: 575.98px) {
+    .interviews-filter-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .interviews-filter .form-text {
+        min-height: 0;
+    }
+}

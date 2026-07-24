@@ -15,6 +15,9 @@ from pymodm.errors import ValidationError, DoesNotExist
 from pymodm.files import GridFSStorage
 from pymongo import ReturnDocument
 from pymongo.errors import CollectionInvalid
+from bson import ObjectId
+from pymodm.errors import DoesNotExist
+from app.mongo_models import InterviewFeedback
 
 from app.config import Config
 from app.mongo_models import (AudioToRecognize, Consumers, Criterion, CriterionPack, Logs,
@@ -23,14 +26,15 @@ from app.mongo_models import (AudioToRecognize, Consumers, Criterion, CriterionP
                               RecognizedAudioToProcess,
                               RecognizedPresentationsToProcess, Sessions,
                               TaskAttempts, TaskAttemptsToPassBack, Tasks,
-                              Trainings, TrainingsToProcess, StorageMeta)
+                              Trainings, TrainingsToProcess, StorageMeta, InterviewAvatars, Questions, InterviewRecording,
+                              InterviewExplanatoryNote, CeleryTask)
 from app.status import (AudioStatus, PassBackStatus, PresentationStatus,
                         TrainingStatus)
 from app.utils import remove_blank_and_none
 
 logger = get_root_logger()
 
-BYTES_PER_MB = 1024*1024    
+BYTES_PER_MB = 1024*1024
 
 class DBManager:
     def __new__(cls):
@@ -76,30 +80,30 @@ class DBManager:
         except (NoFile, ValidationError, InvalidId) as e:
             logger.warning('file_id = {}, {}.'.format(file_id, e))
             return None
-    
+
     def _get_or_create_storage_meta(self):
         try:
             return StorageMeta.objects.get({})
         except DoesNotExist:
             meta = StorageMeta(used_size=0).save()
             return meta
-    
+
     def get_used_storage_size(self):
         return self._get_or_create_storage_meta().used_size
-    
+
     def set_used_storage_size(self, size):
         meta = self._get_or_create_storage_meta()
         meta.used_size = size
         meta.save()
-        
+
     def update_storage_size(self, deltasize):
         meta = self._get_or_create_storage_meta()
         meta.used_size += deltasize
         meta.save()
-        
+
     def get_max_size(self):
         return self.max_size
-    
+
     # returns Bool variable - True if file can be stored else False
     def check_storage_limit(self, new_file_size):
         current_size = self.get_used_storage_size()
@@ -111,7 +115,7 @@ class DBManager:
         )
         logger.info(inf_msg)
         return False if current_size + new_file_size > self.max_size else True
-    
+
     def recalculate_used_storage_data(self):
         total_size = 0
         db = _get_db()
@@ -119,7 +123,29 @@ class DBManager:
             total_size += file_doc['length']
         self.set_used_storage_size(total_size)
         logger.info(f"Storage size recalculated: {total_size/BYTES_PER_MB:.2f} MB")
-        
+
+    def delete_file(self, file_id):
+        try:
+            oid = ObjectId(file_id)
+        except InvalidId as e:
+            logger.warning('Invalid file_id = {}: {}.'.format(file_id, e))
+            return
+
+        db = _get_db()
+        file_doc = db.fs.files.find_one({'_id': oid})
+        if not file_doc:
+            logger.warning('No file doc for file_id = {}.'.format(file_id))
+            return
+
+        length = file_doc.get('length', 0)
+        try:
+            self.storage.delete(oid)
+        except (NoFile, ValidationError) as e:
+            logger.warning('Error deleting file_id = {}: {}.'.format(file_id, e))
+            return
+
+        self.update_storage_size(-length)
+
 
 class TrainingsDBManager:
     def __new__(cls):

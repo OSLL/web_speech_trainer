@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block header %}
+<link rel="stylesheet" href="/static/css/results.css">
+{% endblock %}
+
+{% block content %}
+<div class="results-container" id="results-page" data-results-url="{{ results_data_url }}">
+  <div class="results-card">
+
+    <h1 class="results-title">Результаты интервью</h1>
+
+    <div class="total-score-block">
+      <div class="total-score-label">Общий балл</div>
+      <div class="total-score-value" id="total-score">Загрузка...</div>
+      <div class="results-verdict" id="results-verdict"></div>
+    </div>
+
+    <div class="questions-legend" id="questions-legend"></div>
+
+    <div class="table-wrapper">
+      <table class="results-table">
+        <thead id="results-head"></thead>
+        <tbody id="results-body"></tbody>
+        <tfoot id="results-foot"></tfoot>
+      </table>
+    </div>
+
+    <div class="results-actions">
+      <a id="restart-btn" class="results-btn results-btn-primary" href="{{ restart_url }}"> Пройти заново </a>
+    </div>
+
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/results.js') }}"></script>
+{% endblock %}

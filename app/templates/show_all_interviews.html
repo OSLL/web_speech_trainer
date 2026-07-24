@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/show_all_interviews.css') }}">
+
+<div class="container mt-4 interviews-page">
+    <div class="interviews-page-header mb-3">
+        <div>
+            <h3 class="mb-1">{{ page_title }}</h3>
+            <div class="text-muted">Найдено записей: {{ total_count }}</div>
+        </div>
+    </div>
+
+    <form
+        id="interviewsFilterForm"
+        class="card card-body mb-3 interviews-filter"
+        action="{{ url_for('routes_interview.view_all_interviews') }}"
+        method="get"
+        novalidate
+    >
+        <input type="hidden" name="page" value="0">
+        <input type="hidden" name="count" value="{{ count }}">
+        <input type="hidden" name="username" value="{{ username }}">
+
+        <div class="row g-3">
+            <div class="col-12 col-lg-4">
+                <label class="form-label" for="interviewsFullNameInput">
+                    ФИО
+                </label>
+                <input
+                    id="interviewsFullNameInput"
+                    class="form-control"
+                    type="search"
+                    name="full_name"
+                    value="{{ full_name|default('', true) }}"
+                    placeholder="Например: Иванов Иван Иванович"
+                    autocomplete="off"
+                >
+                <div class="form-text">
+                    Точное совпадение без учета регистра.
+                </div>
+            </div>
+
+            <div class="col-12 col-lg-3">
+                <label class="form-label" for="interviewsUserQueryInput">
+                    Username / session_id
+                </label>
+                <input
+                    id="interviewsUserQueryInput"
+                    class="form-control"
+                    type="search"
+                    name="user_query"
+                    value="{{ user_query|default('', true) }}"
+                    placeholder="username или session_id"
+                    autocomplete="off"
+                >
+                <div class="form-text">
+                    Точное совпадение.
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-lg-2">
+                <label class="form-label" for="interviewsScoreGtInput">
+                    Балл больше
+                </label>
+                <input
+                    id="interviewsScoreGtInput"
+                    class="form-control"
+                    type="text"
+                    name="score_gt"
+                    value="{{ score_gt|default('', true) }}"
+                    placeholder="0.70"
+                    inputmode="decimal"
+                    autocomplete="off"
+                >
+                <div class="form-text">
+                    Значение от 0 до 1.
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-lg-3">
+                <label class="form-label interviews-actions-label">
+                    Действия
+                </label>
+                <div class="interviews-filter-actions">
+                    <button class="btn btn-primary" type="submit">
+                        Найти
+                    </button>
+                    <button
+                        id="interviewsSearchReset"
+                        class="btn btn-outline-secondary"
+                        type="button"
+                        data-base-url="{{ url_for('routes_interview.view_all_interviews') }}"
+                    >
+                        Сбросить
+                    </button>
+                </div>
+                <div class="form-text">
+                    Фильтры применяются вместе.
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <div class="table-responsive interviews-table-wrap" data-total-count="{{ total_count }}">
+        <table class="table table-striped table-bordered align-middle interviews-table">
+            <thead>
+                <tr>
+                    <th>Дата</th>
+                    <th>Пользователь</th>
+                    <th>ФИО</th>
+                    <th>Задание</th>
+                    <th>Длительность, сек</th>
+                    <th>Статус</th>
+                    <th>Балл</th>
+                    <th>Вердикт</th>
+                    <th>Попытка</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in interviews %}
+                    <tr>
+                        <td>{{ item.created_at_text }}</td>
+                        <td>{{ item.username }}</td>
+                        <td>{{ item.full_name }}</td>
+                        <td>{{ item.task_id }}</td>
+                        <td>{{ item.duration_text }}</td>
+                        <td>{{ item.status }}</td>
+                        <td>{{ item.score_text }}</td>
+                        <td>{{ item.verdict }}</td>
+                        <td
+                            class="interview-results-cell text-nowrap"
+                            data-results-url="{{ item.results_url|default('', true) }}"
+                        ></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="alert alert-info interviews-empty" hidden>
+        Интервью по этому фильтру не найдены.
+    </div>
+
+    <nav
+        id="interviewsPagination"
+        class="interviews-pagination"
+        aria-label="Pagination"
+        data-base-url="{{ url_for('routes_interview.view_all_interviews') }}"
+        data-username="{{ username }}"
+        data-full-name="{{ full_name|default('', true) }}"
+        data-user-query="{{ user_query|default('', true) }}"
+        data-score-gt="{{ score_gt|default('', true) }}"
+        data-current-page="{{ current_page }}"
+        data-page-count="{{ page_count }}"
+        data-count="{{ count }}"
+    >
+        <ul class="pagination mb-0">
+            <li class="page-item" data-pagination-item="prev">
+                <a class="page-link" href="#" data-pagination-link="prev">Назад</a>
+            </li>
+
+            <li class="page-item disabled">
+                <span class="page-link" data-pagination-label>
+                    Страница {{ current_page + 1 }} из {{ page_count }}
+                </span>
+            </li>
+
+            <li class="page-item" data-pagination-item="next">
+                <a class="page-link" href="#" data-pagination-link="next">Вперед</a>
+            </li>
+        </ul>
+    </nav>
+
+    <div class="mt-4">
+        <a
+            class="btn btn-outline-danger"
+            href="{{ url_for('routes_interview.interview_upload_page', force_upload=1) }}"
+        >
+            Загрузить новую ВКР
+        </a>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/show_all_interviews.js') }}" defer></script>
+{% endblock %}

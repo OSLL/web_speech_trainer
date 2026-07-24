@@ -1,0 +1,34 @@
+#services:
+#  init-llm:
+#    build:
+#      context: ./llm_service
+#      dockerfile: Dockerfile.init
+#    entrypoint: ["/bin/sh", "-c"]
+#    command: ["/usr/local/bin/init-volumes.sh"]
+#    volumes:
+#      - rut5_model:/models/rut5
+#    restart: "no"
+#
+#  llm:
+#    build: ./llm_service
+#    depends_on:
+#      init-llm:
+#        condition: service_completed_successfully
+#    volumes:
+#      - rut5_model:/models/rut5
+#    ports:
+#      - "8000:8000"
+# TODO: когда вернём ЛЛМ генерацию включить обратно
+
+#  app:
+#    build: .
+#    stdin_open: true
+#    tty: true
+#    volumes:
+#      - nltk_data:/nltk_data
+#      - ./static/vkr_examples:/app/static/vkr_examples
+#    command: ["bash", "-lc", "sleep infinity"]
+
+#volumes:
+#  rut5_model:
+#  nltk_data:
