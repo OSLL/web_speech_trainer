@@ -1,12 +1,11 @@
-version: '2'
-
 services:
   selenium-tests:
     build:
       context: .
       dockerfile: Dockerfile_selenium
+    environment:
+      - HOST=http://127.0.0.1:5000
     shm_size: 2g
     depends_on:
       - web
-    networks:
-      - default
+    network_mode: service:web

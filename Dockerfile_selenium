@@ -1,5 +1,8 @@
 FROM selenium/standalone-chrome:137.0-chromedriver-137.0-grid-4.33.0-20250606
 
+ENV HOST="http://127.0.0.1:5000"
+ENV APP_CONF_PATH="app_conf/testing.ini"
+
 WORKDIR /usr/src/project
 
 USER root
@@ -7,16 +10,14 @@ RUN apt-get update && \
     apt-get install -y python3 python3-pip && \
     rm -rf /var/lib/apt/lists/*
 
-COPY tests/requirements.txt requirements.txt
-RUN pip install -r requirements.txt
+COPY tests/selenium/requirements.txt tests/selenium/requirements.txt
+RUN pip install -r tests/selenium/requirements.txt
 
-COPY tests/selenium selenium
-COPY tests/test_data test_data
-COPY tests/simple_phrases_russian.wav simple_phrases_russian.wav
+COPY tests/selenium tests/selenium
+COPY tests/test_data tests/test_data
+COPY tests/simple_phrases_russian.wav tests/simple_phrases_russian.wav
 
 COPY app/config.py app/config.py
 COPY app_conf/testing.ini app_conf/testing.ini
 
-ENV PYTHONPATH='/usr/src/project/:/usr/src/project/app/'
-
-#CMD ["pytest", "-s", ".", "-v"]
+ENTRYPOINT python3 tests/selenium/main.py --host ${HOST} --config ${APP_CONF_PATH}
