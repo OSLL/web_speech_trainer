@@ -6,6 +6,8 @@ services:
     environment:
       - HOST=http://127.0.0.1:5000
     shm_size: 2g
+    volumes:
+      - ./test_results:/usr/src/project/test_results
     depends_on:
       - web
     network_mode: service:web

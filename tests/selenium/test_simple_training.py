@@ -8,7 +8,7 @@ class SimpleTrainingTestSelenium(BasicSeleniumTest):
     """
     Scenario: upload presentation -> record -> next slide -> end training -> wait for feedback.
 
-    Steps depend on each other, unittest runs them in alphabetical order, hence numeric prefixes.
+    Steps depend on each other and are run in alphabetical order (unittest.TestCase), hence numeric prefixes.
     """
 
     def training(self):

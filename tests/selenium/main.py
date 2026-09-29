@@ -1,22 +1,23 @@
 import argparse
+import logging
 import os
 import sys
 import time
-import unittest
 
+import pytest
 import requests
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, '..', '..'))
-sys.path.insert(0, ROOT_DIR)
 
-from app.config import Config  # noqa: E402
-from basic_selenium_test import BasicSeleniumTest  # noqa: E402
-from test_simple_training import SimpleTrainingTestSelenium  # noqa: E402
+logger = logging.getLogger('selenium_tests.main')
 
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description='Run Selenium tests with specified data')
+    parser = argparse.ArgumentParser(
+        description='Run Selenium tests with specified data. '
+                    'Unknown arguments are passed to pytest (e.g. -k test_01, -x).'
+    )
     parser.add_argument('--host', type=str, default='http://127.0.0.1:5000', help='Host address for testing')
     parser.add_argument(
         '--config',
@@ -48,8 +49,14 @@ def parse_arguments():
         default=300,
         help='max time in seconds to wait for host to become available before running tests (0 - do not wait)',
     )
+    parser.add_argument(
+        '--results-dir',
+        type=str,
+        default=os.path.join(ROOT_DIR, 'test_results'),
+        help='directory for tests log file and html report',
+    )
 
-    return parser.parse_args()
+    return parser.parse_known_args()
 
 
 def wait_for_host(host, timeout):
@@ -57,42 +64,39 @@ def wait_for_host(host, timeout):
     while time.time() - start_time < timeout:
         try:
             requests.get(host, timeout=5)
-            print(f'{host} is available')
+            logger.info('%s is available', host)
             return True
         except requests.exceptions.RequestException:
-            print(f'waiting for {host}...')
+            logger.info('waiting for %s...', host)
             time.sleep(5)
     return False
 
 
 def main():
-    args = parse_arguments()
+    args, pytest_args = parse_arguments()
+    # until pytest configures logging from logging.conf (conftest.py)
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(name)s: %(message)s')
 
     if args.wait_host and not wait_for_host(args.host, args.wait_host):
-        print(f'{args.host} is not available after {args.wait_host} seconds')
+        logger.error('%s is not available after %s seconds', args.host, args.wait_host)
         sys.exit(1)
 
-    Config.init_config(args.config)
-    param = argparse.Namespace(
-        host=args.host,
-        config=Config.c,
-        presentation=args.presentation,
-        audio=args.audio,
-        feedback_timeout=args.feedback_timeout,
-    )
-
-    suite = unittest.TestSuite()
-    tests = (
-        SimpleTrainingTestSelenium,
-    )
-
-    for test in tests:
-        suite.addTest(BasicSeleniumTest.parametrize(test, param=param))
-
-    returncode = not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
-
-    BasicSeleniumTest.close_driver()
-    sys.exit(returncode)
+    returncode = pytest.main([
+        SCRIPT_DIR,
+        '-v',
+        '-s',
+        '-p', 'no:cacheprovider',
+        f'--host={args.host}',
+        f'--app-config={args.config}',
+        f'--presentation={args.presentation}',
+        f'--audio={args.audio}',
+        f'--feedback-timeout={args.feedback_timeout}',
+        f'--results-dir={args.results_dir}',
+        f'--html={os.path.join(args.results_dir, "report.html")}',
+        '--self-contained-html',
+        *pytest_args,
+    ])
+    sys.exit(int(returncode))
 
 
 if __name__ == '__main__':

@@ -15,6 +15,7 @@ while [ "$(docker inspect --format='{{.State.Running}}' "$container_id")" == "tr
 done
 
 echo "tests are finished"
+echo "tests log and html report: ./test_results"
 
 EXIT_CODE=$(docker inspect "$container_id" --format='{{.State.ExitCode}}')
 echo "tests logs:"

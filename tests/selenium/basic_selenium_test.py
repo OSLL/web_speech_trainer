@@ -1,8 +1,11 @@
+import logging
 import unittest
 
 import requests
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+
+logger = logging.getLogger(__name__)
 
 
 class BasicSeleniumTest(unittest.TestCase):
@@ -10,24 +13,12 @@ class BasicSeleniumTest(unittest.TestCase):
     Base class for selenium tests.
 
     All tests share one driver and one requests session, which are created lazily
-    by the first test and closed by close_driver() at the end of the run (see main.py).
-    Test parameters (host, config, files, ...) are passed via parametrize().
+    by the first test and closed by close_driver() at the end of the run (see conftest.py).
+    Test parameters (host, config, files, ...) are set to `param` in conftest.py.
     """
     driver = None
     session = None
-
-    def __init__(self, methodName='runTest', param=None):
-        super(BasicSeleniumTest, self).__init__(methodName)
-        self.param = param
-
-    @staticmethod
-    def parametrize(testcase_class, param=None):
-        testloader = unittest.TestLoader()
-        testnames = testloader.getTestCaseNames(testcase_class)
-        suite = unittest.TestSuite()
-        for name in testnames:
-            suite.addTest(testcase_class(name, param=param))
-        return suite
+    param = None
 
     @staticmethod
     def chrome_options(host, audio_file=None):
@@ -46,7 +37,9 @@ class BasicSeleniumTest(unittest.TestCase):
         return chrome_options
 
     def setUp(self):
+        logger.info('start %s', self.id())
         if BasicSeleniumTest.driver is None:
+            logger.info('start chrome driver (host: %s, audio: %s)', self.param.host, self.param.audio)
             BasicSeleniumTest.driver = webdriver.Chrome(
                 options=self.chrome_options(self.param.host, self.param.audio)
             )
@@ -55,12 +48,13 @@ class BasicSeleniumTest(unittest.TestCase):
 
     def init_testing_session(self):
         # /init/ fills browser session with testing user data (works only with testing config)
+        logger.info('init testing session')
         self.get_driver().get(self.get_url('/init/'))
         self.registrate()
 
     def registrate(self):
         testing = self.param.config.testing
-        self.session.post(self.get_url('/lti'), data={
+        response = self.session.post(self.get_url('/lti'), data={
             'lis_person_name_full': testing.lis_person_name_full,
             'ext_user_username': testing.session_id,
             'custom_task_id': testing.custom_task_id,
@@ -73,6 +67,7 @@ class BasicSeleniumTest(unittest.TestCase):
             'lis_result_sourcedid': testing.lis_result_source_did,
             'oauth_consumer_key': testing.oauth_consumer_key,
         })
+        logger.info('lti registration: %s', response.status_code)
 
     def get_url(self, relative_path):
         return self.param.host + relative_path
@@ -88,5 +83,6 @@ class BasicSeleniumTest(unittest.TestCase):
     @classmethod
     def close_driver(cls):
         if cls.driver is not None:
+            logger.info('close chrome driver')
             cls.driver.quit()
             cls.driver = None

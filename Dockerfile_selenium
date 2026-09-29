@@ -2,6 +2,7 @@ FROM selenium/standalone-chrome:137.0-chromedriver-137.0-grid-4.33.0-20250606
 
 ENV HOST="http://127.0.0.1:5000"
 ENV APP_CONF_PATH="app_conf/testing.ini"
+ENV RESULTS_DIR="/usr/src/project/test_results"
 
 WORKDIR /usr/src/project
 
@@ -20,4 +21,7 @@ COPY tests/simple_phrases_russian.wav tests/simple_phrases_russian.wav
 COPY app/config.py app/config.py
 COPY app_conf/testing.ini app_conf/testing.ini
 
-ENTRYPOINT python3 tests/selenium/main.py --host ${HOST} --config ${APP_CONF_PATH}
+# log file and html report, mount it to host to keep results after container removal
+VOLUME ${RESULTS_DIR}
+
+ENTRYPOINT python3 tests/selenium/main.py --host ${HOST} --config ${APP_CONF_PATH} --results-dir ${RESULTS_DIR}
