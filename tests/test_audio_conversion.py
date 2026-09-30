@@ -4,6 +4,9 @@ from pydub import AudioSegment
 from denoiser import Denoiser, TooShortAudioToDenoise
 
 
+pytestmark = pytest.mark.group('audio_conversion')
+
+
 def test_empty_one_second_presentation_record_file():
     with pytest.raises(TooShortAudioToDenoise):
         Denoiser.process_wav_to_wav('silence_1_sec.wav', 'silence_1_sec_output.wav', noise_length=3)

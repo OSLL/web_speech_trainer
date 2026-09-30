@@ -1,6 +1,8 @@
 import json
 from unittest.mock import patch, Mock
 
+import pytest
+
 import sys
 from pathlib import Path
 import os
@@ -12,6 +14,9 @@ from mock_data import TRAINING_ID, TRAINING_WITH_AUDIO_ID, AUDIO_ID, \
     check_no_access_called_once
 
 from app.api.audio import get_audio_transcription
+
+
+pytestmark = pytest.mark.group('api', 'api_audio')
 
 
 class TestGetAudioTranscription:

@@ -1,6 +1,8 @@
 import io
 from unittest.mock import patch, PropertyMock, Mock
 
+import pytest
+
 import app as app_module
 from app.api.files import get_presentation_record_file, get_presentation_file_by_training_id, get_presentation_preview, \
     upload_presentation
@@ -19,6 +21,9 @@ from mock_data import PRESENTATION_RECORD_FILE_ID, get_mock_logger, TRAINING_ID,
     check_created_with_no_args_and_get_preview_id_by_file_id_called_once, check_no_access_called_once, \
     open_file_and_copy_content, check_response, check_json_response, check_log_entry, check_no_auth_called_once, \
     check_return_value
+
+
+pytestmark = pytest.mark.group('api', 'api_files')
 
 
 class TestGetPresentationRecordFile:

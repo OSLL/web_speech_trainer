@@ -4,6 +4,9 @@ from app.criteria import StrictSpeechDurationCriterion, SpeechPaceCriterion, Fil
 from app.feedback_evaluator import PredefenceEightToTenMinutesNoSlideCheckFeedbackEvaluator
 
 
+pytestmark = pytest.mark.group('feedback_evaluator')
+
+
 class TestPredefenceEightToTenMinutesNoSlideCheckFeedbackEvaluator:
     @pytest.mark.parametrize(
         "criteria_results, expected_string",

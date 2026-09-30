@@ -16,6 +16,38 @@ $ make unit-tests
 ```
 
 `--ignore=selenium` необходим (`pytest -s . -k 'not selenium'` не сработает), чтобы pytest не смотрел на selenium тесты, которые будут собраны в другом контейнере, иначе будут ошибки (selenium тесты будут ссылаться на отсутствующие в текущем контейнере зависимости)
+
+### Группы тестов
+Тесты (юнит и selenium) разбиты на логические группы. Запустить только часть групп можно переменной окружения
+`TEST_GROUPS` - список названий групп через запятую (и/или пробел). Если `TEST_GROUPS` пустая или не задана - запускаются все тесты.
+Запускаются тесты, входящие хотя бы в одну из указанных групп.
+
+```bash
+# юнит тесты
+$ make unit-tests TEST_GROUPS=speech_pace,api_files
+$ docker exec -e TEST_GROUPS=criteria web_speech_trainer-web-1 bash -c 'cd /project/tests && pytest --ignore=selenium'
+$ cd tests && TEST_GROUPS=criteria pytest --ignore=selenium
+
+# selenium тесты (переменная передается в контейнер через docker-compose-selenium.yml)
+$ make tests TEST_GROUPS=simple_training
+$ TEST_GROUPS=simple_training docker compose -f docker-compose.yml -f docker-compose-selenium.yml up -d
+$ TEST_GROUPS=simple_training python3 tests/selenium/main.py
+```
+
+Все группы (юнит и selenium вместе) с описаниями перечислены в одном месте - словаре `GROUPS` в `tests/pytest_groups.py`.
+Неизвестная группа в `TEST_GROUPS` - ошибка запуска (код 4), в сообщении выводится список доступных групп.
+
+Юнит и selenium тесты - разные запуски с одной и той же `TEST_GROUPS`, поэтому если в запуске нет тестов ни из одной
+указанной группы (например, в selenium запуске указаны только группы юнит тестов), запуск завершается успешно (код 0).
+Выбранные группы печатаются в заголовке запуска pytest (`test groups (TEST_GROUPS): ...`).
+
+Группа задается маркером `@pytest.mark.group('название', ...)` на уровне модуля (`pytestmark = pytest.mark.group(...)`),
+класса или функции, тест входит во все группы всех своих маркеров. Логика выбора групп - pytest плагин `tests/pytest_groups.py`,
+подключается в `tests/conftest.py` и `tests/selenium/conftest.py`.
+Каждый тест должен входить хотя бы в одну группу из `GROUPS`: тест без маркера или с группой не из `GROUPS`
+(например, с опечаткой) - ошибка при сборке тестов (код 4), независимо от `TEST_GROUPS`.
+Новую группу нужно добавить в `GROUPS`.
+
 ### Selenium тесты
 
 Selenium тесты лежат в `tests/selenium`. Входная точка - `tests/selenium/main.py`
@@ -64,7 +96,7 @@ $ bash tests/scripts/docker_check_tests.sh
 Образ тестов можно запустить и отдельно, указав адрес приложения, запущенного с `testing.ini`:
 ```bash
 $ docker build -t wst-selenium -f Dockerfile_selenium .
-$ docker run --rm --shm-size=2g --network="host" -e HOST=http://127.0.0.1:5000 \
+$ docker run --rm --shm-size=2g --network="host" -e HOST=http://127.0.0.1:5000 -e TEST_GROUPS=simple_training \
     -v "$(pwd)/test_results:/usr/src/project/test_results" wst-selenium
 ```
 
@@ -106,6 +138,8 @@ $ pytest tests/selenium -s -v --host http://127.0.0.1:5000 --html=test_results/r
 
 #### Добавление теста
 Создать `tests/selenium/test_<название>.py` с классом `<Название>TestSelenium(BasicSeleniumTest)` - pytest найдет его сам.
+В модуле указать группы: `pytestmark = pytest.mark.group('selenium', '<название>')` (см. [Группы тестов](#группы-тестов)),
+новую группу добавить в `GROUPS` в `tests/pytest_groups.py`.
 
 #### Список тестов
 ##### SimpleTrainingTestSelenium (`test_simple_training.py`)

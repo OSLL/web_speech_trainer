@@ -1,7 +1,11 @@
 from time import sleep
 
+import pytest
+
 from basic_selenium_test import BasicSeleniumTest
 from training_session import Training
+
+pytestmark = pytest.mark.group('selenium', 'simple_training')
 
 
 class SimpleTrainingTestSelenium(BasicSeleniumTest):

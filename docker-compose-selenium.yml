@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile_selenium
     environment:
       - HOST=http://127.0.0.1:5000
+      - TEST_GROUPS=${TEST_GROUPS:-}
     shm_size: 2g
     volumes:
       - ./test_results:/usr/src/project/test_results

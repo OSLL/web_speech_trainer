@@ -1,6 +1,11 @@
+import pytest
+
 from app.audio import Audio
 from app.criteria import FillersRatioCriterion
 from app.web_speech_trainer import app
+
+
+pytestmark = pytest.mark.group('app')
 
 
 def test_init_page():
@@ -11,6 +16,7 @@ def test_init_page():
         assert response.status_code == 200
 
 
+@pytest.mark.group('fillers_ratio')
 def test_fillers_ratio_criteria():
     criterion = FillersRatioCriterion(
         parameters={'fillers': ['а', 'ну', 'это самое']},

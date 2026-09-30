@@ -3,6 +3,8 @@ FROM selenium/standalone-chrome:137.0-chromedriver-137.0-grid-4.33.0-20250606
 ENV HOST="http://127.0.0.1:5000"
 ENV APP_CONF_PATH="app_conf/testing.ini"
 ENV RESULTS_DIR="/usr/src/project/test_results"
+# groups of tests to run (comma separated), empty - all tests
+ENV TEST_GROUPS=""
 
 WORKDIR /usr/src/project
 
@@ -15,6 +17,7 @@ COPY tests/selenium/requirements.txt tests/selenium/requirements.txt
 RUN pip install -r tests/selenium/requirements.txt
 
 COPY tests/selenium tests/selenium
+COPY tests/pytest_groups.py tests/pytest_groups.py
 COPY tests/test_data tests/test_data
 COPY tests/simple_phrases_russian.wav tests/simple_phrases_russian.wav
 

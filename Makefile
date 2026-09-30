@@ -7,6 +7,9 @@ BASE_DOCKERFILE ?= Dockerfile_base
 APP_CONF ?= ../app_conf/config.ini
 TESTING_APP_CONF ?= ../app_conf/testing.ini
 
+# groups of tests to run (comma separated, see tests/README.md), empty - all tests
+TEST_GROUPS ?=
+
 COMPOSE = docker compose -f docker-compose.yml
 COMPOSE_TESTS = docker compose -f docker-compose.yml -f docker-compose-selenium.yml
 
@@ -14,7 +17,7 @@ define image_exists
 $(shell docker image inspect $(1) > /dev/null 2>&1 && echo "yes")
 endef
 
-export APP_CONF
+export APP_CONF TEST_GROUPS
 
 .PHONY: build-base check-base build build-tests build-all up up-d down tests tests-up unit-tests selenium-tests check-tests
 
@@ -59,7 +62,7 @@ tests-up:
 
 # unit tests inside running web container
 unit-tests:
-	$(COMPOSE) exec -T web bash -c 'cd /project/tests && pytest --ignore=selenium' ;
+	$(COMPOSE) exec -T -e TEST_GROUPS="$(TEST_GROUPS)" web bash -c 'cd /project/tests && pytest --ignore=selenium' ;
 
 # rerun selenium tests in already running app (container exits after tests)
 selenium-tests:

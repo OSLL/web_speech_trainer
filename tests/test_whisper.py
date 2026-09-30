@@ -1,9 +1,13 @@
 import requests
 import time
 import librosa
+import pytest
 
 from app.audio_recognizer import WhisperAudioRecognizer
 from app.config import Config
+
+
+pytestmark = pytest.mark.group('whisper')
 
 
 def test_whisper():

@@ -24,6 +24,9 @@ from mock_data import check_no_auth_called_once, check_json_response
 #    check_return_value
 
 
+pytestmark = pytest.mark.group('api', 'api_task_attempts')
+
+
 @pytest.fixture
 def test_client():
     with app.test_client() as test_client:

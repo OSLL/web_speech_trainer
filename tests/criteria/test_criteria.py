@@ -1,3 +1,5 @@
+import pytest
+
 from app.criteria import SpeechPaceCriterion, FillersNumberCriterion
 from app.criteria.utils import DEFAULT_FILLERS
 from app.presentation import Presentation
@@ -10,6 +12,9 @@ sys.path.append(os.getcwd())
 sys.path.append(str(Path(os.getcwd()).parent.absolute()))
 # noinspection PyUnresolvedReferences
 from mock_data import TRAINING_ID, AUDIO, TIMESTAMP
+
+
+pytestmark = pytest.mark.group('criteria')
 
 
 DEFAULT_SPEECH_PACE_CRITERION= SpeechPaceCriterion(
@@ -28,6 +33,7 @@ DEFAULT_FILLERS_NUMBER_CRITERION = FillersNumberCriterion(
     dependent_criteria=[],
 )
 
+@pytest.mark.group('speech_pace')
 def test_speech_pace_criterion():
     audio = AUDIO
     speech_pace_criterion = DEFAULT_SPEECH_PACE_CRITERION
@@ -41,6 +47,7 @@ def test_speech_pace_criterion():
     assert abs(result.result - 0.501) < 0.01
 
 
+@pytest.mark.group('fillers_number')
 def test_fillers_number_criterion():
     audio = AUDIO
     fillers_number_criterion = DEFAULT_FILLERS_NUMBER_CRITERION
@@ -51,6 +58,7 @@ def test_fillers_number_criterion():
     assert result.result == 1
 
 
+@pytest.mark.group('fillers_number')
 def test_fillers_number_criterion_not_passed():
     audio = AUDIO
     fillers_number_criterion = FillersNumberCriterion(

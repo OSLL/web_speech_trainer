@@ -49,7 +49,7 @@ def pytest_addoption(parser):
 
 def setup_logging(results_dir):
     os.makedirs(results_dir, exist_ok=True)
-    log_file = os.path.join(results_dir, LOG_FILE_NAME).replace('\', '/')
+    log_file = os.path.join(results_dir, LOG_FILE_NAME).replace('\\', '/')
     logging.config.fileConfig(LOGGING_CONF, defaults={'log_file': log_file}, disable_existing_loggers=False)
 
 
