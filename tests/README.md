@@ -30,7 +30,7 @@ $ cd tests && TEST_GROUPS=criteria pytest --ignore=selenium
 
 # selenium тесты (переменная передается в контейнер через docker-compose-selenium.yml)
 $ make tests TEST_GROUPS=simple_training
-$ TEST_GROUPS=simple_training docker compose -f docker-compose.yml -f docker-compose-selenium.yml up -d
+$ TEST_GROUPS=simple_training docker compose -f docker-compose-selenium.yml up
 $ TEST_GROUPS=simple_training python3 tests/selenium/main.py
 ```
 
@@ -69,26 +69,35 @@ Selenium тесты лежат в `tests/selenium`. Входная точка - 
 #### Запуск через Makefile
 ```bash
 # собрать (или скачать) базовый образ, образы приложения и тестов,
-# поднять приложение с конфигом testing.ini вместе с контейнером тестов
+# поднять приложение с конфигом testing.ini (docker-compose.yml), затем отдельно контейнер тестов (docker-compose-selenium.yml)
 $ make tests
 
 # дождаться завершения тестов, вывести логи и вернуть код завершения тестов
 $ make check-tests
 
-# перезапустить selenium тесты в уже поднятом приложении
+# запустить selenium тесты на любой адрес (без контейнеров приложения)
 $ make selenium-tests
+$ make selenium-tests HOST=https://example.com
 
-# остановить все контейнеры
+# остановить контейнеры приложения / тестов
 $ make down
+$ make tests-down
 ```
 
 #### Запуск через docker compose
-Контейнер `selenium-tests` запускает тесты сразу при старте (предварительно дожидается доступности приложения) и завершается с кодом результата тестов.
-Контейнер работает в сетевом пространстве `web` (`network_mode: service:web`), поэтому приложение доступно по `http://127.0.0.1:5000`.
-```bash
-$ docker compose -f docker-compose.yml -f docker-compose-selenium.yml build
+Тесты отделены от системы: `docker-compose.yml` поднимает только приложение, `docker-compose-selenium.yml` - только контейнер тестов,
+которому передается адрес тестируемой системы в переменной `HOST` (по умолчанию `http://host.docker.internal:5000` -
+приложение, запущенное на этом же хосте). Так можно тестировать любой инстанс (в т.ч. прод) без привязки к развертыванию.
+Внутри контейнера `localhost`/`127.0.0.1` - это сам контейнер, поэтому локальное приложение указывается через `host.docker.internal` или IP хоста.
 
-$ APP_CONF=../app_conf/testing.ini docker compose -f docker-compose.yml -f docker-compose-selenium.yml up -d
+Контейнер `selenium-tests` запускает тесты сразу при старте (предварительно дожидается доступности приложения) и завершается с кодом результата тестов.
+```bash
+# приложение с тестовым конфигом
+$ APP_CONF=../app_conf/testing.ini docker compose -f docker-compose.yml up -d
+
+# тесты
+$ docker compose -f docker-compose-selenium.yml build
+$ HOST=http://host.docker.internal:5000 docker compose -f docker-compose-selenium.yml up -d
 
 $ bash tests/scripts/docker_check_tests.sh
 ```
