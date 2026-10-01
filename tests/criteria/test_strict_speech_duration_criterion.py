@@ -6,6 +6,9 @@ import pytest
 from app.criteria import StrictSpeechDurationCriterion
 
 
+pytestmark = pytest.mark.group('criteria', 'strict_speech_duration')
+
+
 class TestStrictSpeechDurationCriterion:
     strict_speech_duration_criterion_all_parameters = {
         'strict_minimal_allowed_duration': 100,

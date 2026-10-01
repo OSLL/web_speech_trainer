@@ -1,6 +1,11 @@
+import pytest
+
 from app.presentation import Presentation
 from app.recognized_presentation import RecognizedPresentation
 from app.recognized_slide import RecognizedSlide
+
+
+pytestmark = pytest.mark.group('presentations')
 
 
 def test_presentation_split_into_slides():

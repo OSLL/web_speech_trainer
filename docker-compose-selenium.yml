@@ -1,12 +1,15 @@
-version: '2'
+name: web_speech_trainer_tests
 
 services:
   selenium-tests:
     build:
       context: .
       dockerfile: Dockerfile_selenium
+    environment:
+      - HOST=${HOST:-http://host.docker.internal:5000}
+      - TEST_GROUPS=${TEST_GROUPS:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     shm_size: 2g
-    depends_on:
-      - web
-    networks:
-      - default
+    volumes:
+      - ./test_results:/usr/src/project/test_results

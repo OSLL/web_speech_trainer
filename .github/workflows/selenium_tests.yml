@@ -1,0 +1,27 @@
+name: Selenium_tests
+
+on: pull_request
+
+jobs:
+  check_tests:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and run docker compose with docker-compose-selenium (tests)
+        run: |
+          make build-base
+          make tests
+
+      - name: Run check tests (tests)
+        run: |
+          make check-tests
+
+      - name: Upload tests results (log + html report)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selenium-test-results
+          path: test_results/
+          if-no-files-found: warn

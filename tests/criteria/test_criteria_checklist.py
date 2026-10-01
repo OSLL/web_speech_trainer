@@ -26,6 +26,9 @@ import app.criteria.slides_checker.criterion as slides_checker_module
 import app.criteria.speech_is_not_in_database.criterion as speech_in_db_module
 
 
+pytestmark = pytest.mark.group('criteria')
+
+
 def make_recognized_word(value: str):
     return SimpleNamespace(word=SimpleNamespace(value=value))
 
@@ -162,6 +165,7 @@ def make_speech_is_not_in_database_parameters():
     }
 
 
+@pytest.mark.group('criteria_common')
 class TestCriterionContract:
     def test_init_stores_name_parameters_and_dependencies(self):
         criterion = NumberSlidesCriterion(
@@ -223,6 +227,7 @@ class TestCriterionContract:
         assert get_proportional_result(value, lower_bound, upper_bound) == pytest.approx(expected)
 
 
+@pytest.mark.group('comparison_speech_slides')
 class TestComparisonSpeechSlidesCriterion:
     def test_default_slide_speech_threshold(self, monkeypatch):
         evaluator = DummySlidesSimilarityEvaluator()
@@ -315,6 +320,7 @@ class TestComparisonSpeechSlidesCriterion:
             criterion.apply(audio, presentation, "training-id", {})
 
 
+@pytest.mark.group('comparison_whole_speech')
 class TestComparisonWholeSpeechCriterion:
     def test_no_speech_returns_zero_with_verdict(self, monkeypatch):
         model = DummyDoc2VecEvaluator(similarity=0.9)
@@ -385,6 +391,7 @@ class TestComparisonWholeSpeechCriterion:
             criterion.apply(audio, presentation, "training-id", {})
 
 
+@pytest.mark.group('fillers_number')
 class TestFillersNumberCriterion:
     def test_total_words_zero_returns_one(self):
         criterion = FillersNumberCriterion(
@@ -447,6 +454,7 @@ class TestFillersNumberCriterion:
         assert "как бы" in result.verdict
 
 
+@pytest.mark.group('fillers_ratio')
 class TestFillersRatioCriterion:
     def test_no_fillers_parameter_raises_value_error(self):
         with pytest.raises(ValueError):
@@ -469,6 +477,7 @@ class TestFillersRatioCriterion:
         assert result.result == pytest.approx(0.95)
 
 
+@pytest.mark.group('len_text_on_slide')
 class TestLenTextOnSlideCriterion:
     def test_no_minimal_number_words_raises_value_error(self):
         with pytest.raises(ValueError):
@@ -509,6 +518,7 @@ class TestLenTextOnSlideCriterion:
         assert result.result == 1
 
 
+@pytest.mark.group('number_slides')
 class TestNumberSlidesCriterion:
     def test_without_min_and_max_raises_value_error(self):
         with pytest.raises(ValueError):
@@ -553,6 +563,7 @@ class TestNumberSlidesCriterion:
         assert result.verdict == ""
 
 
+@pytest.mark.group('number_word_on_slide')
 class TestNumberWordOnSlideCriterion:
     def test_no_minimal_number_words_raises_value_error(self):
         with pytest.raises(ValueError):
@@ -584,6 +595,7 @@ class TestNumberWordOnSlideCriterion:
         assert "распознаных" in result.verdict
 
 
+@pytest.mark.group('slides_checker')
 class TestSlidesCheckerCriterion:
     def test_training_not_found_returns_zero(self, monkeypatch):
         monkeypatch.setattr(
@@ -737,6 +749,7 @@ class TestSlidesCheckerCriterion:
         assert "results/abc" in result.verdict
 
 
+@pytest.mark.group('speech_duration')
 class TestSpeechDurationCriterion:
     def test_without_min_and_max_raises_value_error(self):
         with pytest.raises(ValueError):
@@ -759,6 +772,7 @@ class TestSpeechDurationCriterion:
         assert result.result == pytest.approx(expected)
 
 
+@pytest.mark.group('speech_is_not_in_database')
 class TestSpeechIsNotInDatabaseCriterion:
     def test_mp3_to_wav_error_returns_zero_and_verdict(self, monkeypatch):
         current_training = SimpleNamespace(presentation_record_file_id="current-audio-id")
@@ -962,6 +976,7 @@ class TestSpeechIsNotInDatabaseCriterion:
             criterion.apply(make_audio([[]]), make_presentation([""]), "training-id", {})
 
 
+@pytest.mark.group('speech_pace')
 class TestSpeechPaceCriterion:
     def test_missing_min_or_max_raises_value_error(self):
         with pytest.raises(ValueError):
@@ -1019,6 +1034,7 @@ class TestSpeechPaceCriterion:
         assert "Слайд 2" in result.verdict
 
 
+@pytest.mark.group('strict_speech_duration')
 class TestStrictSpeechDurationCriterion:
     def test_missing_soft_bounds_raises_value_error(self):
         with pytest.raises(ValueError):

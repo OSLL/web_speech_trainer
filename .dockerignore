@@ -6,3 +6,4 @@ venv
 __pycache__
 Dockerfile*
 app/playground
+test_results
