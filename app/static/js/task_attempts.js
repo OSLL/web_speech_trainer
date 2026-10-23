@@ -51,7 +51,7 @@ function TableRowFiller() {
         tableRow["start_timestamp"].innerHTML = get_time_string(training.training_start_timestamp);
         tableRow["score"].innerHTML = training.score || "none";
         tableRow["training_status"].innerHTML = training.training_status;
-        tableRow["pass_back_status"].innerHTML = training.passedBackStatus || "none";
+        tableRow["pass_back_status"].innerHTML = training.pass_back_status || "none";
     }
 
     return fillTableRow;
@@ -68,7 +68,7 @@ function getSortedTrainingsList(trainings) {
     });
 
     trainingsList.sort((a, b) => {
-        return Date.parse(a) - Date.parse(b);
+        return Date.parse(a.training_start_timestamp) - Date.parse(b.training_start_timestamp);
     });
 
     return trainingsList;

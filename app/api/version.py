@@ -1,6 +1,5 @@
 from app.root_logger import get_root_logger
-from flask import render_template, Blueprint
-from app.lti_session_passback.auth_checkers import check_admin
+from flask import Blueprint
 import os
 import json
 from json.decoder import JSONDecodeError

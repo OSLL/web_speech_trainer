@@ -1,36 +1,49 @@
 name: CI
-
-on: pull_request
+on:
+  pull_request:
+  push:
+    branches: [pre-release]
 
 jobs:
-  build:
-    runs-on: ubuntu-22.04
-
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      WST_IMAGE_TAG: ci
+      APP_CONF: ../app_conf/testing.py
+      RABBITMQ_DEFAULT_USER: wst
+      RABBITMQ_DEFAULT_PASS: isolated_ci_broker_password
+      COMPOSE_PROJECT_NAME: wst-ci
+      COMPOSE_FILE: docker-compose.yml:docker-compose.testing.yml:docker-compose-selenium.yml
+      TASK_TIME_LIMIT_SECONDS: '180'
+      TASK_SOFT_TIME_LIMIT_SECONDS: '150'
+      WORKFLOW_LEASE_SECONDS: '190'
+      WST_FAULT_TESTS: '1'
     steps:
-    - uses: actions/checkout@v2
-
-    - name: Build system images (non-pulling)
-      run: |
-        # build base image
-        docker build -f Dockerfile_base -t dvivanov/wst-base:v0.2 .
-
-    - name: Decreasing whisper model for tests
-      run: |
-        cp docker-compose.yml docker-compose-tmp.yml
-        sed -e "s/ASR_MODEL=medium/ASR_MODEL=tiny/" docker-compose-tmp.yml > docker-compose.yml
-        rm docker-compose-tmp.yml
-
-    - name: Build docker-compose
-      run: |
-        docker compose -f docker-compose.yml -f docker-compose-selenium.yml build
-
-    - name: Run docker-compose
-      run:
-        APP_CONF=../app_conf/testing.ini docker compose -f docker-compose.yml -f docker-compose-selenium.yml up -d
-
-    - name: Run tests
-      run: |
-        docker ps -a
-        docker compose logs
-        docker exec web_speech_trainer-web-1 bash -c 'cd /project/tests && pytest --ignore=selenium'
-        docker exec web_speech_trainer-selenium-tests-1 bash -c 'pytest .'
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate and build
+        run: |
+          ./scripts/version.sh > VERSION.json
+          docker compose config --quiet
+          docker compose build
+      - name: Unit and regression tests
+        run: >-
+          docker run --rm --entrypoint bash "wst-image:$WST_IMAGE_TAG" -ec
+          'pip install -r /project/tests/requirements-unit.txt && cd /project && pytest tests --ignore=tests/selenium'
+      - name: Start real services
+        run: docker compose up -d --wait web worker_audio worker_presentation worker_training worker_passback beat whisper
+      - name: Selenium against real services
+        run: docker compose run --rm selenium-tests
+      - name: Broker and worker failure recovery
+        run: |
+          pip install -r tests/requirements-integration.txt
+          pytest -o addopts='' --integration tests/integration -v --timeout=480
+      - name: Service logs
+        if: always()
+        run: docker compose logs --no-color --tail=150
+      - name: Cleanup isolated test data
+        if: always()
+        run: docker compose down --volumes --remove-orphans

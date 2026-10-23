@@ -112,7 +112,7 @@ function callAddPresentationRecord(blob) {
             fetch(`/api/trainings/${trainingId}/`, {method: "POST"})
                 .then(response => response.json())
                 .then(innerResponseJson => {
-                    if (innerResponseJson["message"] === "OK") {
+                    if (innerResponseJson["message"] === "OK" || innerResponseJson.recoverable) {
                         location.href = `/trainings/statistics/${trainingId}/`;
                     }
                 });

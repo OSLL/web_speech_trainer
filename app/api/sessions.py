@@ -68,7 +68,7 @@ def get_user_agent():
     user_browser_name = user_info['user_agent']['family']
     if user_browser_name in Config.c.user_agent_browser.__dict__:
         version = Config.c.user_agent_browser.__dict__[user_browser_name]
-        if version_util.parse(user_info['user_agent']['major']) < version_util.parse(version):
+        if not user_info['user_agent']['major'] or version_util.parse(user_info['user_agent']['major']) < version_util.parse(version):
                 response['outdated'] = True
     else:
         response['outdated'] = True

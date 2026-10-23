@@ -18,6 +18,10 @@ class Audio:
             self.audio_stats = self.calculate_audio_stats(recognized_audio, slide_switch_timestamps)
 
     def split_into_slides(self, recognized_audio: RecognizedAudio, slide_switch_timestamps: list) -> list:
+        if len(slide_switch_timestamps) < 2:
+            raise ValueError("At least start and end timestamps are required")
+        if any(b < a for a, b in zip(slide_switch_timestamps, slide_switch_timestamps[1:])):
+            raise ValueError("Slide timestamps must be ordered")
         slides = []
         current_slide = []
         delta_time = slide_switch_timestamps[0]

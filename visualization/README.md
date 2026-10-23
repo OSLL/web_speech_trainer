@@ -1,20 +1,16 @@
-## Install requirements
+# Исследовательская визуализация
+
+Этот каталог анализирует исторические данные MongoDB и не входит в рабочий
+Docker-образ или CI. Его отчёты не заменяют проверку состояния Celery workflow.
+
+Для ручного анализа установите зависимости в отдельное окружение и укажите
+адрес доступной копии БД:
+
 ```bash
-# In repo's root
 python3 -m pip install -r visualization/requirements.txt
-```
-
-## Run
-```
-# In repo's root
-./scripts/visualize.sh
-# or in container
 cd visualization
-python3 visualization.py
-``` 
+python3 visualization.py --mongo localhost:27017
+```
 
-## Result
-```
-# In repo's root
-cd visualization/retults/<current_date>
-```
+Результаты создаются в `visualization/results/`. Рабочая MongoDB не публикует
+порт; анализируйте резервную копию или используйте отдельно настроенное соединение.

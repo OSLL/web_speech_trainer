@@ -1,7 +1,7 @@
-#!/bin/bash
-
-db_name="database"
-
-db_url="`./scripts/db/get_db_ip.sh`:27017"
-
-./scripts/db/mongo.sh -H ${db_url} ${db_name}
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+archive=${1:?Usage: scripts/backup_db.sh /path/to/backup.archive.gz}
+umask 077
+# Include all databases, GridFS and indexes; no published MongoDB port is needed.
+docker compose exec -T db mongodump --archive --gzip > "$archive"

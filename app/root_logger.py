@@ -14,16 +14,20 @@ class MongoDBLoggingHandler(logging.StreamHandler):
     def emit(self, record):
         if not record.msg or is_testing_active():
             return
-        from app.mongo_odm import LogsDBManager
-        LogsDBManager().add_log(timestamp=datetime.now(),
-                                serviceName=self.service_name,
-                                levelname=record.levelname,
-                                levelno=record.levelno,
-                                message=self.format(record),
-                                pathname=record.pathname,
-                                filename=record.filename,
-                                funcName=record.funcName,
-                                lineno=record.lineno)
+        try:
+            from app.mongo_odm import LogsDBManager
+            LogsDBManager().add_log(timestamp=datetime.now(),
+                                    serviceName=self.service_name,
+                                    levelname=record.levelname,
+                                    levelno=record.levelno,
+                                    message=self.format(record),
+                                    pathname=record.pathname,
+                                    filename=record.filename,
+                                    funcName=record.funcName,
+                                    lineno=record.lineno)
+        except Exception:
+            self.handleError(record)
+
 
 
 def get_logging_stdout_handler():
@@ -35,9 +39,9 @@ def get_logging_stdout_handler():
 
 
 def get_root_logger(service_name='root_logger'):
-    root_logger = logging.getLogger('root_logger')
+    root_logger = logging.getLogger('wst.' + service_name)
     root_logger.setLevel(logging.DEBUG)
-    if not root_logger.hasHandlers():
+    if not root_logger.handlers:
         root_logger.addHandler(get_logging_stdout_handler())
         root_logger.addHandler(MongoDBLoggingHandler(service_name))
     root_logger.propagate = False
