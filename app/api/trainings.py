@@ -1,8 +1,8 @@
 from app.root_logger import get_root_logger
 import csv
+import math
 import time
 import json
-import os
 import pytz
 from datetime import datetime
 from io import BytesIO, StringIO
@@ -11,14 +11,14 @@ from bson import ObjectId
 from flask import Blueprint, session, request, send_file
 
 from app.audio import Audio
-from app.check_access import check_access
-from app.lti_session_passback.auth_checkers import is_admin, check_auth, check_admin, is_logged_in
+from app.check_access import check_access, check_presentation_access
+from app.lti_session_passback.auth_checkers import is_admin, check_auth, check_admin
 from app.mongo_models import Trainings
 from app.mongo_odm import TrainingsDBManager, TaskAttemptsDBManager, TasksDBManager, DBManager
 from app.filters import GetAllTrainingsFilterManager
 from app.status import TrainingStatus, AudioStatus, PassBackStatus, PresentationStatus
-from app.training_manager import TrainingManager
-from app.utils import remove_blank_and_none, check_arguments_are_convertible_to_object_id
+from app.training_manager import TrainingManager, PipelineUnavailable
+from app.utils import check_arguments_are_convertible_to_object_id
 from app.localisation import *
 
 api_trainings = Blueprint('api_trainings', __name__)
@@ -26,8 +26,20 @@ logger = get_root_logger()
 DATETIME_STR_FORMAT = r"%d.%m.%Y %H:%M:%S"
 
 
-@check_arguments_are_convertible_to_object_id
+def request_filters():
+    filters = json.loads(request.args.get('filters', '{}'))
+    if not isinstance(filters, dict):
+        raise ValueError('filters must be an object')
+    for name, values in filters.items():
+        if name.startswith('_') or not isinstance(values, list) or not 1 <= len(values) <= 50:
+            raise ValueError('Invalid filter')
+        if not all(isinstance(value, str) and len(value) <= 1000 for value in values):
+            raise ValueError('Filter values must be strings')
+    return filters
+
+
 @api_trainings.route('/api/trainings/timestamps/<training_id>/', methods=['PUT'])
+@check_arguments_are_convertible_to_object_id
 def append_slide_switch_timestamp(training_id: str) -> (dict, int):
     """
     Endpoint to append a slide switch timestamp.
@@ -49,8 +61,8 @@ def append_slide_switch_timestamp(training_id: str) -> (dict, int):
     return {'message': 'OK'}, 200
 
 
-@check_arguments_are_convertible_to_object_id
 @api_trainings.route('/api/trainings/presentations/<presentation_file_id>/', methods=['POST'])
+@check_arguments_are_convertible_to_object_id
 def add_training(presentation_file_id) -> (dict, int):
     """
     Endpoint to add a training based on the presentation file with the given identifier.
@@ -63,6 +75,8 @@ def add_training(presentation_file_id) -> (dict, int):
     #TODO check a file was uploaded by the current user???
     """
     if not check_auth():
+        return {}, 404
+    if not check_presentation_access(presentation_file_id):
         return {}, 404
     username = session.get('session_id')
     full_name = session.get('full_name')
@@ -84,15 +98,17 @@ def add_training(presentation_file_id) -> (dict, int):
         criteria_pack_id=criteria_pack_id,
         feedback_evaluator_id=feedback_evaluator_id,
     ).pk
-    TaskAttemptsDBManager().add_training(task_attempt_id, training_id)
+    if not TaskAttemptsDBManager().add_training(task_attempt_id, training_id):
+        TrainingsDBManager().delete_training(training_id)
+        return {'message': 'Training limit for this attempt reached.'}, 409
     return {
         'training_id': str(training_id),
         'message': 'OK'
     }, 200
 
 
-@check_arguments_are_convertible_to_object_id
 @api_trainings.route('/api/trainings/remaining-processing-time/<training_id>/', methods=['GET'])
+@check_arguments_are_convertible_to_object_id
 def get_remaining_processing_time_by_training_id(training_id: str) -> (dict, int):
     """
     Endpoint to get estimated time until the training with the provided training identifier will be processed.
@@ -196,8 +212,8 @@ def proccess_training_slides_info(audio):
     return slides_time
 
 
-@check_arguments_are_convertible_to_object_id
 @api_trainings.route('/api/trainings/statistics/<training_id>/', methods=['GET'])
+@check_arguments_are_convertible_to_object_id
 def get_training_statistics(training_id: str) -> (dict, int):
     """
     Endpoint to get statistics of a training by its identifier
@@ -242,7 +258,7 @@ def get_training_statistics(training_id: str) -> (dict, int):
         'message': 'OK',
         'username': training_db.username,
         'full_name': training_db.full_name,
-        'task_attempt_id': training_db.task_attempt_id,
+        'task_attempt_id': str(training_db.task_attempt_id),
         'presentation_file_id': str(presentation_file_id),
         'presentation_file_name': presentation_file_name,
         'presentation_record_file_id': str(training_db.presentation_record_file_id),
@@ -257,8 +273,8 @@ def get_training_statistics(training_id: str) -> (dict, int):
     }, 200
 
 
-@check_arguments_are_convertible_to_object_id
 @api_trainings.route('/api/trainings/presentation-records/<training_id>/', methods=['POST'])
+@check_arguments_are_convertible_to_object_id
 def add_presentation_record(training_id: str) -> (dict, int):
     """
     Endpoint to add presentation record to a training by its identifier.
@@ -275,27 +291,34 @@ def add_presentation_record(training_id: str) -> (dict, int):
         return {}, 404
     if 'presentationRecord' not in request.files:
         return {'message': 'No presentation record file.'}, 404
+    if (request.content_length or 0) > 128 * 1024 * 1024:
+        return {'message': 'Recording exceeds 128 MB.'}, 413
     presentation_record_file = request.files['presentationRecord']
+    import magic
+    mime = magic.from_buffer(presentation_record_file.read(4096), mime=True)
+    presentation_record_file.seek(0)
+    if mime not in ('audio/mpeg', 'audio/mp3'):
+        return {'message': 'Recording must be an MP3 file.'}, 400
     if 'presentationRecordDuration' not in request.form:
         return {'message': 'No presentation record duration.'}, 404
     presentation_record_duration = request.form.get('presentationRecordDuration', default=None, type=float)
-    if presentation_record_duration is None:
+    if presentation_record_duration is None or not math.isfinite(presentation_record_duration) or not 0 < presentation_record_duration <= 7200:
         return {}, 404
     if not is_admin():
         training_db = TrainingsDBManager().get_training(training_id)
         if training_db.presentation_record_file_id is not None:
             return {}, 404
-    TrainingsDBManager().change_training_status_by_training_id(training_id,
-                                                               TrainingStatus.SENT_FOR_PREPARATION)
     presentation_record_file_id = DBManager().add_file(presentation_record_file)
-    TrainingsDBManager().add_presentation_record(
-        training_id, presentation_record_file_id, presentation_record_duration,
-    )
+    attached = TrainingsDBManager().add_presentation_record(
+        training_id, presentation_record_file_id, presentation_record_duration)
+    if not attached:
+        DBManager().delete_file(presentation_record_file_id)
+        return {'message': 'Recording already attached or training cannot accept recordings.'}, 409
     return {'message': 'OK'}, 200
 
 
-@check_arguments_are_convertible_to_object_id
 @api_trainings.route('/api/trainings/<training_id>/', methods=['POST'])
+@check_arguments_are_convertible_to_object_id
 def start_training_processing(training_id: str) -> (dict, int):
     """
     Endpoint to start training processing of a training by its identifier.
@@ -310,16 +333,19 @@ def start_training_processing(training_id: str) -> (dict, int):
         return {}, 404
     if not is_admin():
         training_db = TrainingsDBManager().get_training(training_id)
-        if training_db.status != TrainingStatus.SENT_FOR_PREPARATION:
+        if training_db.status != TrainingStatus.SENT_FOR_PREPARATION and training_db.processing_state not in ('pending', 'running', 'complete'):
             logger.info(
                 f"start_training_processing. user not admin AND training_db.status != TrainingStatus.IN_PROGRESS (it's {training_db.status})")
             return {}, 404
-    TrainingManager().add_training(training_id)
+    try:
+        TrainingManager().add_training(training_id, restart=is_admin() and request.args.get('restart') == '1')
+    except PipelineUnavailable as exc:
+        return {'message': str(exc), 'recoverable': True}, 503
     return {'message': 'OK'}, 200
 
 
-@check_arguments_are_convertible_to_object_id
 @api_trainings.route('/api/trainings/<training_id>/', methods=['DELETE'])
+@check_arguments_are_convertible_to_object_id
 def delete_training_by_training_id(training_id: str) -> (dict, int):
     """
     Endpoint to delete a training by its identifier.
@@ -368,18 +394,18 @@ def get_training_information(current_training: Trainings) -> dict:
         return {
             'training_id': str(_id),
             'task_attempt_id': str(task_attempt_id),
-            'task_id': str(task_attempt.task_id),
+            'task_id': str(task_attempt.task_id) if task_attempt else '',
             # 'params_for_passback': task_attempt.params_for_passback,
             'training_start_timestamp': ObjectId(str(_id)).generation_time.astimezone(pytz.timezone("Europe/Moscow")).replace(tzinfo=None),
             'processing_start_timestamp': processing_start_timestamp,
             'processing_finish_timestamp': processing_finish_timestamp,
-            'score': f"{current_training.feedback.get('score', 0.0):.2f}".replace('.', ','),
+            'score': f"{(current_training.feedback or {}).get('score', 0.0):.2f}".replace('.', ','),
             'username': current_training.username,
             'full_name': current_training.full_name,
-            'pass_back_status': t(PassBackStatus.russian.get(pass_back_status)),
-            'training_status': t(TrainingStatus.russian.get(current_training.status)),
-            'audio_status': t(AudioStatus.russian.get(current_training.audio_status)),
-            'presentation_status': t(PresentationStatus.russian.get(current_training.presentation_status)),
+            'pass_back_status': t(PassBackStatus.russian.get(pass_back_status, '')),
+            'training_status': t(TrainingStatus.russian.get(current_training.status, '')),
+            'audio_status': t(AudioStatus.russian.get(current_training.audio_status, '')),
+            'presentation_status': t(PresentationStatus.russian.get(current_training.presentation_status, '')),
             'presentation_record_duration': presentation_record_duration,
             'presentation_file_id': str(presentation_file_id),
             'presentation_record_file_id': str(presentation_record_file_id),
@@ -389,8 +415,8 @@ def get_training_information(current_training: Trainings) -> dict:
         return {'message': '{}: {}'.format(e.__class__, e)}
 
 
-@check_arguments_are_convertible_to_object_id
 @api_trainings.route('/api/trainings/<training_id>/', methods=['GET'])
+@check_arguments_are_convertible_to_object_id
 def get_training(training_id) -> (dict, int):
     """
     Endpoint to get information about a training by its identifier.
@@ -410,7 +436,7 @@ def get_training(training_id) -> (dict, int):
 
 @api_trainings.route('/api/trainings/count-page', methods=['GET'])
 def get_count_page() -> (dict, int):
-    filters = json.loads(request.args.get('filters', "{}"))
+    filters = request_filters()
     username = filters.get('username')
 
     countItems = request.args.get('count')
@@ -423,6 +449,11 @@ def get_count_page() -> (dict, int):
     if not (check_admin() or (authorized and [session.get('session_id')] == username)):
         return {}, 404
 
+    if not check_admin():
+        filters['_consumer_key'] = session.get('consumer_key')
+        filters['_owner_username'] = session.get('session_id')
+    if countItems < 1 or countItems > 100:
+        return {'message': 'count must be between 1 and 100'}, 400
     count = GetAllTrainingsFilterManager().count_page_with_filters(filters, countItems)
     result = {"count": count}
     return result, 200
@@ -489,12 +520,16 @@ def get_all_trainings() -> (dict, int):
     :return: Dictionary with information about all trainings and 'OK' message, or
         an empty dictionary with 404 HTTP code if access was denied.
     """
-    filters = json.loads(request.args.get('filters', "{}"))
+    filters = request_filters()
     username = filters.get('username')
 
     authorized = check_auth() is not None
     if not (check_admin(allow_access_token=True) or (authorized and [session.get('session_id')] == username)):
         return {}, 404
+
+    if not check_admin(allow_access_token=True):
+        filters['_consumer_key'] = session.get('consumer_key')
+        filters['_owner_username'] = session.get('session_id')
 
     number_page = request.args.get('page')
     if not number_page:
@@ -508,8 +543,27 @@ def get_all_trainings() -> (dict, int):
     else:
         count_items = int(count_items)
 
+    if number_page < 0 or not 1 <= count_items <= 100:
+        return {'message': 'Invalid pagination'}, 400
     trainings = GetAllTrainingsFilterManager().query_with_filters(filters, number_page, count_items)
 
     trainings_json = {'trainings': [get_training_information(training) for training in trainings], 'message': 'OK'}
 
     return trainings_json, 200
+
+
+@api_trainings.route('/api/trainings/<training_id>/workflow/', methods=['GET'])
+@check_arguments_are_convertible_to_object_id
+def get_workflow(training_id):
+    if not check_access({'_id': ObjectId(training_id)}):
+        return {}, 404
+    from app.workflow import collection
+    training = collection().find_one({'_id': ObjectId(training_id)})
+    if not training:
+        return {}, 404
+    stages = training.get('processing_stages', {})
+    return {'message': 'OK', 'run_id': training.get('processing_run_id'),
+            'state': training.get('processing_state'),
+            'error': training.get('processing_error', ''),
+            'active_stages': [name for name, value in stages.items() if value.get('lease_until') and 'result' not in value],
+            'completed_stages': [name for name, value in stages.items() if 'result' in value]}, 200

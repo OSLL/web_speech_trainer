@@ -34,6 +34,9 @@ def lti():
     )
     if not check_request(request_info):
         return {}, 404
+    required = (utils.PERSON_NAME, utils.USERNAME, *utils.PASSBACK_PARAMS)
+    if any(name not in params for name in required):
+        return {'message': 'Missing required LTI launch parameters.'}, 400
     full_name = utils.get_person_name(params)
     username = utils.get_username(params)
     custom_params = utils.get_custom_params(params)
@@ -43,6 +46,10 @@ def lti():
     required_points = float(custom_params.get('required_points', 0))
     criteria_pack_id = CriteriaPackFactory().get_criteria_pack(custom_params.get('criteria_pack_id', '')).name
     presentation_id = custom_params.get('presentation_id')
+    if presentation_id:
+        error = check_argument_is_convertible_to_object_id(presentation_id)
+        if error:
+            return error
     feedback_evaluator_id = int(custom_params.get('feedback_evaluator_id', 1))
     role = utils.get_role(params)
     params_for_passback = utils.extract_passback_params(params)

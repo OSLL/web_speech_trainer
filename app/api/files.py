@@ -3,7 +3,7 @@ from app.root_logger import get_root_logger
 from bson import ObjectId
 from flask import Blueprint, make_response, request, send_file, session
 
-from app.check_access import check_access
+from app.check_access import check_access, check_presentation_access
 from app.config import Config
 from app.lti_session_passback.auth_checkers import check_auth
 from app.mongo_odm import DBManager, TrainingsDBManager, PresentationFilesDBManager
@@ -14,8 +14,8 @@ api_files = Blueprint('api_files', __name__)
 logger = get_root_logger()
 
 
-@check_arguments_are_convertible_to_object_id
 @api_files.route('/api/files/presentation-records/<presentation_record_file_id>/', methods=['GET'])
+@check_arguments_are_convertible_to_object_id
 def get_presentation_record_file(presentation_record_file_id: str):
     """
     Endpoint to get a presentation record file by its identifier.
@@ -43,18 +43,45 @@ def get_presentation_record_file(presentation_record_file_id: str):
         presentation_record_file,
         download_name='{}.mp3'.format(presentation_record_file_id),
         as_attachment=as_attachment,
+        mimetype="audio/mpeg",
     ))
     
-    response.headers['accept-ranges'] = "bytes"
+    response.headers['Accept-Ranges'] = 'bytes'
     response.headers['Content-Length'] = audiofile_len
-    response.headers['Content-Range'] = "bytes 0-{}/{}".format(audiofile_len, audiofile_len-1)
-    response.headers['content-type'] = presentation_record_file.content_type
-    
-    return response, 200
+    requested_range = request.headers.get('Range')
+    if requested_range:
+        from werkzeug.http import parse_range_header
+        parsed = parse_range_header(requested_range)
+        interval = parsed.range_for_length(audiofile_len) if parsed and parsed.units == 'bytes' else None
+        if interval is None:
+            presentation_record_file.close()
+            return '', 416, {'Content-Range': f'bytes */{audiofile_len}'}
+        start, stop = interval
+        presentation_record_file.seek(start)
+
+        def chunks():
+            remaining = stop - start
+            try:
+                while remaining:
+                    chunk = presentation_record_file.read(min(65536, remaining))
+                    if not chunk:
+                        break
+                    remaining -= len(chunk)
+                    yield chunk
+            finally:
+                presentation_record_file.close()
+
+        response.response = chunks()
+        response.status_code = 206
+        response.headers['Content-Length'] = stop - start
+        response.headers['Content-Range'] = f'bytes {start}-{stop - 1}/{audiofile_len}'
+        response.call_on_close(presentation_record_file.close)
+    return response
 
 
-@check_arguments_are_convertible_to_object_id
+
 @api_files.route('/api/files/presentations/by-training/<training_id>/', methods=['GET'])
+@check_arguments_are_convertible_to_object_id
 def get_presentation_file_by_training_id(training_id: str):
     """
     Endpoint to get a presentation file by a training identifier.
@@ -76,8 +103,8 @@ def get_presentation_file_by_training_id(training_id: str):
     return send_file(presentation_file, mimetype='application/pdf', as_attachment=as_attachment), 200
 
 
-@check_arguments_are_convertible_to_object_id
 @api_files.route('/api/files/presentations/previews/<presentation_file_id>/', methods=['GET'])
+@check_arguments_are_convertible_to_object_id
 def get_presentation_preview(presentation_file_id):
     """
     Endpoint to get a presentation preview by a presentation file identifier.
@@ -87,7 +114,7 @@ def get_presentation_preview(presentation_file_id):
         a dictionary with an explanation and 404 HTTP return code if a presentation file or a preview was not found, or
         an empty dictionary with 404 HTTP return code if access was denied.
     """
-    if not check_access({'presentation_file_id': presentation_file_id}):
+    if not check_presentation_access(presentation_file_id):
         return {}, 404
     preview_id = PresentationFilesDBManager().get_preview_id_by_file_id(presentation_file_id)
     if preview_id is None:
@@ -100,8 +127,8 @@ def get_presentation_preview(presentation_file_id):
     return send_file(presentation_preview_file, mimetype='image/png', as_attachment=as_attachment), 200
 
 
-@check_arguments_are_convertible_to_object_id
 @api_files.route('/api/files/presentations/<presentation_file_id>/', methods=['GET'])
+@check_arguments_are_convertible_to_object_id
 def get_presentation_file(presentation_file_id):
     """
     Endpoint to get a presentation file by presentation ID.
@@ -111,7 +138,7 @@ def get_presentation_file(presentation_file_id):
         a dictionary with an explanation and 404 HTTP return code if a presentation file or a preview was not found, or
         an empty dictionary with 404 HTTP return code if access was denied.
     """
-    if not check_access({'presentation_file_id': presentation_file_id}):
+    if not check_presentation_access(presentation_file_id):
         return {}, 404
     presentation_file_id = PresentationFilesDBManager().get_presentation_file(presentation_file_id)
     if presentation_file_id is None:
@@ -140,14 +167,14 @@ def upload_presentation() -> (dict, int):
         return {}, 404
     if 'presentation' not in request.files:
         return {'message': 'request.files[\'presentation\'] is not filled.'}, 404
-    if request.content_length > float(Config.c.constants.presentation_file_max_size_in_megabytes) * BYTES_PER_MEGABYTE:
+    if (request.content_length or 0) > float(Config.c.constants.presentation_file_max_size_in_megabytes) * BYTES_PER_MEGABYTE:
         return {
             'message': 'Presentation file should not exceed {}MB.'.format(
                 Config.c.constants.presentation_file_max_size_in_megabytes
             )
         }, 413
     # check if file can be stored (*2.5 is an estimate of pdf and preview)
-    if not DBManager().check_storage_limit(request.content_length * 2.5):
+    if not DBManager().check_storage_limit((request.content_length or 0) * 2.5):
         return {
             'message': "Not enough space in database to store file. "
                         "Please contact at email: "
@@ -155,9 +182,16 @@ def upload_presentation() -> (dict, int):
         }, 413
         
     presentation_file = request.files['presentation']
+    presentation_file.seek(0, 2)
+    actual_size = presentation_file.tell()
+    presentation_file.seek(0)
+    if actual_size > float(Config.c.constants.presentation_file_max_size_in_megabytes) * BYTES_PER_MEGABYTE:
+        return {'message': 'Presentation exceeds the configured size limit.'}, 413
 
     # check extension and mimetype of file 
     extension = presentation_file.filename.rsplit('.', 1)[-1].lower()
+    if extension not in session.get('formats', ('pdf',)):
+        return {'message': 'Presentation format is not allowed for this task.'}, 400
     passed, filemime = check_file_mime(presentation_file, extension) 
     if not passed:
         msg = 'Presentation file has not allowed extension: {} (mimetype: {}).'.format(extension,filemime)
@@ -187,13 +221,16 @@ def upload_presentation() -> (dict, int):
         presentation_file_preview.name,
         presentation_file_preview.name,
     )
+    import os
     presentation_file_preview.close()
+    os.unlink(presentation_file_preview.name)
     PresentationFilesDBManager().add_presentation_file(
         presentation_file_id,
         presentation_file.filename,
         presentation_file_preview_id,
         extension,
-        nonconverted_file_id
+        nonconverted_file_id,
+        owner=session.get('session_id'), consumer_key=session.get('consumer_key'),
     )
     return {
         'presentation_file_id': str(presentation_file_id),

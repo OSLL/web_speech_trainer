@@ -1,7 +1,6 @@
 import json
 
-from app.criteria import SpeechDurationCriterion, SpeechPaceCriterion, FillersRatioCriterion, FillersNumberCriterion, \
-    StrictSpeechDurationCriterion, ComparisonSpeechSlidesCriterion, ComparisonWholeSpeechCriterion
+from app.criteria import SpeechDurationCriterion, SpeechPaceCriterion
 
 
 class Feedback:

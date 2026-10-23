@@ -75,16 +75,22 @@ class SpeechIsNotInDatabaseCriterion(BaseCriterion):
         mfcc1 = mfcc1[:, :min_len].T
         mfcc2 = mfcc2[:, :min_len].T
 
-        length = 10
-        for length in range(10, min_len + 1, 10):
+        if min_len == 0:
+            return 0.0
+        matched = 0
+        lengths = list(range(min(10, min_len), min_len + 1, min(10, min_len)))
+        if lengths[-1] != min_len:
+            lengths.append(min_len)
+        for length in lengths:
             dist = []
             for d1, d2 in zip(mfcc1[:length, :], mfcc2[:length, :]):
                 dist.append(cosine(d1, d2))
 
-            if np.median(dist) > self.parameters['dist__hreshold']:
+            if not np.isfinite(dist).all() or np.median(dist) > self.parameters['dist__hreshold']:
                 break
+            matched = length
 
-        return length / min_len
+        return matched / min_len
 
     @property
     def description(self):
@@ -96,8 +102,8 @@ class SpeechIsNotInDatabaseCriterion(BaseCriterion):
 
 
     def apply(self, audio, presentation, training_id, criteria_results):
-        current_audio_id = TrainingsDBManager().get__raining(
-            training_id).presentation_record_file_id
+        current_training = TrainingsDBManager().get_training(training_id)
+        current_audio_id = current_training.presentation_record_file_id
         current_audio_file = DBManager().get_file(current_audio_id)
         try:
             current_audio_file = convert_from_mp3_to_wav(
@@ -107,7 +113,8 @@ class SpeechIsNotInDatabaseCriterion(BaseCriterion):
         current_audio_file, _ = librosa.load(current_audio_file.name)
         db_audio_ids = [
             training.presentation_record_file_id
-            for training in TrainingsDBManager().get__rainings()
+            for training in TrainingsDBManager().get_trainings_filtered_all(
+                {'username': current_training.username, 'consumer_key': current_training.consumer_key})
         ]
         for db_audio_id in db_audio_ids:
             if db_audio_id == current_audio_id:

@@ -32,6 +32,7 @@ class BaseCriterionPack:
             except Exception as e:
                 logger.warning('Exception while applying {} for a training with training_id = {}.\n{}: {}'
                                .format(criterion.name, training_id, e.__class__, e))
+                raise
         return self.criteria_results
 
     def get_criterion_by_name(self, criterion_name):

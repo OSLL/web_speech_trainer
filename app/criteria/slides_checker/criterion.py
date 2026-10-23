@@ -5,10 +5,8 @@ import traceback
 
 from app.localisation import *
 from app.mongo_odm import DBManager, PresentationFilesDBManager, TrainingsDBManager
-from app.training import Training
 from ..criterion_base import BaseCriterion
 from ..criterion_result import CriterionResult
-from ..utils import get_proportional_result
 from lti.tool_consumer import ToolConsumer
 
 

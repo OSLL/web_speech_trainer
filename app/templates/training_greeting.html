@@ -12,16 +12,15 @@
     <h3>{{ t("Сумма баллов за предыдущие тренировки") }}: {{ current_points_sum }}</h3>
     <caption>{{ t("Набор критериев") }}: {{ criteria_pack_id }}</caption>
     <table id="criteria-table" border=""></table>
+    {% if presentation_id %}
+    <form action="{{ url_for('routes_trainings.start_assigned_training') }}" method="post">
+        <button id="start-training-button" type="submit">{{ t("Начать") }}</button>
+    </form>
+    {% else %}
     <button id="start-training-button" type="button"
-        onclick="location.href=
-        {% if not training_id %}
-            '{{ url_for('routes_presentations.view_presentation_upload')}}'
-        {% else %}
-            '{{ url_for('routes_trainings.view_training', training_id=training_id) }}'
-        {% endif %}
-        "
-    >{{ t("Начать") }}</button>
-    {% if training_id %}
+        onclick="location.href='{{ url_for('routes_presentations.view_presentation_upload') }}'">{{ t("Начать") }}</button>
+    {% endif %}
+    {% if presentation_id %}
         <br>
         <div>
             <i>

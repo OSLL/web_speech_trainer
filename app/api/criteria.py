@@ -6,9 +6,9 @@ from app.check_access import check_access
 from app.criteria import CRITERIONS
 from app.criteria.utils import create_criterion
 from app.criteria_pack import CriteriaPackFactory
-from app.lti_session_passback.auth_checkers import is_admin
+from app.lti_session_passback.auth_checkers import is_admin, check_auth
 from app.mongo_models import Criterion
-from app.mongo_odm import CriterionPackDBManager, TrainingsDBManager, CriterionDBManager
+from app.mongo_odm import TrainingsDBManager, CriterionDBManager
 from app.root_logger import get_root_logger
 from app.utils import check_argument_is_convertible_to_object_id, remove_blank_and_none, try_load_json, check_dict_keys
 
@@ -27,7 +27,7 @@ def create_new_criterion():
 
 @api_criteria.route('/<criterion_name>/', methods=['GET'])
 def get_criterion(criterion_name):
-    if not check_access():
+    if not check_auth():
         return {}, 404
     db_criterion = CriterionDBManager().get_criterion_by_name(criterion_name)
     if db_criterion:
@@ -74,10 +74,10 @@ def update_criterion(criterion_name):
 
 @api_criteria.route('/<criterion_name>/structure/', methods=['GET'])
 def get_criteria_structure(criterion_name):
-    if not check_access():
+    if not check_auth():
         return {}, 404
     criterion = CRITERIONS.get(criterion_name)
-    if create_criterion:
+    if criterion is not None:
         return criterion.structure()
     else:
         return {}, 404

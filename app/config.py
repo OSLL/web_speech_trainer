@@ -1,17 +1,18 @@
-from configparser import ConfigParser
-from collections import OrderedDict
+"""Load Python settings while preserving Config.c.section.option access."""
+
+import runpy
+from pathlib import Path
+from types import SimpleNamespace
 
 
-class DictToObject(object):
+class DictToObject(SimpleNamespace):
     def __init__(self, dictionary):
-        def _traverse(key, element):
-            if isinstance(element, dict):
-                return key, DictToObject(element)
-            else:
-                return key, element
-
-        objd = OrderedDict(_traverse(k, v) for k, v in dictionary.items())
-        self.__dict__.update(objd)
+        super().__init__(
+            **{
+                key: DictToObject(value) if isinstance(value, dict) else value
+                for key, value in dictionary.items()
+            }
+        )
 
 
 class Config:
@@ -19,8 +20,19 @@ class Config:
 
     @staticmethod
     def init_config(config_path):
-        if Config.c:
+        if Config.c is not None:
             return
-        config_raw = ConfigParser()
-        config_raw.read(config_path)
-        Config.c = DictToObject(config_raw._sections)
+        path = Path(config_path)
+        if path.suffix != ".py":
+            raise ValueError("APP_CONF must point to a Python settings file")
+        sections = {}
+        for name, value in runpy.run_path(str(path)).items():
+            if name.isupper() and "_" in name:
+                normalized = name.lower()
+                section, option = normalized.split("_", 1)
+                for prefix in ("user_agent_platform", "user_agent_browser"):
+                    if normalized.startswith(prefix + "_"):
+                        section, option = prefix, normalized[len(prefix) + 1 :]
+                        break
+                sections.setdefault(section, {})[option] = value
+        Config.c = DictToObject(sections)

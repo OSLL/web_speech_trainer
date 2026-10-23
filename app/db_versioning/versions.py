@@ -21,10 +21,8 @@ class Version:
 
     @staticmethod
     def get_version(version_name):
-        for version in VERSIONS:
-            if version.version == version_name:
-                return version
-        return None
+        return VERSIONS.get(version_name)
+
 
 
 class Version10(Version):
@@ -78,7 +76,3 @@ VERSIONS = {
     '2.1': Version21
 }
 LAST_VERSION = '2.1'
-
-
-for _, ver in VERSIONS.items():
-    print(ver.to_dict())

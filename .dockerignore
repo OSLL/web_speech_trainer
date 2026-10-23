@@ -6,3 +6,16 @@ venv
 __pycache__
 Dockerfile*
 app/playground
+.env
+.env.*
+!.env.example
+.pytest_cache
+.ruff_cache
+*.pyc
+ssl
+dump
+.aws
+.codex
+.agents
+
+visualization/

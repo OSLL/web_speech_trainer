@@ -12,9 +12,10 @@ class PresentationRecognizer:
 
     def recognize(self, presentation):
         path = self.save_to_tmp(presentation)
-        slides = self.parse_presentation(path)
-        os.remove(path)
-        return self.process_slides(slides)
+        try:
+            return self.process_slides(self.parse_presentation(path))
+        finally:
+            os.remove(path)
 
     def save_to_tmp(self, presentation):
         tp = tempfile.NamedTemporaryFile(delete=False)
@@ -32,7 +33,7 @@ class PresentationRecognizer:
 class SimplePDFPresentationRecognizer(PresentationRecognizer):
 
     def parse_presentation(self, path):
-        return parse_pdf(pdf_path=path, extract_dir=path.split('/')[-1])
+        return parse_pdf(path)
 
     def process_slides(self, slides):
         return RecognizedPresentation([RecognizedSlide(s) for s in slides])

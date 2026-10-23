@@ -33,7 +33,7 @@
     $(".createDumpButton").click(function(){
         $(this).text('{{ t("Создание...")}}')
         let name = $(this)[0].name
-        fetch(`/api/dumps/create/${name}`)
+        fetch(`/api/dumps/create/${name}`, {method: "POST"})
                 .then(response => response.json())
                 .then(function (data) {
                     if (data["message"] === "OK"){

@@ -1,34 +1,32 @@
 from app.root_logger import get_root_logger
 import os
 import time
-import uuid
 from datetime import datetime
-from typing import Union
-import math
 import pymongo
-from bson import ObjectId
+from bson import ObjectId, Timestamp
 from bson.errors import InvalidId
 from gridfs import GridFSBucket, NoFile
 from pymodm import connect
 from pymodm.connection import _get_db
-from pymodm.errors import ValidationError, DoesNotExist
+from pymodm.errors import ValidationError
 from pymodm.files import GridFSStorage
 from pymongo import ReturnDocument
 from pymongo.errors import CollectionInvalid
 
 from app.config import Config
-from app.mongo_models import (AudioToRecognize, Consumers, Criterion, CriterionPack, Logs,
-                              PresentationFiles, PresentationInfo,
-                              PresentationsToRecognize,
-                              RecognizedAudioToProcess,
-                              RecognizedPresentationsToProcess, Sessions,
-                              TaskAttempts, TaskAttemptsToPassBack, Tasks,
-                              Trainings, TrainingsToProcess, StorageMeta)
+from app.mongo_models import (Consumers, Criterion, CriterionPack, Logs,
+                              PresentationFiles, PresentationInfo, Sessions,
+                              TaskAttempts, Tasks, Trainings)
+
 from app.status import (AudioStatus, PassBackStatus, PresentationStatus,
                         TrainingStatus)
-from app.utils import remove_blank_and_none
 
 logger = get_root_logger()
+
+def request_consumer():
+    from flask import has_request_context, session
+    return session.get('consumer_key') if has_request_context() else None
+
 
 BYTES_PER_MB = 1024*1024    
 
@@ -42,16 +40,48 @@ class DBManager:
             cls.init_done = True
         return cls.instance
 
-    def add_file(self, file, filename=uuid.uuid4()):
+    def add_file(self, file, filename=None):
+        from io import BytesIO
+        from app.workflow import execution
+        content = file if isinstance(file, (str, bytes)) else file.read()
+        if isinstance(content, str):
+            content = content.encode('utf-8')
+        context = execution.get()
+        if context:
+            from app.workflow import collection, write_filter, artifact_id, StaleRun
+            if not collection().find_one(write_filter(context['training_id'])):
+                raise StaleRun('Obsolete run cannot upload artifacts')
+            file_id = artifact_id(context['run_id'], context['stage'], str(filename or 'output'))
+        else:
+            file_id = ObjectId()
+        db = _get_db()
+        if db.fs.files.find_one({'_id': file_id}):
+            return file_id
+        size = len(content)
+        self._get_or_create_storage_meta()
+        reserved = db.storage_meta.update_one(
+            {'_id': 'global', 'used_size': {'$lte': self.max_size - size}},
+            {'$inc': {'used_size': size}})
+        if not reserved.matched_count:
+            from werkzeug.exceptions import RequestEntityTooLarge
+            raise RequestEntityTooLarge('Storage quota exceeded')
+        bucket = GridFSBucket(db)
         try:
-            file.seek(0, os.SEEK_END)
-            size = file.tell()
-            file.seek(0)
-        except:
-            size = len(file)
-        _id = self.storage.save(name=filename, content=file)
-        self.update_storage_size(size)
-        return _id
+            # A worker killed during an upload can leave chunks but no file metadata.
+            db.fs.chunks.delete_many({'files_id': file_id})
+            bucket.upload_from_stream_with_id(file_id, str(filename or file_id), BytesIO(content))
+        except Exception:
+            db.fs.chunks.delete_many({'files_id': file_id})
+            self.update_storage_size(-size)
+            raise
+        return file_id
+
+    def delete_file(self, file_id):
+        file_id = ObjectId(file_id)
+        document = _get_db().fs.files.find_one({'_id': file_id})
+        if document:
+            GridFSBucket(_get_db()).delete(file_id)
+            self.update_storage_size(-document['length'])
 
     def read_and_add_file(self, path, filename=None):
         if filename is None:
@@ -72,30 +102,29 @@ class DBManager:
     def get_file(self, file_id):
         try:
             file_id = ObjectId(file_id)
-            return self.storage.open(file_id).file
-        except (NoFile, ValidationError, InvalidId) as e:
+            return GridFSBucket(_get_db()).open_download_stream(file_id)
+        except (NoFile, ValidationError, InvalidId, TypeError) as e:
             logger.warning('file_id = {}, {}.'.format(file_id, e))
             return None
     
     def _get_or_create_storage_meta(self):
-        try:
-            return StorageMeta.objects.get({})
-        except DoesNotExist:
-            meta = StorageMeta(used_size=0).save()
-            return meta
+        db = _get_db()
+        existing = db.storage_meta.find_one({'_id': 'global'})
+        if existing:
+            return existing
+        total = sum(file['length'] for file in db.fs.files.find({}, {'length': 1}))
+        db.storage_meta.update_one({'_id': 'global'}, {'$setOnInsert': {'used_size': total}}, upsert=True)
+        return db.storage_meta.find_one({'_id': 'global'})
     
     def get_used_storage_size(self):
-        return self._get_or_create_storage_meta().used_size
+        return self._get_or_create_storage_meta()['used_size']
     
     def set_used_storage_size(self, size):
-        meta = self._get_or_create_storage_meta()
-        meta.used_size = size
-        meta.save()
+        _get_db().storage_meta.update_one({'_id': 'global'}, {'$set': {'used_size': size}}, upsert=True)
         
     def update_storage_size(self, deltasize):
-        meta = self._get_or_create_storage_meta()
-        meta.used_size += deltasize
-        meta.save()
+        self._get_or_create_storage_meta()
+        _get_db().storage_meta.update_one({'_id': 'global'}, {'$inc': {'used_size': deltasize}})
         
     def get_max_size(self):
         return self.max_size
@@ -129,6 +158,19 @@ class TrainingsDBManager:
             cls.init_done = True
         return cls.instance
 
+    def _update(self, training_id, values=None, push=None):
+        from app.workflow import write_filter, execution, StaleRun
+        update = {}
+        if values:
+            update['$set'] = values
+        if push:
+            update['$push'] = push
+        document = Trainings._mongometa.collection.find_one_and_update(
+            write_filter(training_id), update, return_document=ReturnDocument.AFTER)
+        if document is None and execution.get():
+            raise StaleRun('Run no longer owns this training')
+        return Trainings.from_document(document) if document else None
+
     def delete_training(self, training_id):
         training_id = ObjectId(training_id)
         return Trainings.objects.model._mongometa.collection.delete_one({'_id': training_id})
@@ -149,7 +191,10 @@ class TrainingsDBManager:
         if slide_switch_timestamps is None:
             slide_switch_timestamps = []
 
+        from flask import has_request_context, session
+        consumer = session.get('consumer_key') if has_request_context() else None
         saved = Trainings(
+            consumer_key=consumer,
             task_attempt_id=task_attempt_id,
             username=username,
             full_name=full_name,
@@ -168,11 +213,6 @@ class TrainingsDBManager:
         )
         return saved
 
-    def get_trainings(self):
-        return Trainings.objects.all()
-
-    def get_trainings_documents(self):
-        return Trainings.objects.model._mongometa.collection.find({})
 
     def get_trainings_filtered_limitted(self, filters, count=10):
         return Trainings.objects.raw(filters).limit(count)
@@ -200,17 +240,6 @@ class TrainingsDBManager:
         except (Trainings.DoesNotExist, InvalidId):
             return None
 
-    def get_training_by_presentation_record_file_id(self, presentation_record_file_id):
-        try:
-            return Trainings.objects.get({'presentation_record_file_id': presentation_record_file_id})
-        except (Trainings.DoesNotExist, InvalidId):
-            return None
-
-    def get_training_by_recognized_audio_id(self, recognized_audio_id):
-        try:
-            return Trainings.objects.get({'recognized_audio_id': recognized_audio_id})
-        except (Trainings.DoesNotExist, InvalidId):
-            return None
 
     def get_training_by_recognized_presentation_id(self, recognized_presentation_id):
         try:
@@ -219,151 +248,46 @@ class TrainingsDBManager:
             return None
 
     def change_training_status_by_training_id(self, training_id, status):
-        training = self.get_training(training_id)
-        if training is None:
-            return None
-        return self._change_training_status(training, status)
+        return self._update(training_id, {'status': status,
+                            'status_last_update': Timestamp(int(time.time()), 0)})
 
-    def _change_training_status(self, training, status):
-        training.status = status
-        training.status_last_update = datetime.now()
-        return training.save()
-
-    def check_training_ready_for_processing(self, training_id, status):
-        if status not in [AudioStatus.PROCESSED, PresentationStatus.PROCESSED]:
-            return False
-        document = Trainings.objects.model._mongometa.collection.find_one_and_update(
-            filter={'_id': ObjectId(training_id),
-                    '$and': [
-                        {'audio_status': AudioStatus.PROCESSED},
-                        {'presentation_status': PresentationStatus.PROCESSED},
-                        {'status': {'$ne': TrainingStatus.PREPARED}},
-                    ]},
-            update={'$set': {'status': TrainingStatus.PREPARED, 'status_last_update': datetime.now()}},
-            return_document=ReturnDocument.AFTER,
-        )
-        if document is None:
-            return
-        training = Trainings.from_document(document)
-        if training.status == TrainingStatus.PREPARED:
-            TrainingsToProcessDBManager().add_training_to_process(training_id)
-            self._change_training_status(training, TrainingStatus.SENT_FOR_PROCESSING)
-            return True
-        else:
-            return False
-
-    def add_feedback(self, training_id, feedback):
-        obj = self.get_training(training_id)
-        obj.feedback = feedback
-        return obj.save()
-
-    def get_presentation_record_file_id(self, presentation_file_id):
-        training = self.get_training_by_presentation_file_id(presentation_file_id)
-        return training.presentation_record_file_id
 
     def add_recognized_audio_id(self, training_id, recognized_audio_id):
-        training = self.get_training(training_id)
-        if training is None:
-            return None
-        training.recognized_audio_id = recognized_audio_id
-        return training.save()
+        return self._update(training_id, {'recognized_audio_id': recognized_audio_id})
 
     def add_audio_id(self, training_id, audio_id):
-        training = self.get_training(training_id)
-        if training is None:
-            return None
-        training.audio_id = audio_id
-        return training.save()
+        return self._update(training_id, {'audio_id': audio_id})
 
-    def check_failed_training_audio(self, training_id, status):
-        if status not in [AudioStatus.RECOGNITION_FAILED, AudioStatus.PROCESSING_FAILED]:
-            return False
-        document = Trainings.objects.model._mongometa.collection.find_one_and_update(
-            filter={'_id': ObjectId(training_id),
-                    '$or': [
-                        {'audio_status': AudioStatus.RECOGNITION_FAILED},
-                        {'audio_status': AudioStatus.PROCESSING_FAILED},
-                    ]},
-            update={'$set': {'status': TrainingStatus.PREPARATION_FAILED, 'status_last_update': datetime.now()}},
-            return_document=ReturnDocument.AFTER,
-        )
-        if document is None:
-            return False
-        training = Trainings.from_document(document)
-        return training.status == TrainingStatus.PREPARATION_FAILED
-
-    def check_failed_training_presentation(self, training_id, status):
-        if status not in [PresentationStatus.RECOGNITION_FAILED, PresentationStatus.PROCESSING_FAILED]:
-            return False
-        document = Trainings.objects.model._mongometa.collection.find_one_and_update(
-            filter={'_id': ObjectId(training_id),
-                    '$or': [
-                        {'presentation_status': PresentationStatus.RECOGNITION_FAILED},
-                        {'presentation_status': PresentationStatus.PROCESSING_FAILED},
-                    ]},
-            update={'$set': {'status': TrainingStatus.PREPARATION_FAILED, 'status_last_update': datetime.now()}},
-            return_document=ReturnDocument.AFTER,
-        )
-        if document is None:
-            return False
-        training = Trainings.from_document(document)
-        return training.status == TrainingStatus.PREPARATION_FAILED
 
     def change_audio_status(self, training_id, status):
-        Trainings.objects.model._mongometa.collection.find_one_and_update(
-            filter={'_id': ObjectId(training_id)},
-            update={'$set': {'audio_status': status, 'audio_status_last_update': datetime.now()}},
-        )
-        self.check_failed_training_audio(training_id, status)
+        return self._update(training_id, {'audio_status': status,
+                            'audio_status_last_update': Timestamp(int(time.time()), 0)})
         # self.check_training_ready_for_processing(training_id, status)
 
     def change_presentation_status(self, training_id, status):
-        Trainings.objects.model._mongometa.collection.find_one_and_update(
-            filter={'_id': ObjectId(training_id)},
-            update={'$set': {'presentation_status': status, 'presentation_status_last_update': datetime.now()}},
-        )
-        self.check_failed_training_presentation(training_id, status)
+        return self._update(training_id, {'presentation_status': status,
+                            'presentation_status_last_update': Timestamp(int(time.time()), 0)})
         # self.check_training_ready_for_processing(training_id, status)
 
     def add_recognized_presentation_id(self, training_id, recognized_presentation_id):
-        training = self.get_training(training_id)
-        if training is None:
-            return None
-        training.recognized_presentation_id = recognized_presentation_id
-        return training.save()
+        return self._update(training_id, {'recognized_presentation_id': recognized_presentation_id})
 
     def add_presentation_id(self, training_id, presentation_id):
-        training = self.get_training(training_id)
-        if training is None:
-            return None
-        training.presentation_id = presentation_id
-        return training.save()
+        return self._update(training_id, {'presentation_id': presentation_id})
 
     def append_timestamp(self, training_id, timestamp=None):
-        # TODO limit len(slide_switch_timestamps)
-        if timestamp is None:
-            timestamp = time.time()
-        training = self.get_training(training_id)
-        if training is None:
-            return None
-        training.slide_switch_timestamps.append(timestamp)
-        saved = training.save()
-        logger.debug('Timestamp = {} appended to the training with training_id = {}.'.format(timestamp, training_id))
-        return saved
+        timestamp = time.time() if timestamp is None else timestamp
+        return self._update(training_id, push={'slide_switch_timestamps': timestamp})
 
     def add_presentation_record(self, training_id, presentation_record_file_id, presentation_record_duration):
-        training = self.get_training(training_id)
-        if training is None:
-            return None
-        training.presentation_record_file_id = presentation_record_file_id
-        training.presentation_record_duration = presentation_record_duration
-        saved = training.save()
-        logger.info(
-            'Attached presentation record with presentation_record_id = {} and duration = {} '
-            'to the training with training_id = {}.'
-            .format(presentation_record_file_id, presentation_record_duration, training_id)
-        )
-        return saved
+        document = Trainings._mongometa.collection.find_one_and_update(
+            {'_id': ObjectId(training_id), 'presentation_record_file_id': None,
+             'status': {'$in': [TrainingStatus.NEW, TrainingStatus.IN_PROGRESS]}},
+            {'$set': {'presentation_record_file_id': ObjectId(presentation_record_file_id),
+                      'presentation_record_duration': presentation_record_duration,
+                      'status': TrainingStatus.SENT_FOR_PREPARATION}},
+            return_document=ReturnDocument.AFTER)
+        return Trainings.from_document(document) if document else None
 
     def get_slide_switch_timestamps(self, training_id):
         training = self.get_training(training_id)
@@ -371,57 +295,14 @@ class TrainingsDBManager:
             return None
         return training.slide_switch_timestamps
 
-    def get_slide_switch_timestamps_by_recognized_presentation_id(self, recognized_presentation_id):
-        training = self.get_training_by_recognized_presentation_id(recognized_presentation_id)
-        return training.slide_switch_timestamps
-
-    def append_verdict(self, training_id, verdict):
-        document = None
-        while document is None:
-            current_training_db = self.get_training(training_id)
-            if current_training_db is None:
-                return False
-            old_verdict = current_training_db.feedback.get('verdict', None)
-            new_verdict = verdict if old_verdict is None else old_verdict + '\n' + verdict
-            document = Trainings.objects.model._mongometa.collection.find_one_and_update(
-                filter={'_id': ObjectId(training_id), 'feedback.verdict': old_verdict},
-                update={'$set': {'feedback.verdict': new_verdict}},
-                return_document=ReturnDocument.AFTER,
-            )
-        return True
 
     def add_criterion_result(self, training_id, criterion_name, criterion_result):
-        training_db = self.get_training(training_id)
-        if training_db is None:
-            return False
-        criteria_results = training_db.feedback.get('criteria_results') or {}
-        criteria_results.update({criterion_name: criterion_result.to_json()})
-        training_db.feedback['criteria_results'] = criteria_results
-        return training_db.save()
+        if '.' in criterion_name or criterion_name.startswith('$'):
+            raise ValueError('Invalid criterion name')
+        return self._update(training_id, {f'feedback.criteria_results.{criterion_name}': criterion_result.to_json()})
 
     def set_score(self, training_id, score):
-        training = self.get_training(training_id)
-        if training is None:
-            return None
-        training.feedback['score'] = score
-        return training.save()
-
-    def set_processing_start_timestamp(self, training_id, timestamp):
-        logger.info('Setting processing start timestamp = {} for the training with training_id = {}'
-                    .format(timestamp, training_id))
-        training = self.get_training(training_id)
-        if training is None:
-            logger.warning('No training with training_id = {} found.'.format(training_id))
-            return None
-        training.processing_start_timestamp = timestamp
-        training.save()
-
-    def set_presentation_record_duration(self, training_id, presentation_record_duration):
-        training = self.get_training(training_id)
-        if training is None:
-            return None
-        training.presentation_record_duration = presentation_record_duration
-        return training.save()
+        return self._update(training_id, {'feedback.score': score})
 
 
 class TasksDBManager:
@@ -434,37 +315,26 @@ class TasksDBManager:
 
     def get_task(self, task_id):
         try:
-            return Tasks.objects.get({'task_id': task_id})
+            return Tasks.objects.get({'task_id': task_id, 'consumer_key': request_consumer()})
         except (Tasks.DoesNotExist, InvalidId) as e:
             logger.warning('task_id = {}, {}: {}.'.format(task_id, e.__class__, e))
             return None
 
-    def add_task(self, task_id, task_description, attempt_count, required_points, criteria_pack_id, presentation_id=None):
-        task = Tasks(
-            task_id=task_id,
-            task_description=task_description,
-            attempt_count=attempt_count,
-            required_points=required_points,
-            criteria_pack_id=criteria_pack_id,
-        )
-        if presentation_id: task.presentation_id = presentation_id
-        return task.save()
 
     def add_task_if_absent(self, task_id, task_description, attempt_count, required_points, criteria_pack_id, presentation_id=None):
-        task_db = self.get_task(task_id)
-        if task_db is None:
-            return self.add_task(task_id, task_description, attempt_count, required_points, criteria_pack_id)
-        if task_db.task_description != task_description:
-            task_db.task_description = task_description
-        if task_db.attempt_count != attempt_count:
-            task_db.attempt_count = attempt_count
-        if task_db.required_points != required_points:
-            task_db.required_points = required_points
-        if task_db.criteria_pack_id != criteria_pack_id:
-            task_db.criteria_pack_id = criteria_pack_id
-        if task_db.presentation_id != presentation_id:
-            task_db.presentation_id = presentation_id
-        return task_db.save()
+        document = Tasks._mongometa.collection.find_one_and_update(
+            {'task_id': task_id, 'consumer_key': request_consumer()},
+            {'$set': {
+                '_cls': Tasks._mongometa.object_name,
+                'task_description': task_description,
+                'attempt_count': attempt_count,
+                'required_points': required_points,
+                'criteria_pack_id': criteria_pack_id,
+                'presentation_id': presentation_id,
+            }},
+            upsert=True, return_document=ReturnDocument.AFTER,
+        )
+        return Tasks.from_document(document)
 
 
 class TaskAttemptsDBManager:
@@ -475,11 +345,6 @@ class TaskAttemptsDBManager:
             cls.init_done = True
         return cls.instance
 
-    def get_task_attempts(self):
-        return TaskAttempts.objects.all()
-
-    def get_task_attempts_documents(self):
-        return TaskAttempts.objects.model._mongometa.collection.find({})
 
     def delete_task_attempt(self, task_attempt_id):
         task_attempt_id = ObjectId(task_attempt_id)
@@ -498,7 +363,10 @@ class TaskAttemptsDBManager:
             training_scores = {}
         if is_passed_back is None:
             is_passed_back = {}
+        from flask import has_request_context, session
+        consumer = session.get('consumer_key') if has_request_context() else None
         return TaskAttempts(
+            consumer_key=consumer,
             username=username,
             task_id=task_id,
             params_for_passback=params_for_passback,
@@ -515,11 +383,11 @@ class TaskAttemptsDBManager:
             return None
 
     def get_attempts_count(self, username, task_id):
-        return TaskAttempts.objects.raw({'$and': [{'username': username, 'task_id': task_id}]}).count()
+        return TaskAttempts.objects.raw({'$and': [{'username': username, 'task_id': task_id, 'consumer_key': request_consumer()}]}).count()
 
     def get_current_task_attempt(self, username, task_id):
         obj = TaskAttempts.objects \
-            .raw({'$and': [{'username': username, 'task_id': task_id}]}) \
+            .raw({'$and': [{'username': username, 'task_id': task_id, 'consumer_key': request_consumer()}]}) \
             .order_by([('_id', pymongo.DESCENDING)]) \
             .limit(1)
         if obj.count():
@@ -528,30 +396,41 @@ class TaskAttemptsDBManager:
             return None
 
     def add_training(self, task_attempt_id, training_id):
-        task_attempt_db = self.get_task_attempt(task_attempt_id)
-        if task_attempt_db is None:
-            return
-        task_attempt_db.training_scores[str(training_id)] = None
-        task_attempt_db.is_passed_back[str(training_id)] = PassBackStatus.NOT_SENT
-        logger.info(
-            'Updated task attempt with task_attempt_id = {}, training_id = {}.'.format(task_attempt_id, training_id)
-        )
-        return task_attempt_db.save()
+        key = str(training_id)
+        # Admission is atomic even when multiple tabs create trainings concurrently.
+        document = TaskAttempts._mongometa.collection.find_one_and_update(
+            {'_id': ObjectId(task_attempt_id), f'training_scores.{key}': {'$exists': False},
+             '$expr': {'$lt': [{'$size': {'$objectToArray': {'$ifNull': ['$training_scores', {}]}}}, '$training_count']}},
+            {'$set': {f'training_scores.{key}': None,
+                      f'is_passed_back.{key}': PassBackStatus.NOT_SENT}},
+            return_document=ReturnDocument.AFTER)
+        return TaskAttempts.from_document(document) if document else None
 
     def update_scores(self, task_attempt_id, training_id, score):
-        task_attempt_db = self.get_task_attempt(task_attempt_id)
-        if task_attempt_db is None:
-            return
-        task_attempt_db.training_scores[str(training_id)] = score
-        # self.submit_scores_for_passback(task_attempt_db, training_id)
-        return task_attempt_db.save()
+        from app.workflow import execution, StaleRun
+        query = {'_id': ObjectId(task_attempt_id), f'training_scores.{training_id}': {'$exists': True}}
+        context = execution.get()
+        if context:
+            query[f'training_runs.{training_id}'] = context['run_id']
+        result = TaskAttempts._mongometa.collection.update_one(
+            query,
+            {'$set': {f'training_scores.{training_id}': score}, '$inc': {'score_revision': 1}})
+        if not result.matched_count:
+            raise StaleRun('Training no longer belongs to this attempt/run')
+        return self.get_task_attempt(task_attempt_id)
 
-    def submit_scores_for_passback(self, task_attempt, training_id):
-        TaskAttemptsToPassBackDBManager().add_task_attempt_to_pass_back(task_attempt.pk, training_id)
 
     def set_pass_back_status(self, task_attempt, training_id, value):
-        task_attempt.is_passed_back[str(training_id)] = value
-        task_attempt.save()
+        from app.workflow import execution, StaleRun
+        query = {'_id': task_attempt.pk}
+        context = execution.get()
+        if context:
+            query[f'training_runs.{training_id}'] = context['run_id']
+        result = TaskAttempts._mongometa.collection.update_one(
+            query, {'$set': {f'is_passed_back.{training_id}': value}})
+        if not result.matched_count and context:
+            raise StaleRun('Passback belongs to an obsolete run')
+        return result
 
 
 class SessionsDBManager:
@@ -563,21 +442,20 @@ class SessionsDBManager:
         return cls.instance
 
     def add_session(self, session_id, consumer_key, task_id, params_for_passback, is_admin, pres_formats=None):
-        existing_session = self.get_session(session_id, consumer_key)
-        task_info = {task_id: {'params_for_passback': params_for_passback}}
-        if pres_formats: task_info[task_id]['pres_formats'] = pres_formats
-        new_session = Sessions(
-            session_id=session_id,
-            consumer_key=consumer_key,
-            tasks=task_info,
-            is_admin=is_admin,
+        if not task_id or '.' in task_id or task_id.startswith('$'):
+            raise ValueError('Invalid task identifier')
+        task_info = {'params_for_passback': params_for_passback}
+        if pres_formats:
+            task_info['pres_formats'] = pres_formats
+        Sessions._mongometa.collection.update_one(
+            {'session_id': session_id, 'consumer_key': consumer_key},
+            {'$set': {
+                '_cls': Sessions._mongometa.object_name,
+                f'tasks.{task_id}': task_info,
+                'is_admin': is_admin,
+            }},
+            upsert=True,
         )
-        if existing_session:
-            existing_session.tasks.update(task_info)
-            existing_session.is_admin = is_admin
-            existing_session.save()
-        else:
-            new_session.save()
 
     def get_session(self, session_id, consumer_key):
         try:
@@ -596,14 +474,6 @@ class ConsumersDBManager:
             cls.init_done = True
         return cls.instance
 
-    def add_consumer(self, consumer_key, consumer_secret, timestamp_and_nonce=None):
-        if timestamp_and_nonce is None:
-            timestamp_and_nonce = []
-        return Consumers(
-            consumer_key=consumer_key,
-            consumer_secret=consumer_secret,
-            timestamp_and_nonce=timestamp_and_nonce,
-        ).save()
 
     def get_secret(self, key):
         try:
@@ -619,168 +489,19 @@ class ConsumersDBManager:
         except Consumers.DoesNotExist:
             return False
 
-    def has_timestamp_and_nonce(self, key, timestamp, nonce):
+    def claim_timestamp_and_nonce(self, key, timestamp, nonce):
+        import hashlib
+        from datetime import timedelta
+        from pymongo.errors import DuplicateKeyError
+        import json
+        identity = json.dumps([key, str(timestamp), str(nonce)], separators=(',', ':')).encode()
+        identifier = hashlib.sha256(identity).hexdigest()
         try:
-            consumer = Consumers.objects.get({'consumer_key': key})
-            entries = consumer.timestamp_and_nonce
-            return (timestamp, nonce) in entries
-        except Consumers.DoesNotExist:
+            _get_db().oauth_nonces.insert_one({'_id': identifier,
+                'expires_at': datetime.utcnow() + timedelta(minutes=10)})
+            return True
+        except DuplicateKeyError:
             return False
-
-    def add_timestamp_and_nonce(self, key, timestamp, nonce):
-        try:
-            consumer = Consumers.objects.get({'consumer_key': key})
-            consumer.timestamp_and_nonce.append((timestamp, nonce))
-            return consumer.save()
-        except Consumers.DoesNotExist:
-            return
-
-
-class TaskAttemptsToPassBackDBManager:
-    def __new__(cls):
-        if not hasattr(cls, 'init_done'):
-            cls.instance = super(TaskAttemptsToPassBackDBManager, cls).__new__(cls)
-            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
-            cls.init_done = True
-        return cls.instance
-
-    def add_task_attempt_to_pass_back(self, task_attempt_id, training_id, is_retry=False):
-        return TaskAttemptsToPassBack(
-            task_attempt_id=task_attempt_id,
-            training_id=training_id,
-            is_retry=is_retry,
-        ).save()
-
-    def extract_task_attempt_to_pass_back(self):
-        document = TaskAttemptsToPassBack.objects.model._mongometa.collection.find_one_and_delete(
-            filter={},
-            sort=[('_id', pymongo.ASCENDING)]
-        )
-        if document is None:
-            return None
-        return TaskAttemptsToPassBack.from_document(document)
-
-
-class TrainingsToProcessDBManager:
-    def __new__(cls):
-        if not hasattr(cls, 'init_done'):
-            cls.instance = super(TrainingsToProcessDBManager, cls).__new__(cls)
-            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
-            cls.init_done = True
-        return cls.instance
-
-    def add_training_to_process(self, training_id):
-        return TrainingsToProcess(
-            training_id=training_id
-        ).save()
-
-    def extract_training_id_to_process(self):
-        obj = TrainingsToProcess.objects.model._mongometa.collection.find_one_and_delete(
-            filter={},
-            sort=[('_id', pymongo.ASCENDING)]
-        )
-        if obj is None:
-            return None
-        return obj['training_id']
-
-
-class AudioToRecognizeDBManager:
-    def __new__(cls):
-        if not hasattr(cls, 'init_done'):
-            cls.instance = super(AudioToRecognizeDBManager, cls).__new__(cls)
-            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
-            cls.init_done = True
-        return cls.instance
-
-    def get_all_audio_to_recognize(self):
-        return AudioToRecognize.objects.all()
-
-    def add_audio_to_recognize(self, file_id, training_id):
-        return AudioToRecognize(
-            file_id=file_id,
-            training_id=training_id,
-        ).save()
-
-    def extract_audio_to_recognize(self):
-        document = AudioToRecognize.objects.model._mongometa.collection.find_one_and_delete(
-            filter={},
-            sort=[('_id', pymongo.ASCENDING)]
-        )
-        if document is None:
-            return None
-        return AudioToRecognize.from_document(document)
-
-
-class RecognizedAudioToProcessDBManager:
-    def __new__(cls):
-        if not hasattr(cls, 'init_done'):
-            cls.instance = super(RecognizedAudioToProcessDBManager, cls).__new__(cls)
-            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
-            cls.init_done = True
-        return cls.instance
-
-    def add_recognized_audio_to_process(self, file_id, training_id):
-        return RecognizedAudioToProcess(
-            file_id=file_id,
-            training_id=training_id,
-        ).save()
-
-    def extract_recognized_audio_to_process(self):
-        document = RecognizedAudioToProcess.objects.model._mongometa.collection.find_one_and_delete(
-            filter={},
-            sort=[('_id', pymongo.ASCENDING)]
-        )
-        if document is None:
-            return None
-        return RecognizedAudioToProcess.from_document(document)
-
-
-class PresentationsToRecognizeDBManager:
-    def __new__(cls):
-        if not hasattr(cls, 'init_done'):
-            cls.instance = super(PresentationsToRecognizeDBManager, cls).__new__(cls)
-            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
-            cls.init_done = True
-        return cls.instance
-
-    def add_presentation_to_recognize(self, file_id, training_id):
-        return PresentationsToRecognize(
-            file_id=file_id,
-            training_id=training_id,
-        ).save()
-
-    def extract_presentation_to_recognize(self):
-        document = PresentationsToRecognize.objects.model._mongometa.collection.find_one_and_delete(
-            filter={},
-            sort=[('_id', pymongo.ASCENDING)]
-        )
-        if document is None:
-            return None
-        return PresentationsToRecognize.from_document(document)
-
-
-class RecognizedPresentationsToProcessDBManager:
-    def __new__(cls):
-        if not hasattr(cls, 'init_done'):
-            cls.instance = super(RecognizedPresentationsToProcessDBManager, cls).__new__(cls)
-            connect(Config.c.mongodb.url + Config.c.mongodb.database_name)
-            cls.init_done = True
-        return cls.instance
-
-    def add_recognized_presentation_to_process(self, file_id, training_id):
-        return RecognizedPresentationsToProcess(
-            file_id=file_id,
-            training_id=training_id,
-        ).save()
-
-    def extract_recognized_presentation_to_process(self):
-        document = RecognizedPresentationsToProcess.objects.model._mongometa.collection.find_one_and_delete(
-            filter={},
-            sort=[('_id', pymongo.ASCENDING)]
-        )
-        if document is None:
-            return None
-        return RecognizedPresentationsToProcess.from_document(document)
 
 
 class PresentationFilesDBManager:
@@ -791,9 +512,10 @@ class PresentationFilesDBManager:
             cls.init_done = True
         return cls.instance
 
-    def add_presentation_file(self,  file_id, filename, preview_id, filetype='pdf', nonconverted_file_id=None):
+    def add_presentation_file(self, file_id, filename, preview_id, filetype='pdf', nonconverted_file_id=None, owner=None, consumer_key=None):
         return PresentationFiles(
             file_id=file_id,
+            owner=owner, consumer_key=consumer_key,
             filename=filename,
             preview_id=preview_id,
             presentation_info=PresentationInfo(
@@ -870,14 +592,6 @@ class CriterionDBManager:
             cls.init_done = True
         return cls.instance
 
-    def add_criterion(self, name, parameters, base_criterion):
-        new_criterion = Criterion(
-            name=name,
-            parameters=parameters,
-            base_criterion=base_criterion
-        )
-        new_criterion.save()
-        return new_criterion
 
     def get_criterion_by_name(self, name):
         try:

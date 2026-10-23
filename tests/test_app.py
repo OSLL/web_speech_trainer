@@ -1,9 +1,9 @@
 from app.audio import Audio
 from app.criteria import FillersRatioCriterion
-from app.web_speech_trainer import app
 
 
-def test_init_page():
+
+def test_init_page(*, app):
     flask_app = app
 
     with flask_app.test_client() as test_client:
