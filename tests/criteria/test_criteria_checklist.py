@@ -761,14 +761,14 @@ class TestSpeechDurationCriterion:
 
 class TestSpeechIsNotInDatabaseCriterion:
     def test_mp3_to_wav_error_returns_zero_and_verdict(self, monkeypatch):
-        current_training = SimpleNamespace(presentation_record_file_id="current-audio-id")
+        current_training = SimpleNamespace(presentation_record_file_id="current-audio-id", username="user", consumer_key="tenant")
 
         monkeypatch.setattr(
             speech_in_db_module,
             "TrainingsDBManager",
             lambda: SimpleNamespace(
-                get__raining=lambda _training_id: current_training,
-                get__rainings=lambda: [],
+                get_training=lambda _training_id: current_training,
+                get_trainings_filtered_all=lambda _query: [],
             ),
         )
         monkeypatch.setattr(
@@ -795,15 +795,15 @@ class TestSpeechIsNotInDatabaseCriterion:
     def test_found_similar_audio_in_database_returns_zero(self, monkeypatch):
         current_id = "current-audio-id"
         another_id = "another-audio-id"
-        current_training = SimpleNamespace(presentation_record_file_id=current_id)
+        current_training = SimpleNamespace(presentation_record_file_id=current_id, username="user", consumer_key="tenant")
 
         monkeypatch.setattr(
             speech_in_db_module,
             "TrainingsDBManager",
             lambda: SimpleNamespace(
-                get__raining=lambda _training_id: current_training,
-                get__rainings=lambda: [
-                    SimpleNamespace(presentation_record_file_id=current_id),
+                get_training=lambda _training_id: current_training,
+                get_trainings_filtered_all=lambda _query: [
+                    SimpleNamespace(presentation_record_file_id=current_id, username="user", consumer_key="tenant"),
                     SimpleNamespace(presentation_record_file_id=another_id),
                 ],
             ),
@@ -844,15 +844,15 @@ class TestSpeechIsNotInDatabaseCriterion:
     def test_no_similar_audio_in_database_returns_one(self, monkeypatch):
         current_id = "current-audio-id"
         another_id = "another-audio-id"
-        current_training = SimpleNamespace(presentation_record_file_id=current_id)
+        current_training = SimpleNamespace(presentation_record_file_id=current_id, username="user", consumer_key="tenant")
 
         monkeypatch.setattr(
             speech_in_db_module,
             "TrainingsDBManager",
             lambda: SimpleNamespace(
-                get__raining=lambda _training_id: current_training,
-                get__rainings=lambda: [
-                    SimpleNamespace(presentation_record_file_id=current_id),
+                get_training=lambda _training_id: current_training,
+                get_trainings_filtered_all=lambda _query: [
+                    SimpleNamespace(presentation_record_file_id=current_id, username="user", consumer_key="tenant"),
                     SimpleNamespace(presentation_record_file_id=another_id),
                 ],
             ),
@@ -890,7 +890,6 @@ class TestSpeechIsNotInDatabaseCriterion:
 
         assert result.result == 1
 
-    @pytest.mark.xfail(reason="Current common_length implementation overestimates overlap length")
     def test_common_length_estimates_intersection_ratio(self):
         criterion = SpeechIsNotInDatabaseCriterion(
             parameters={**make_speech_is_not_in_database_parameters(), "dist__hreshold": 0.1},
@@ -916,15 +915,15 @@ class TestSpeechIsNotInDatabaseCriterion:
     def test_missing_required_parameter_raises_key_error(self, monkeypatch):
         current_id = "current-audio-id"
         another_id = "another-audio-id"
-        current_training = SimpleNamespace(presentation_record_file_id=current_id)
+        current_training = SimpleNamespace(presentation_record_file_id=current_id, username="user", consumer_key="tenant")
 
         monkeypatch.setattr(
             speech_in_db_module,
             "TrainingsDBManager",
             lambda: SimpleNamespace(
-                get__raining=lambda _training_id: current_training,
-                get__rainings=lambda: [
-                    SimpleNamespace(presentation_record_file_id=current_id),
+                get_training=lambda _training_id: current_training,
+                get_trainings_filtered_all=lambda _query: [
+                    SimpleNamespace(presentation_record_file_id=current_id, username="user", consumer_key="tenant"),
                     SimpleNamespace(presentation_record_file_id=another_id),
                 ],
             ),

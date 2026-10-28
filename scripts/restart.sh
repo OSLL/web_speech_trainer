@@ -1,15 +1,6 @@
-#! /bin/bash
-
-set -e
-
-VERSION_FILE_NAME="VERSION.json"
-
-VERSION_FILE_PATH="$(dirname $(dirname $(readlink -f $0)))/$VERSION_FILE_NAME"
-./scripts/version.sh > $VERSION_FILE_PATH
-
-docker-compose stop
-
-docker-compose --project-name wst_test_build build --no-cache
-docker-compose build
-
-APP_CONF=../app_conf/config.ini docker-compose up -d --remove-orphans
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+./scripts/version.sh > VERSION.json
+docker compose config --quiet
+docker compose up -d --build --wait web worker_audio worker_presentation worker_training worker_passback beat whisper

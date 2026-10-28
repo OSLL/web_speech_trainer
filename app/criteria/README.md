@@ -1,43 +1,14 @@
-# Критерии
+# Критерии оценки
 
-## Структура класса критерия
-Все классы критериев
-- наследуются от класса `Critetion` модуля `criterion_base`
-- реализуют
-  - метод `__init__`, принимающий словарь параметров критерия и список зависимых критериев, **обязательно** вызывающий соответствующий метод базового класса
-  - свойство `description` - текстовое описание критерия
-  - метод `apply` - основной метод критерия, возвращающий объект класса `CriterionResult` модуля `criterion_result`
-  - поле класса `PARAMETERS` - словарь вида `{имя_параметра: тип_параметра}`
-    - `тип_параметра` - строка, полученная, например, с помощью `list.__name__`
-    - только стандартные форматы: _str/int/float/list/dict_
+Критерий наследуется от `BaseCriterion`, задаёт `PARAMETERS`, `description` и
+реализует `apply(audio, presentation, training_id, criteria_results)`.
+Результат — `CriterionResult` с оценкой, вердиктом и описанием.
 
-Минимально жизнеспособный критерий: 
-```
-class EmptyCriterion:
+Новый класс размещается в своей директории и импортируется в `criterions.py`.
+Эти импорты формируют реестр `CRITERIONS`; не удаляйте их как неиспользуемые.
+Готовые конфигурации критериев задаются в `preconfigured_criterions.py`, состав
+наборов — в `../criteria_pack/preconfigured_pack.py`.
 
-    PARAMETERS = dict()
-
-    def __init__(self, parameters: dict, dependent_criteria: list):
-        super().__init__(
-            name=name,
-            parameters=parameters,
-            dependent_criteria=dependent_criteria,
-        )
-
-    @property
-    def description(self) -> str:
-        return ""
-
-    def apply(self, audio: Audio, presentation: Presentation, training_id: ObjectId, criteria_results: dict) -> CriterionResult:
-        return CriterionResult(1)
-```
-
-## Правила реализации и работы с модулями
-- Все файлы, необходимые для критерия, размещаются в директории с именем, соответствующем названию критерия в стиле `lower_case_with_underscores`.
-- Класс критерия размещается в файле `criterion.py`
-- Для возможности импорта критерия в других модулях системы, необходимо разместить импорт класса критерия в `critetions.py`
-    - Внешние модули должны знать только классы критериев - никакие другие функции/классы/переменные не импортируются и не выносятся
-```
-from .empty_criterion.criterion import EmptyCriterion
-```
-- Наличие readme, описывающего параметры критерия и его цель, в директории приветствуются.
+При изменении критерия проверьте нормальные данные, пустой текст/аудио,
+граничные значения параметров и взаимодействие с зависимыми критериями.
+Исключение не должно превращаться в успешную частичную оценку.

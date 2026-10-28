@@ -4,19 +4,22 @@ WORKDIR /usr/src/project
 
 USER root
 RUN apt-get update && \
-    apt-get install -y python3 python3-pip && \
+    apt-get install -y --no-install-recommends python3 python3-venv && \
     rm -rf /var/lib/apt/lists/*
 
+RUN python3 -m venv /opt/wst-tests
+ENV PATH="/opt/wst-tests/bin:$PATH"
+
+COPY pytest.ini pytest.ini
 COPY tests/requirements.txt requirements.txt
 RUN pip install -r requirements.txt
 
 COPY tests/selenium selenium
 COPY tests/test_data test_data
 COPY tests/simple_phrases_russian.wav simple_phrases_russian.wav
+COPY tests/simple_phrases_russian.mp3 simple_phrases_russian.mp3
 
 COPY app/config.py app/config.py
-COPY app_conf/testing.ini app_conf/testing.ini
+COPY app_conf/testing.py app_conf/testing.py
 
 ENV PYTHONPATH='/usr/src/project/:/usr/src/project/app/'
-
-#CMD ["pytest", "-s", ".", "-v"]

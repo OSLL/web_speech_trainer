@@ -30,9 +30,10 @@ $(function(){
             if (response.status == 413) {
                 response.json().then(responseJson => {
                     $("#alert").show();
-                    $("#error-text").html(responseJson["message"] || "Файл слишком большой или превышает лимит хранилища");
+                    $("#error-text").text(responseJson["message"] || "Файл слишком большой или превышает лимит хранилища");
                 });
                 $('#button-submit')[0].value = button_value;
+                $('#button-submit').prop('disabled', false);
                 
                 return;
             }
@@ -40,14 +41,20 @@ $(function(){
             response.json().then(responseJson => {
                 if (responseJson["message"] !== "OK"){
                     $("#alert").show();
-                    $("#error-text").html(responseJson["message"]);
+                    $("#error-text").text(responseJson["message"]);
                     
                     $(this).trigger("reset");
+                    $('#button-submit').prop('disabled', false);
                     $('#button-submit')[0].value = button_value
                     
                     return;
                 }
             })
+        }).catch(() => {
+            $('#spinner').hide();
+            $('#button-submit').prop('disabled', false).val(button_value);
+            $('#alert').show();
+            $('#error-text').text('Не удалось загрузить презентацию. Повторите попытку.');
         });
     })
 
@@ -75,7 +82,7 @@ function fileLoadingOnChange() {
     $("#button-submit").attr("disabled", true);
     if ($("#file-loading").prop("files").length < 1) {
         $("#alert").show();
-        $("#error-text").html("Выберите файл!");
+        $("#error-text").text("Выберите файл!");
     } else {
         const file = $("#file-loading").prop("files")[0];
         let parts = file.name.split(".");
@@ -84,12 +91,12 @@ function fileLoadingOnChange() {
         /* TODO: use list with user-allowed extensions */
         if (parts.length < 1 || !user_formats.includes(extension)) {
             $("#alert").show();
-            $("#error-text").html(`Презентация должна быть в формате ${user_formats.join(', ')}!`);
+            $("#error-text").text(`Презентация должна быть в формате ${user_formats.join(', ')}!`);
             return;
         }
         if (file.size > MAX_PRESENTATION_SIZE * 1024 * 1024) {
             $("#alert").show();
-            $("#error-text").html(`Размер файла с презентацией не должен превышать ${MAX_PRESENTATION_SIZE} мегабайт!`);
+            $("#error-text").text(`Размер файла с презентацией не должен превышать ${MAX_PRESENTATION_SIZE} мегабайт!`);
             return;
         }
         if (convertible_formats.includes(extension)) {

@@ -1,20 +1,18 @@
 from app.root_logger import get_root_logger
 
-from bson import ObjectId
-from flask import Blueprint, render_template, jsonify, request, session
+from flask import Blueprint, render_template
 from app.localisation import *
 
 from app.api.task_attempts import get_task_attempt
-from app.check_access import check_access, check_task_attempt_access
-from app.lti_session_passback.auth_checkers import check_admin, check_auth
+from app.check_access import check_task_attempt_access
 from app.utils import check_arguments_are_convertible_to_object_id
 
 routes_task_attempts = Blueprint('routes_task_attempts', __name__)
 logger = get_root_logger()
 
 
-@check_arguments_are_convertible_to_object_id
 @routes_task_attempts.route('/task_attempts/<task_attempt_id>/', methods=['GET'])
+@check_arguments_are_convertible_to_object_id
 def view_task_attempt(task_attempt_id: str):
     """
     Route to view page with task attempt.

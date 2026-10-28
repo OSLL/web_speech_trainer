@@ -13,8 +13,8 @@ logger = get_root_logger()
 
 
 
-@check_arguments_are_convertible_to_object_id
 @api_audio.route('/api/audio/transcriptions/<training_id>/', methods=['GET'])
+@check_arguments_are_convertible_to_object_id
 def get_audio_transcription(training_id: str) -> (dict, int):
     """
     Endpoint to get an audio transcription by a training identifier.

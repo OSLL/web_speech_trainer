@@ -7,8 +7,6 @@ from app.check_access import check_access, check_task_attempt_access
 from app.lti_session_passback.auth_checkers import check_auth, is_admin
 from app.mongo_odm import TaskAttemptsDBManager, TasksDBManager
 from app.utils import check_arguments_are_convertible_to_object_id, check_argument_is_convertible_to_object_id
-from app.localisation import t
-from app.status import PassBackStatus
 from app.api.trainings import get_training
 
 from app.mongo_models import TaskAttempts
@@ -18,8 +16,8 @@ logger = get_root_logger()
 
 
 
-@check_arguments_are_convertible_to_object_id
 @api_task_attempts.route('/api/task-attempts/', methods=['GET'])
+@check_arguments_are_convertible_to_object_id
 def get_current_task_attempt() -> tuple[dict, int]:
     """
     Endpoint to get current task attempt information.
@@ -76,8 +74,8 @@ def get_task_attempt_information(task_attempt_db: TaskAttempts) -> dict:
         return {'message': '{}: {}'.format(e.__class__, e)}
 
 
-@check_arguments_are_convertible_to_object_id
 @api_task_attempts.route('/api/task-attempts/<task_attempt_id>/', methods=['GET'])
+@check_arguments_are_convertible_to_object_id
 def get_task_attempt(task_attempt_id) -> tuple[dict, int]:
     """
     Endpoint to get information about a task attempt by its identifier.
@@ -96,8 +94,8 @@ def get_task_attempt(task_attempt_id) -> tuple[dict, int]:
         return {'message': 'No task attempt with task_attempt_id = {}.'.format(task_attempt_id)}, 404
     return get_task_attempt_information(task_attempt_db), 200
 
-@check_arguments_are_convertible_to_object_id
 @api_task_attempts.route('/api/task_attempts/<task_attempt_id>/', methods=['DELETE'])
+@check_arguments_are_convertible_to_object_id
 def delete_task_attempt_by_task_attempt_id(task_attempt_id: str) -> tuple[dict, int]:
     """
     Endpoint to delete a task attempt by its identifier.

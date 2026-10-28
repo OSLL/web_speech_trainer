@@ -5,14 +5,14 @@ from flask import session, request
 from app.config import Config
 from app.mongo_models import Sessions
 from app.mongo_odm import SessionsDBManager
-from app.utils import is_testing_active
+from app.utils import is_testing_active, safe_strtobool
 
 
 def check_auth() -> Optional[Sessions]:
     if not is_testing_active():
         return _check_auth()
     else:
-        return _check_auth_testing()
+        return _check_auth() or _check_auth_testing()
 
 
 def _check_auth() -> Optional[Sessions]:
@@ -39,7 +39,7 @@ def _check_auth_testing() -> Sessions:
                 },
             },
         },
-        is_admin=Config.c.testing.is_admin,
+        is_admin=safe_strtobool(Config.c.testing.is_admin),
     )
 
 
@@ -51,7 +51,9 @@ def check_admin(allow_access_token=False) -> Optional[Sessions]:
     user_session = check_auth()
 
     #raise Exception(f"{allow_access_token}, {Config.c.constants.access_token}, {request.args.get('TOKEN', '')}, {Config.c.constants.access_token == request.args.get('TOKEN', '')}")
-    if allow_access_token and (Config.c.constants.access_token == request.args.get("TOKEN", "")):
+    import hmac
+    access_token = getattr(Config.c.constants, 'access_token', '')
+    if allow_access_token and access_token and hmac.compare_digest(access_token, request.headers.get('Authorization', '').removeprefix('Bearer ') or request.args.get('TOKEN', '')):
         return True
     
     if user_session and user_session.is_admin:
@@ -62,14 +64,3 @@ def check_admin(allow_access_token=False) -> Optional[Sessions]:
 
 def is_admin() -> bool:
     return check_admin() is not None
-
-
-def check_task_access(task_id: str) -> bool:
-    user_session = SessionsDBManager().get_session(
-        session.get('session_id', None),
-        session.get('consumer_key', None),
-    )
-    if check_admin():
-        return True
-    else:
-        return task_id in user_session['tasks'] or is_testing_active()

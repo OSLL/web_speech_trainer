@@ -1,12 +1,12 @@
-version: '2'
-
 services:
   selenium-tests:
     build:
       context: .
       dockerfile: Dockerfile_selenium
     shm_size: 2g
+    environment:
+      WST_HOST: http://web:5000
     depends_on:
-      - web
-    networks:
-      - default
+      web:
+        condition: service_healthy
+    command: [pytest, -v, --timeout=300, selenium]

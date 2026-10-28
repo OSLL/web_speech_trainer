@@ -1,3 +1,4 @@
+from pathlib import Path
 import json
 import logging
 from unittest.mock import Mock
@@ -15,7 +16,7 @@ PREVIEW_ID = ObjectId('6079618b8025b6f4c8e22083')
 TRAINING_WITH_AUDIO_ID = Mock(audio_id=AUDIO_ID)
 TRAINING_WITH_PRESENTATION_FILE_ID = Mock(presentation_file_id=PRESENTATION_FILE_ID)
 TIMESTAMP = 1620046125.832949
-with open('test_data/recognized_audio_6.json', 'rb') as json_file:
+with open(Path(__file__).parent / 'test_data/recognized_audio_6.json', 'rb') as json_file:
     ts = TIMESTAMP
     AUDIO = Audio(
         RecognizedAudio.from_json_file(json_file),

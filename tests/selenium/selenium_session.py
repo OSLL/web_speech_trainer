@@ -3,9 +3,14 @@ import requests
 from time import sleep
 
 from selenium.webdriver import Chrome
+from selenium.webdriver.chrome.service import Service
+from shutil import which
 
-HOST = 'http://web:5000'
-ROOT_DIR = '/usr/src/project'
+import os
+from pathlib import Path
+
+HOST = os.environ.get('WST_HOST', 'http://web:5000')
+ROOT_DIR = str(Path(__file__).resolve().parents[1])
 
 
 def chrome_options(audio_file=None):
@@ -13,6 +18,7 @@ def chrome_options(audio_file=None):
 
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--headless')
+    chrome_options.add_argument('--disable-gpu')
     chrome_options.add_argument(
         f'--unsafely-treat-insecure-origin-as-secure={HOST}')
 
@@ -31,7 +37,9 @@ class SeleniumSession:
         self.__prepare_session(HOST, config, chrome_options, requires_init)
 
     def __init_driver(self, chrome_options):
-        self.driver = Chrome(options=chrome_options)
+        self.driver = Chrome(options=chrome_options, service=Service(which("chromedriver")))
+        self.driver.set_page_load_timeout(30)
+        self.driver.set_script_timeout(20)
         self.session = requests.Session()
 
         sleep(5)

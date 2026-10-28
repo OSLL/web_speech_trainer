@@ -7,7 +7,7 @@ class Criterion(MongoModel):
     base_criterion = fields.CharField()
     parameters = fields.DictField(blank=True, default={})
     dependent_critetions = fields.ListField(blank=True, default=[])
-    last_update = fields.DateTimeField(default=datetime.now(timezone.utc))
+    last_update = fields.DateTimeField(default=lambda: datetime.now(timezone.utc))
 
     def to_dict(self):
         return dict(
@@ -20,13 +20,13 @@ class Criterion(MongoModel):
 
     def save(self):
         self.last_update = datetime.now(timezone.utc)
-        super().save()
+        return super().save()
 
 
 class CriterionPack(MongoModel):
     name = fields.CharField()   # must be unique
     criterions = fields.ListField(fields.ReferenceField(Criterion), blank=True, default=[])
-    last_update = fields.DateTimeField(default=datetime.now(timezone.utc))
+    last_update = fields.DateTimeField(default=lambda: datetime.now(timezone.utc))
     feedback = fields.CharField(blank=True, default='')
     criterion_weights = fields.DictField(blank=True, default={})
 
@@ -41,10 +41,19 @@ class CriterionPack(MongoModel):
 
     def save(self):
         self.last_update = datetime.now(timezone.utc)
-        super().save()
+        return super().save()
 
 
 class Trainings(MongoModel):
+    processing_generation = fields.IntegerField(blank=True)
+    processing_run_id = fields.CharField(blank=True)
+    processing_state = fields.CharField(blank=True)
+    processing_stages = fields.DictField(blank=True)
+    processing_dispatch_at = fields.DateTimeField(blank=True)
+    processing_dispatches = fields.IntegerField(blank=True)
+    processing_task_id = fields.CharField(blank=True)
+    processing_error = fields.CharField(blank=True)
+    consumer_key = fields.CharField(blank=True)
     task_attempt_id = fields.ObjectIdField(blank=True)
     username = fields.CharField(blank=True)
     full_name = fields.CharField(blank=True)
@@ -69,8 +78,9 @@ class Trainings(MongoModel):
 
 
 class Tasks(MongoModel):
+    consumer_key = fields.CharField(blank=True)
     task_id = fields.CharField()
-    task_description = fields.CharField()
+    task_description = fields.CharField(blank=True, default='')
     attempt_count = fields.IntegerField()
     required_points = fields.FloatField()
     criteria_pack_id = fields.CharField()
@@ -78,18 +88,18 @@ class Tasks(MongoModel):
 
 
 class TaskAttempts(MongoModel):
+    training_runs = fields.DictField(blank=True, default=dict)
+    training_generations = fields.DictField(blank=True, default=dict)
+    passback_owner = fields.CharField(blank=True)
+    passback_lease_until = fields.DateTimeField(blank=True)
+    consumer_key = fields.CharField(blank=True)
+    score_revision = fields.IntegerField(blank=True, default=0)
     username = fields.CharField()
     task_id = fields.CharField()
     params_for_passback = fields.DictField()
     training_count = fields.IntegerField()
     training_scores = fields.OrderedDictField(blank=True)
     is_passed_back = fields.OrderedDictField(blank=True)
-
-
-class TaskAttemptsToPassBack(MongoModel):
-    task_attempt_id = fields.ObjectIdField()
-    training_id = fields.ObjectIdField()
-    is_retry = fields.BooleanField(blank=True)
 
 
 class Sessions(MongoModel):
@@ -111,39 +121,12 @@ class PresentationInfo(EmbeddedMongoModel):
 
 
 class PresentationFiles(MongoModel):
+    owner = fields.CharField(blank=True)
+    consumer_key = fields.CharField(blank=True)
     file_id = fields.ObjectIdField()
     filename = fields.CharField()
     preview_id = fields.ObjectIdField()
     presentation_info = fields.EmbeddedDocumentField(PresentationInfo)
-
-
-class PresentationsToRecognize(MongoModel):
-    file_id = fields.ObjectIdField()
-    training_id = fields.ObjectIdField()
-
-
-class RecognizedPresentationsToProcess(MongoModel):
-    file_id = fields.ObjectIdField()
-    training_id = fields.ObjectIdField()
-
-
-class AudioToRecognize(MongoModel):
-    file_id = fields.ObjectIdField()
-    training_id = fields.ObjectIdField()
-
-
-class RecognizedAudioToProcess(MongoModel):
-    file_id = fields.ObjectIdField()
-    training_id = fields.ObjectIdField()
-
-
-class TrainingsToProcess(MongoModel):
-    training_id = fields.ObjectIdField()
-
-
-class FeedbackEvaluators(MongoModel):
-    name = fields.CharField()
-    weights = fields.DictField()
 
 
 class Logs(MongoModel):
@@ -156,6 +139,3 @@ class Logs(MongoModel):
     filename = fields.CharField()
     funcName = fields.CharField()
     lineno = fields.IntegerField()
-
-class StorageMeta(MongoModel):
-    used_size = fields.IntegerField()

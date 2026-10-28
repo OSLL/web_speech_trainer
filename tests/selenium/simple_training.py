@@ -4,7 +4,7 @@ from selenium_session import ROOT_DIR
 from training_session import Training
 
 PRESENTATION_FILE = f"{ROOT_DIR}/test_data/test_presentation_file_0.pdf"
-ESTIMATED_PROCESSING_TIME_IN_SECONDS = 100
+ESTIMATED_PROCESSING_TIME_IN_SECONDS = 240
 
 class SimpleTraining:
     def test_presentation_upload(self, selenium_session):

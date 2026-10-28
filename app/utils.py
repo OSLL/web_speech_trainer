@@ -1,15 +1,12 @@
-import os
 import string
 import re
 import tempfile
-from distutils.util import strtobool
-from threading import Timer
 
 import fitz
 from bson import ObjectId
 from flask import json, url_for, current_app
 import magic
-import pymorphy2
+import pymorphy3
 from nltk.corpus import stopwords
 from pydub import AudioSegment
 import subprocess
@@ -17,7 +14,6 @@ from app.config import Config
 import hashlib
 from pathlib import Path
 
-PDF_HEX_START = ['25', '50', '44', '46']
 SECONDS_PER_MINUTE = 60
 BYTES_PER_MEGABYTE = 1024 * 1024
 ALLOWED_MIMETYPES = {
@@ -31,13 +27,13 @@ ALLOWED_EXTENSIONS = set(ALLOWED_MIMETYPES.keys())
 DEFAULT_EXTENSION = 'pdf'
 
 
-def file_has_pdf_beginning(file):
-    for i in range(len(PDF_HEX_START)):
-        if file.read(1).hex() != PDF_HEX_START[i]:
-            file.seek(0)
-            return False
-    file.seek(0)
-    return True
+def strtobool(value):
+    value = str(value).lower()
+    if value in ('y', 'yes', 't', 'true', 'on', '1'):
+        return 1
+    if value in ('n', 'no', 'f', 'false', 'off', '0'):
+        return 0
+    raise ValueError('Invalid boolean value')
 
 
 def check_file_mime(file, expected_ext):
@@ -75,24 +71,19 @@ def is_convertible(extension): return extension in CONVERTIBLE_EXTENSIONS
 
 
 def convert_to_pdf(presentation_file):
-    temp_file = tempfile.NamedTemporaryFile(delete=False)
-    temp_file.write(presentation_file.read())
-    temp_file.close()
-    presentation_file.seek(0)
-
-    converted_file = None
-    convert_cmd = f"soffice --headless --convert-to pdf --outdir {os.path.dirname(temp_file.name)} {temp_file.name}"
-    if run_process(convert_cmd).returncode == 0:
-        # success conversion
-        new_filename = "{}.pdf".format(temp_file.name.rsplit('.', 1)[0])
-        converted_file = open(new_filename, 'rb')
-        os.remove(new_filename)
-
-    os.remove(temp_file.name)
-    return converted_file
-
-
-def run_process(cmd: str): return subprocess.run(cmd.split(' '))
+    from io import BytesIO
+    with tempfile.TemporaryDirectory(prefix='wst-convert-') as directory:
+        suffix = Path(presentation_file.filename).suffix.lower()
+        source = Path(directory) / ('presentation' + suffix)
+        source.write_bytes(presentation_file.read())
+        presentation_file.seek(0)
+        result = subprocess.run(['soffice', '-env:UserInstallation=file://' + directory + '/profile',
+                                 '--headless', '--convert-to', 'pdf', '--outdir', directory, str(source)],
+                                capture_output=True, timeout=120)
+        output = source.with_suffix('.pdf')
+        if result.returncode or not output.is_file():
+            return None
+        return BytesIO(output.read_bytes())
 
 
 def convert_from_mp3_to_wav(audio, frame_rate=8000, channels=1):
@@ -105,16 +96,12 @@ def convert_from_mp3_to_wav(audio, frame_rate=8000, channels=1):
 
 
 def get_presentation_file_preview(presentation_file):
-    temp_file = tempfile.NamedTemporaryFile(delete=False)
-    temp_file.write(presentation_file.read())
-    temp_file.close()
-    pdf_doc = fitz.open(temp_file.name)
-    os.remove(temp_file.name)
-    start_page = pdf_doc.load_page(0)
-    pixmap = start_page.get_pixmap()
-    output_temp_file = tempfile.NamedTemporaryFile(delete=False)
-    pixmap.save(output_temp_file.name, 'png')
-    return output_temp_file
+    with fitz.open(stream=presentation_file.read(), filetype='pdf') as document:
+        if not len(document):
+            raise ValueError('Presentation contains no pages')
+        output = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
+        document[0].get_pixmap().save(output.name)
+        return output
 
 
 def safe_strtobool(value, on_error=False):
@@ -147,11 +134,14 @@ def check_argument_is_convertible_to_object_id(arg):
 
 
 def check_arguments_are_convertible_to_object_id(f):
-    def wrapper(*args):
-        for arg in args:
-            check_argument_is_convertible_to_object_id(arg)
-        return f(*args)
-
+    from functools import wraps
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        for arg in (*args, *kwargs.values()):
+            error = check_argument_is_convertible_to_object_id(arg)
+            if error:
+                return error
+        return f(*args, **kwargs)
     return wrapper
 
 
@@ -162,14 +152,6 @@ def is_testing_active():
         return False
 
 
-def get_types():
-    return {
-        str.__name__: str,
-        int.__name__: int,
-        float.__name__: float,
-        list.__name__: list,
-        dict.__name__: dict
-    }
 
 
 def try_load_json(json_string):
@@ -190,7 +172,7 @@ def check_dict_keys(dictionary, keys):
 # Функция нормализации текста
 def normalize_text(text: list) -> list:
     table = str.maketrans("", "", string.punctuation)
-    morph = pymorphy2.MorphAnalyzer()
+    morph = pymorphy3.MorphAnalyzer()
 
     # Замена знаков препинания на пустые строки, конвертация в нижний регистр и обрезание пробелов по краям
     text = list(map(lambda x: x.translate(table).lower().strip(), text))
@@ -223,36 +205,6 @@ def versioned_url(filename):
     if not v:
         return url_for("static", filename=filename)
     return url_for("static", filename=filename, v=v)
-
-
-class RepeatedTimer:
-    """
-    Utility class to call a function with a given interval between the end and the beginning of consecutive calls
-    """
-
-    def __init__(self, interval, function, *args, **kwargs):
-        self._timer = None
-        self.interval = interval
-        self.function = function
-        self.args = args
-        self.kwargs = kwargs
-        self.is_running = False
-        self.start()
-
-    def _run(self):
-        self.is_running = False
-        self.function(*self.args, **self.kwargs)
-        self.start()
-
-    def start(self):
-        if not self.is_running:
-            self._timer = Timer(self.interval, self._run)
-            self._timer.start()
-            self.is_running = True
-
-    def stop(self):
-        self._timer.cancel()
-        self.is_running = False
 
 
 class Singleton(type):

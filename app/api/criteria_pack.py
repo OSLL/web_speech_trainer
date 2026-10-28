@@ -1,5 +1,4 @@
-from app.check_access import check_access
-from app.lti_session_passback.auth_checkers import is_admin
+from app.lti_session_passback.auth_checkers import is_admin, check_auth
 from app.mongo_odm import CriterionPackDBManager
 from app.root_logger import get_root_logger
 from app.utils import check_dict_keys, remove_blank_and_none, try_load_json
@@ -21,7 +20,7 @@ def create_new_criteria_pack():
 
 @api_criteria_pack.route('/<pack_name>/', methods=['GET'])
 def get_criteria_pack(pack_name):
-    if not check_access():
+    if not check_auth():
         return {}, 404
     db_criterion_pack = CriterionPackDBManager().get_criterion_pack_by_name(pack_name)
     if db_criterion_pack:

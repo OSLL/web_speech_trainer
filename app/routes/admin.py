@@ -1,7 +1,6 @@
 from app.root_logger import get_root_logger
 
-from flask import render_template, redirect, Blueprint
-from flask.helpers import url_for
+from flask import render_template, Blueprint
 
 from app.api.dump import get_dumps_info
 from app.lti_session_passback.auth_checkers import check_admin

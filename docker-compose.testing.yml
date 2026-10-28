@@ -1,0 +1,13 @@
+# Isolate integration-test data from a developer's/production MongoDB directory.
+services:
+  db:
+    volumes:
+      - mongo_test_data:/data/db
+  web:
+    environment:
+      APP_SECRET_KEY: isolated-test-session-secret-never-use-in-production
+    volumes:
+      - test_dumps:/project/dump/database-dump/
+volumes:
+  mongo_test_data:
+  test_dumps:

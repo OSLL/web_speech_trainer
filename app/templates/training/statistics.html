@@ -72,9 +72,9 @@
 <script src="{{ versioned_url('js/changeURL.js') }}"></script>
 <script src="{{ versioned_url('js/training_statistics.js') }}"></script>
 <script type="text/javascript">
-    setVerdict("{{ verdict }}");
+    setVerdict({{ verdict|tojson }});
     setPerSlideAudioTranscriptionTable("{{ training_id }}");
-    setCriteriaResults("{{ criteria_results | safe }}");
+    setCriteriaResults({{ criteria_results|tojson }});
     setupPresentationViewer("{{ training_id }}");
     changeTrainingStatsURL();
     var info = {{ slides_time }};

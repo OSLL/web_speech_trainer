@@ -13,7 +13,7 @@ function recheck(trainingId){
     .then(response => response.json())
     .then(res => {
         if (res.admin) {
-            fetch(`/api/trainings/${trainingId}/`, {method: "POST"})
+            fetch(`/api/trainings/${trainingId}/?restart=1`, {method: "POST"})
             .then(response => response.json())
             .then(innerResponseJson => {
                 if (innerResponseJson["message"] === "OK") {

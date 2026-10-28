@@ -1,90 +1,135 @@
+x-app: &app
+  image: &app-image wst-image:${WST_IMAGE_TAG:-pre-release}
+  build: .
+  init: true
+  restart: unless-stopped
+  environment: &environment
+    APP_CONF: ${APP_CONF:-../app_conf/config.py}
+    APP_SECRET_KEY: ${APP_SECRET_KEY:-}
+    LTI_CONSUMER_KEY: ${LTI_CONSUMER_KEY:-}
+    LTI_CONSUMER_SECRET: ${LTI_CONSUMER_SECRET:-}
+    API_ACCESS_TOKEN: ${API_ACCESS_TOKEN:-}
+    CELERY_BROKER_URL: amqp://${RABBITMQ_DEFAULT_USER:-wst}:${RABBITMQ_DEFAULT_PASS:?Set RABBITMQ_DEFAULT_PASS}@rabbitmq:5672//
+    CELERY_RESULT_BACKEND: redis://redis:6379/0
+    AUDIO_WORKER_CONCURRENCY: ${AUDIO_WORKER_CONCURRENCY:-1}
+    PRESENTATION_WORKER_CONCURRENCY: ${PRESENTATION_WORKER_CONCURRENCY:-1}
+    TRAINING_WORKER_CONCURRENCY: ${TRAINING_WORKER_CONCURRENCY:-1}
+    PASSBACK_WORKER_CONCURRENCY: ${PASSBACK_WORKER_CONCURRENCY:-1}
+    TRUST_PROXY: ${TRUST_PROXY:-0}
+    TASK_TIME_LIMIT_SECONDS: ${TASK_TIME_LIMIT_SECONDS:-1800}
+    TASK_SOFT_TIME_LIMIT_SECONDS: ${TASK_SOFT_TIME_LIMIT_SECONDS:-1500}
+    WORKFLOW_LEASE_SECONDS: ${WORKFLOW_LEASE_SECONDS:-1860}
+  depends_on: &app-dependencies
+    db:
+      condition: service_healthy
+    rabbitmq:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
 services:
   web:
-    image: wst-image:v0.2
-    init: true
-    command: bash -c "python3 ./db_versioning/db_versioning.py --mongo mongodb://db:27017 && python3 -m web_speech_trainer $APP_CONF" 
-    restart: always
+    <<: *app
+    command: [bash, -ec, "python3 -m app.bootstrap && exec gunicorn --bind 0.0.0.0:5000 --workers 2 --timeout 180 'app.web_speech_trainer:create_app()'"]
     ports:
-      - 5000:5000
-    depends_on:
-      - db
-      - training_processor
+      - "${WEB_BIND:-127.0.0.1}:5000:5000"
     volumes:
-      - ../database-dump:/app/dump/database-dump/
+      - ../database-dump:/project/dump/database-dump/
+    healthcheck:
+      test: [CMD, python3, -c, "import urllib.request; urllib.request.urlopen('http://localhost:5000/')"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
 
-  audio_processor:
-    image: wst-image:v0.2
-    command: python3 -m audio_processor $APP_CONF
-    restart: always
-    depends_on:
-      - db
-      - whisper
-      - presentation_processor
+  worker_audio:
+    <<: *app
+    command: [python3, -m, app.worker, audio]
+    stop_grace_period: 31m
 
-  recognized_audio_processor:
-    image: wst-image:v0.2
-    command: python3 -m recognized_audio_processor $APP_CONF
-    restart: always
-    depends_on:
-      - db
-      - audio_processor
-      - presentation_processor
+  worker_presentation:
+    <<: *app
+    command: [python3, -m, app.worker, presentation]
+    stop_grace_period: 31m
 
-  presentation_processor:
-    image: wst-image:v0.2
-    build: .
-    command: python3 -m presentation_processor $APP_CONF
-    restart: always
-    depends_on:
-      - db
+  worker_training:
+    <<: *app
+    command: [python3, -m, app.worker, training]
     volumes:
-      - nltk_data:/root/nltk_data
-
-  recognized_presentation_processor:
-    image: wst-image:v0.2
-    command: python3 -m recognized_presentation_processor $APP_CONF
-    restart: always
+      - nltk_data:/root/nltk_data:ro
     depends_on:
-      - db
-      - presentation_processor
+      <<: *app-dependencies
+      nltk_downloader:
+        condition: service_completed_successfully
+    stop_grace_period: 31m
 
-  training_processor:
-    image: wst-image:v0.2
-    command: python3 -m training_processor $APP_CONF
-    restart: always
-    depends_on:
-      - db
-      - recognized_audio_processor
-      - recognized_presentation_processor
-    volumes:
-      - nltk_data:/root/nltk_data
+  worker_passback:
+    <<: *app
+    command: [python3, -m, app.worker, passback]
+    stop_grace_period: 31m
 
-  task_attempt_to_pass_back_processor:
-    image: wst-image:v0.2
-    command: python3 -m task_attempt_to_pass_back_processor $APP_CONF
-    restart: always
-    depends_on:
-      - db
+  beat:
+    <<: *app
+    command: [celery, -A, app.celery_app, beat, --loglevel=info, --schedule=/tmp/celerybeat-schedule]
 
   db:
-    image: "mongo:8-noble"
-    restart: always
-    command:
-      - '--wiredTigerCacheSizeGB=2'
+    image: mongo:8-noble
+    restart: unless-stopped
     volumes:
       - ../mongo_data:/data/db
+    healthcheck:
+      test: [CMD, mongosh, --quiet, --eval, "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  rabbitmq:
+    image: rabbitmq:4.3.6-management
+    hostname: rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-wst}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?Set RABBITMQ_DEFAULT_PASS}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: [CMD, rabbitmq-diagnostics, -q, ping]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: [redis-server, --appendonly, 'yes', --appendfsync, everysec]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 5s
+      retries: 30
 
   whisper:
-    image: "onerahmet/openai-whisper-asr-webservice:v1.3.0"
+    image: onerahmet/openai-whisper-asr-webservice:v1.3.0
+    restart: unless-stopped
     environment:
-      - ASR_MODEL=${WHISPER_ASR_MODEL:-tiny}
-      - ASR_ENGINE=${WHISPER_ASR_ENGINE:-openai_whisper}
-    restart: always
+      ASR_MODEL: ${WHISPER_ASR_MODEL:-tiny}
+      ASR_ENGINE: ${WHISPER_ASR_ENGINE:-openai_whisper}
     cpuset: ${WHISPER_CPU:-0,1}
     mem_limit: ${WHISPER_MEM_LIMIT:-5g}
     volumes:
       - whisper_models:/root/.cache/whisper
 
+  nltk_downloader:
+    image: *app-image
+    build: .
+    command: [python3, download_nltk.py]
+    restart: 'no'
+    volumes:
+      - nltk_data:/root/nltk_data
+
 volumes:
+  rabbitmq_data:
+  redis_data:
   whisper_models:
   nltk_data:
