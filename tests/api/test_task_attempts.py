@@ -10,7 +10,7 @@ from flask import Flask
 
 import app as app_module
 from app.api.task_attempts import get_current_task_attempt
-from app.web_speech_trainer import app
+
 
 sys.path.append(os.getcwd())
 sys.path.append(str(Path(os.getcwd()).parent.absolute()))
@@ -25,7 +25,7 @@ from mock_data import check_no_auth_called_once, check_json_response
 
 
 @pytest.fixture
-def test_client():
+def test_client(*, app):
     with app.test_client() as test_client:
         app.secret_key = 'test_no_task_attempt'
         app.testing = True

@@ -2,7 +2,8 @@ from app.root_logger import get_root_logger
 
 from flask import Blueprint
 
-from app.lti_session_passback.auth_checkers import check_auth, check_admin
+from app.lti_session_passback.auth_checkers import check_admin
+from app.check_access import check_presentation_access
 from app.mongo_models import PresentationFiles
 from app.mongo_odm import PresentationFilesDBManager
 from app.utils import check_arguments_are_convertible_to_object_id
@@ -29,8 +30,8 @@ def get_presentation_information(current_presentation_file: PresentationFiles) -
     }
 
 
-@check_arguments_are_convertible_to_object_id
 @api_presentations.route('/api/presentations/<presentation_file_id>/', methods=['GET'])
+@check_arguments_are_convertible_to_object_id
 def get_presentation(presentation_file_id) -> (dict, int):
     """
     Endpoint to get information about a presentation by its identifier.
@@ -41,7 +42,7 @@ def get_presentation(presentation_file_id) -> (dict, int):
         an empty dictionary with 404 HTTP return code if access was denied.
     #TODO check a presentation was uploaded by the current user?
     """
-    if not check_auth():
+    if not check_presentation_access(presentation_file_id):
         return {}, 404
     presentation_file = PresentationFilesDBManager().get_presentation_file(file_id=presentation_file_id)
     if presentation_file is None:

@@ -1,11 +1,9 @@
-from datetime import datetime
 from app.root_logger import get_root_logger
 import time
-import os
 import pytz
 
 from bson import ObjectId
-from flask import Blueprint, render_template, request, session
+from flask import Blueprint, render_template, request, session, redirect, url_for
 from app.localisation import *
 
 from app.api.trainings import add_training, get_training_statistics
@@ -13,7 +11,7 @@ from app.check_access import check_access
 from app.criteria_pack import CriteriaPackFactory
 from app.feedback_evaluator import FeedbackEvaluatorFactory
 from app.lti_session_passback.auth_checkers import check_admin, check_auth, is_logged_in
-from app.mongo_odm import CriterionPackDBManager, TasksDBManager, TaskAttemptsDBManager
+from app.mongo_odm import CriterionPackDBManager, TasksDBManager, TaskAttemptsDBManager, TrainingsDBManager
 from app.status import TrainingStatus, AudioStatus, PresentationStatus
 from app.utils import check_arguments_are_convertible_to_object_id
 
@@ -22,8 +20,8 @@ logger = get_root_logger()
 
 
 
-@check_arguments_are_convertible_to_object_id
 @routes_trainings.route('/trainings/statistics/<training_id>/', methods=['GET'])
+@check_arguments_are_convertible_to_object_id
 def view_training_statistics(training_id: str):
     """
     Route to show page with statistics of a training by its identifier
@@ -103,8 +101,8 @@ def view_training_statistics(training_id: str):
     ), 200
 
 
-@check_arguments_are_convertible_to_object_id
 @routes_trainings.route('/trainings/<training_id>/', methods=['GET'])
+@check_arguments_are_convertible_to_object_id
 def view_training(training_id: str):
     """
     Route to view page with training.
@@ -195,7 +193,8 @@ def view_training_greeting():
         CriterionPackDBManager().get_criterion_pack_by_name(criteria_pack_id).criterion_weights,
     )
     # immediately create training if task has presentation 
-    presentation_id, training_id = (str(task_db.presentation_id), add_training(str(task_db.presentation_id))[0].get('training_id')) if task_db.presentation_id else (None, None)
+    presentation_id = str(task_db.presentation_id) if task_db.presentation_id else None
+    training_id = None
 
     return render_template(
         'training_greeting.html',
@@ -212,3 +211,17 @@ def view_training_greeting():
         training_id=training_id,
         presentation_id=presentation_id
     )
+
+
+@routes_trainings.route('/start_assigned_training/', methods=['POST'])
+def start_assigned_training():
+    if not check_auth():
+        return {}, 404
+    task = TasksDBManager().get_task(session.get('task_id'))
+    if task is None or not task.presentation_id:
+        return {}, 404
+    data, status = add_training(str(task.presentation_id))
+    if status != 200:
+        return data, status
+    TrainingsDBManager().change_training_status_by_training_id(data['training_id'], TrainingStatus.IN_PROGRESS)
+    return redirect(url_for('routes_trainings.view_training', training_id=data['training_id']))

@@ -2,10 +2,10 @@ from flask import Blueprint, send_file
 from datetime import datetime
 from app.root_logger import get_root_logger
 import os
-import subprocess
 from werkzeug.utils import secure_filename
 
 from app.config import Config
+from app.db_backup import BACKUP_FILENAMES, create_db_dump
 from app.lti_session_passback.auth_checkers import check_admin
 
 
@@ -13,7 +13,7 @@ api_dump = Blueprint('api_dump', __name__)
 logger = get_root_logger()
 
 
-backup_filenames = ('backup.zip', 'backup_nochunks.zip')
+backup_filenames = BACKUP_FILENAMES
 
 @api_dump.route('/api/dumps/', methods=['GET'])
 def get_dumps_info() -> (dict, int):
@@ -43,7 +43,7 @@ def get_dumps_info() -> (dict, int):
     return info, 200
 
 
-@api_dump.route('/api/dumps/create/<backup_name>', methods=['GET'])
+@api_dump.route('/api/dumps/create/<backup_name>', methods=['POST'])
 def create_dump(backup_name) -> (dict, int):
     """
     Endpoint to create dumps.
@@ -59,11 +59,11 @@ def create_dump(backup_name) -> (dict, int):
     if backup_name not in backup_filenames:
         return {'message': "No such backup filename: {}".format(backup_name)}, 404
     
-    code = create_db_dump(backup_name)
-
-    if code != 0:
-        logger.error("Non-zero code for dump command for '{}'. Code {}".format(backup_name, code))
-        return {'message': "Non-zero code for dump command: {}".format(code)}, 404
+    try:
+        create_db_dump(backup_name)
+    except Exception:
+        logger.exception('Database export failed')
+        return {'message': 'Database export failed.'}, 503
 
     return get_dumps_info()
 
@@ -86,12 +86,3 @@ def download_dump(backup_name: str) -> (dict, int):
         return {'message': "No such backup file: {}".format(backup_name)}, 404
 
     return send_file(filepath, as_attachment=True, download_name=backup_name)
-
-
-def create_db_dump(name):
-    CMDs = {
-        'backup.zip': "../scripts/db/mongo.sh -H db:27017 database",
-        'backup_nochunks.zip': "../scripts/db/mongo.sh -H db:27017 -f database",
-        'all': "../scripts/db/mongo.sh -H db:27017 -a database"
-    }
-    return subprocess.call(CMDs[name].split(' '))

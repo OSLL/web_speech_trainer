@@ -1,6 +1,5 @@
 import json
 
-from app.word import Word
 
 
 class Slide:

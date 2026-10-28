@@ -14,7 +14,7 @@ from returns.curry import partial
 from dejavu import Dejavu
 from compare_files import Recording, config
 
-from denoiser import Denoiser
+from app.playground.noise_reduction.denoiser import Denoiser
 
 
 SAMPLE_RATE = 22050
@@ -148,7 +148,7 @@ if __name__ == '__main__':
     data = {
         'mfcc': seq(filenames).map(load_file).map(get_mfcc),
         'denoised_mfcc': seq(filenames).map(load_file).map(denoise).map(get_mfcc),
-        'recording': seq(filenames).map(get_recording)
+        'recording': seq(filenames).map(get_recording),
         'denoised_recording': seq(filenames).map(denoise_dejavu).map(get_recording)
     }
     print('3')

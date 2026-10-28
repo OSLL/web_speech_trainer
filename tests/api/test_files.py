@@ -5,7 +5,7 @@ import app as app_module
 from app.api.files import get_presentation_record_file, get_presentation_file_by_training_id, get_presentation_preview, \
     upload_presentation
 from app.utils import BYTES_PER_MEGABYTE
-from app.web_speech_trainer import app
+
 
 import sys
 from pathlib import Path
@@ -42,7 +42,7 @@ class TestGetPresentationRecordFile:
             404,
         )
 
-    def test_get_presentation_record_file(self):
+    def test_get_presentation_record_file(self, *, app):
         with patch('app.api.files.check_access', return_value=True), \
                 patch.object(app_module.api.files, 'logger', get_mock_logger()) as mock_logger, \
                 patch('app.api.files.DBManager') as mock_db_manager, \
@@ -78,7 +78,7 @@ class TestGetPresentationFileByTrainingId:
             404,
         )
 
-    def test_get_presentation_file_by_training_id(self):
+    def test_get_presentation_file_by_training_id(self, *, app):
         with patch('app.api.files.check_access', return_value=True), \
              patch('app.api.files.TrainingsDBManager') as mock_trainings_db_manager, \
              patch('app.api.files.DBManager') as mock_db_manager, \
@@ -96,14 +96,14 @@ class TestGetPresentationFileByTrainingId:
 
 class TestGetPresentationPreview:
     def test_no_access(self):
-        with patch('app.api.files.check_access', return_value=False) as mock_check_access:
+        with patch('app.api.files.check_presentation_access', return_value=False) as mock_check_access:
             return_value = get_presentation_preview(str(PRESENTATION_FILE_ID))
             check_no_access_called_once(
-                mock_check_access, return_value, {'presentation_file_id': str(PRESENTATION_FILE_ID)}
+                mock_check_access, return_value, str(PRESENTATION_FILE_ID)
             )
 
     def test_no_presentation_file(self):
-        with patch('app.api.files.check_access', return_value=True), \
+        with patch('app.api.files.check_presentation_access', return_value=True), \
              patch('app.api.files.PresentationFilesDBManager') as mock_presentation_files_db_manager:
             mock_presentation_files_db_manager.return_value.get_preview_id_by_file_id.return_value = None
             return_value = get_presentation_preview(str(PRESENTATION_FILE_ID))
@@ -117,7 +117,7 @@ class TestGetPresentationPreview:
         )
 
     def test_no_presentation_preview_file(self):
-        with patch('app.api.files.check_access', return_value=True), \
+        with patch('app.api.files.check_presentation_access', return_value=True), \
              patch('app.api.files.PresentationFilesDBManager') as mock_presentation_files_db_manager, \
              patch('app.api.files.DBManager') as mock_db_manager:
             mock_presentation_files_db_manager.return_value.get_preview_id_by_file_id.return_value = PREVIEW_ID
@@ -131,8 +131,8 @@ class TestGetPresentationPreview:
             return_value, {'message': 'No presentation preview file with preview_id = {}.'.format(PREVIEW_ID)}, 404
         )
 
-    def test_get_presentation_preview(self):
-        with patch('app.api.files.check_access', return_value=True), \
+    def test_get_presentation_preview(self, *, app):
+        with patch('app.api.files.check_presentation_access', return_value=True), \
              patch('app.api.files.PresentationFilesDBManager') as mock_presentation_files_db_manager, \
              patch('app.api.files.DBManager') as mock_db_manager, \
              patch.object(app_module.api.files, 'logger', get_mock_logger()) as mock_logger, \
@@ -153,13 +153,13 @@ class TestUploadPresentation:
             return_value = upload_presentation()
             check_no_auth_called_once(mock_check_auth, return_value)
 
-    def test_no_presentation_file(self):
+    def test_no_presentation_file(self, *, app):
         with patch('app.api.files.check_auth', return_value=True), \
                 app.test_client() as test_client:
             response = test_client.post('/api/files/presentations/')
             check_json_response(response, {'message': 'request.files[\'presentation\'] is not filled.'}, 404)
 
-    def test_too_big_file(self):
+    def test_too_big_file(self, *, app):
         with patch('app.api.files.check_auth', return_value=True), \
                 patch('app.api.files.Config.c', new_callable=PropertyMock) as mock_config, \
                 app.test_client() as test_client, \
@@ -172,7 +172,7 @@ class TestUploadPresentation:
             )
             check_json_response(response, {'message': 'Presentation file should not exceed 0.001MB.'}, 413)
 
-    def test_file_is_not_pdf(self):
+    def test_file_is_not_pdf(self, *, app):
         with patch('app.api.files.check_auth', return_value=True), \
              patch('app.api.files.DBManager') as mock_db_manager, \
                 patch('app.api.files.Config.c', new_callable=PropertyMock) as mock_config, \
@@ -186,13 +186,13 @@ class TestUploadPresentation:
             )
             check_json_response(response, {"message":"Presentation file has not allowed extension: pdf (mimetype: text/plain)."}, 200)
 
-    def test_upload_presentation(self):
+    def test_upload_presentation(self, *, app):
         test_presentations = ('test_data/test_presentation_file_0.pdf', 
         )
         for presentation in test_presentations:
-            self.upload_presentation(presentation)
+            self.upload_presentation(presentation, app=app)
 
-    def upload_presentation(self, test_presentation_path):
+    def upload_presentation(self, test_presentation_path, *, app):
         with patch('app.api.files.check_auth', return_value=True), \
              patch('app.api.files.DBManager') as mock_db_manager, \
              patch('app.api.files.PresentationFilesDBManager'), \

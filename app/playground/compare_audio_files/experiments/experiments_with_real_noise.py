@@ -13,7 +13,7 @@ import soundfile
 from functional import seq
 from returns.curry import partial
 
-from denoiser import Denoiser
+from app.playground.noise_reduction.denoiser import Denoiser
 from experiments import get_mfcc, apply_metric, cosine_dist, split_dtw_dist, get_combinations
 
 

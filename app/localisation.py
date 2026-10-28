@@ -5,7 +5,8 @@ def loadLocales(path: str):
     i18n.set('skip_locale_root_data', True)
     i18n.set('file_format', 'json')
     i18n.set('filename_format', '{locale}.{format}')
-    i18n.load_path.append(path)
+    if path not in i18n.load_path:
+        i18n.load_path.append(path)
 
 def changeLocale(locale: str, default: str = None):
     i18n.set('locale', locale)

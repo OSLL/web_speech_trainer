@@ -1,6 +1,5 @@
 from app.root_logger import get_root_logger
 import math
-import re
 import pytz
 from datetime import datetime
 
@@ -15,7 +14,7 @@ logger = get_root_logger()
 DATETIME_STR_FORMAT = r"%d.%m.%Y %H:%M:%S"
 
 class GetAllTrainingsFilterManager():
-    simple_filters = ["training_id", "task_attempt_id", "presentation_file_id", "username", "full_name",
+    simple_filters = ["_consumer_key", "_owner_username", "training_id", "task_attempt_id", "presentation_file_id", "username", "full_name",
                       "presentation_record_duration", "score", "processing_start_timestamp",
                       "processing_finish_timestamp", "training_status", "audio_status", "presentation_status", "criteria_pack_id"]
 
@@ -57,13 +56,17 @@ class GetAllTrainingsFilterManager():
     def __create_simple_query(self, applicable_filters: dict) -> dict:
         mongodb_query = {}
         for key, values in applicable_filters.items():
-            if key == "training_id":
+            if key == "_consumer_key":
+                mongodb_query["consumer_key"] = values
+            elif key == "training_id":
                 logger.info("Training ID: " + str(values[0]))
                 mongodb_query["_id"] = ObjectId(values[0])
             elif key == "task_attempt_id" or key == "presentation_file_id":
                 # Полное совпадение
                 logger.info("ELSE ID: " + str(values[0]))
                 mongodb_query[key] = ObjectId(values[0])
+            elif key == "_owner_username":
+                mongodb_query.setdefault('$and', []).append({'username': values})
             elif key in ("criteria_pack_id", "username", "full_name"):
                 # Частичное совпадение без учета регистра
                 mongodb_query[key] = {
@@ -97,7 +100,14 @@ class GetAllTrainingsFilterManager():
                 end_range = math.floor(end_range)
                 end_mongo = Timestamp(end_range, 0)
 
-                mongodb_query[key] = {"$gte": start_mongo, "$lte": end_mongo}
+                bounds = {"$gte": start_mongo, "$lte": end_mongo}
+                if key == "processing_finish_timestamp":
+                    mongodb_query.setdefault('$and', []).append({
+                        'status_last_update': bounds,
+                        'status': {'$in': [TrainingStatus.PROCESSED, TrainingStatus.PROCESSING_FAILED,
+                                           TrainingStatus.PREPARATION_FAILED]}})
+                else:
+                    mongodb_query[key] = bounds
             elif key == "training_status":
                 statuses = []
 
@@ -158,13 +168,12 @@ class GetAllTrainingsFilterManager():
 
                 end_date_string = values[1]
                 end_range = datetime.strptime(end_date_string, DATETIME_STR_FORMAT)
-                if start_training >= start_range and start_training <= end_range:
-                    return True
-                else:
+                if not start_range <= start_training <= end_range:
                     return False
             elif key == "task_id":
                 task_attempt = TaskAttemptsDBManager().get_task_attempt(training.task_attempt_id)
-                return values[0].lower() in task_attempt.task_id.lower()
+                if task_attempt is None or values[0].lower() not in task_attempt.task_id.lower():
+                    return False
 
         return True
 
@@ -181,9 +190,10 @@ class GetAllTrainingsFilterManager():
 
         mongodb_query = self.__create_simple_query(simple_filters)
 
-        trainings = list(TrainingsDBManager().get_trainings_filtered_all(
-            mongodb_query
-        ))
+        cursor = TrainingsDBManager().get_trainings_filtered_all(mongodb_query)
+        if not complex_filters:
+            return list(cursor.skip(page * count).limit(count))
+        trainings = list(cursor)
 
         if len(complex_filters.keys()) != 0:
             trainings = self.__perform_complex_query(complex_filters, trainings)
@@ -197,11 +207,14 @@ class GetAllTrainingsFilterManager():
 
         mongodb_query = self.__create_simple_query(simple_filters)
 
-        trainings = list(TrainingsDBManager().get_trainings_filtered_all(
-            mongodb_query
-        ))
+        cursor = TrainingsDBManager().get_trainings_filtered_all(mongodb_query)
+        if not complex_filters:
+            return math.ceil(cursor.count() / count)
+        trainings = list(cursor)
 
         if len(complex_filters.keys()) != 0:
             trainings = self.__perform_complex_query(complex_filters, trainings)
 
+        if count <= 0:
+            raise ValueError("count must be positive")
         return math.ceil(len(trainings) / count)

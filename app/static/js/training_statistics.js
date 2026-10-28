@@ -110,7 +110,13 @@ function setVerdict(s) {
 }
 
 function setCriteriaResults(s) {
-    document.getElementById("criteria-results").innerHTML = `${s}`;
+    const element = document.getElementById("criteria-results");
+    element.replaceChildren();
+    // Feedback may contain user supplied slide text. Only line breaks are markup.
+    String(s).split(/<br\s*\/?\s*>/i).forEach((line, index) => {
+        if (index) element.appendChild(document.createElement('br'));
+        element.appendChild(document.createTextNode(line));
+    });
 }
 
 function setRecognizedInfo(slides){
