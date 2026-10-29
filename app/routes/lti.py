@@ -40,6 +40,16 @@ def lti():
     full_name = utils.get_person_name(params)
     username = utils.get_username(params)
     custom_params = utils.get_custom_params(params)
+    mode = custom_params.get('mode', 'training')
+    if mode not in ('training', 'interview'):
+        return {'message': 'Invalid launch mode.'}, 400
+    interview_options = {
+        'interview_questions_count': int(custom_params.get('interview_question_count', 3)),
+        'interview_session_minutes': int(custom_params.get('interview_timer_minutes', 3)),
+        'interview_attempt_count': int(custom_params.get('interview_attempt_count', 2)),
+    }
+    if any(value <= 0 for value in interview_options.values()):
+        return {'message': 'Interview limits must be positive.'}, 400
     task_id = custom_params.get('task_id', '')
     task_description = custom_params.get('task_description', '')
     attempt_count = int(custom_params.get('attempt_count', 1))
@@ -63,6 +73,8 @@ def lti():
     session['criteria_pack_id'] = criteria_pack_id
     session['feedback_evaluator_id'] = feedback_evaluator_id
     session['formats'] = pres_formats
+    session['mode'] = mode
+    session.update(interview_options)
 
     if presentation_id and not check_argument_is_convertible_to_object_id(presentation_id):
         presentation_id = ObjectId(presentation_id)
@@ -71,4 +83,6 @@ def lti():
 
     TasksDBManager().add_task_if_absent(task_id, task_description, attempt_count, required_points, criteria_pack_id, presentation_id)
 
+    if mode == 'interview':
+        return redirect(url_for('routes_interview.interview_upload_page', force_upload=1))
     return redirect(url_for('routes_trainings.view_training_greeting'))

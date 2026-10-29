@@ -400,3 +400,47 @@ def test_read_criteria_requires_authentication(app, monkeypatch, module_name, pa
     module = importlib.import_module('app.api.' + module_name)
     monkeypatch.setattr(module, 'check_auth', lambda: None)
     assert app.test_client().get(path).status_code == 404
+
+
+def test_interview_data_is_scoped_to_lms_task_and_owner(database, user, app):
+    from flask import session
+    from app.interview_scope import interview_session_id
+    from app.mongo_models import Questions, InterviewRecording, InterviewFeedback, CeleryTask
+
+    owner, _ = user
+    with owner.session_transaction() as state:
+        state.update(mode='interview', interview_questions_count=1, interview_attempt_count=3)
+        initial = dict(state)
+    scopes = []
+    for consumer, task, username in [('tenant', 'task', 'ivan'), ('other', 'task', 'ivan'),
+                                      ('tenant', 'other', 'ivan'), ('tenant', 'task', 'petr')]:
+        state = dict(initial, consumer_key=consumer, task_id=task, session_id=username)
+        if not Sessions.objects.raw({'consumer_key': consumer, 'session_id': username}).count():
+            Sessions(consumer_key=consumer, session_id=username, tasks={}, is_admin=False).save()
+        with app.test_request_context():
+            session.update(state)
+            scope = interview_session_id()
+        client = app.test_client()
+        with client.session_transaction() as cookie:
+            cookie.update(state)
+        Questions(session_id=scope, text=consumer + '/' + task + '/' + username, order=0).save()
+        CeleryTask(session_id=scope, status='success').save()
+        scopes.append((client, scope))
+    owner, scope = scopes[0]
+    record = InterviewRecording(session_id=scope, audio_file_id=ObjectId()).save()
+    InterviewFeedback(session_id=scope, recording_id=record.pk, score=0.7, verdict='OK').save()
+    for index, (client, key) in enumerate(scopes):
+        questions = client.get('/api/interview/session-data/')
+        assert questions.status_code == 200
+        assert questions.json['questions'][0]['text'] == Questions.objects.get({'session_id': key}).text
+        assert client.get('/api/task-attempts/').json['used_attempts'] == (1 if index == 0 else 0)
+        for path in (f'/api/interview/feedback/{record.pk}',
+                     f'/api/interview/results/{record.pk}/',
+                     f'/interview/results/{record.pk}/'):
+            assert client.get(path).status_code == (200 if index == 0 else 404)
+    assert owner.get('/api/interview/feedback/not-an-id').status_code == 404
+    assert owner.post('/api/interview/cancel-session/').status_code == 200
+    assert Questions.objects.raw({'session_id': scope}).count() == 0
+    for _, key in scopes[1:]:
+        assert Questions.objects.raw({'session_id': key}).count() == 1
+    assert InterviewRecording.objects.raw({'_id': record.pk}).count() == 1

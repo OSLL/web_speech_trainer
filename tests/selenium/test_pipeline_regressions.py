@@ -160,3 +160,67 @@ def test_assigned_presentation_starts_only_after_button_click(selenium_session):
         .json()["training_number"]
         == 1
     )
+
+
+def test_interview_upload_record_and_results(selenium_session, tmp_path):
+    from docx import Document
+    from app.config import Config
+
+    driver = selenium_session.driver
+    host = selenium_session.host
+    task = 'interview-' + uuid4().hex
+    client = requests.Session()
+    launch = client.post(host + '/lti', data={
+        'lis_person_name_full': 'Interview Test', 'ext_user_username': 'interview-test',
+        'oauth_consumer_key': Config.c.testing.oauth_consumer_key,
+        'custom_task_id': task, 'custom_mode': 'interview',
+        'custom_interview_question_count': '1', 'custom_interview_attempt_count': '2',
+        'roles': 'Learner', 'lis_outcome_service_url': 'http://example.com/outcomes',
+        'lis_result_sourcedid': task,
+    }, timeout=30)
+    assert launch.status_code == 200, launch.text
+    driver.get(host + '/')
+    for cookie in client.cookies:
+        driver.add_cookie({'name': cookie.name, 'value': cookie.value, 'path': '/'})
+    driver.get(host + '/interview/upload/')
+    wait = WebDriverWait(driver, 180, poll_frequency=1)
+    wait.until(lambda d: d.find_element(By.ID, 'upload-mode').is_displayed())
+    document = Document()
+    document.add_heading('Введение', level=1)
+    document.add_paragraph('Объект исследования — система обучения. Практическая значимость работы состоит в обучении студентов.')
+    document.add_heading('Метод решения', level=1)
+    document.add_paragraph('Система анализирует речь и формирует обратную связь.')
+    document.add_heading('Заключение', level=1)
+    document.add_paragraph('Разработана система обучения студентов.')
+    path = tmp_path / 'interview.docx'
+    document.save(path)
+    driver.find_element(By.ID, 'document').send_keys(str(path))
+    driver.find_element(By.ID, 'upload-submit-btn').click()
+    wait.until(lambda d: d.current_url.rstrip('/').endswith('/interview'))
+    wait.until(lambda d: d.find_element(By.ID, 'main-btn').is_enabled())
+    assert driver.find_element(By.ID, 'main-btn').text == 'Начать'
+    driver.find_element(By.ID, 'main-btn').click()
+    wait.until(lambda d: d.find_element(By.ID, 'next-btn').is_displayed())
+    assert driver.find_element(By.ID, 'question-text').text
+    # Let the browser capture a meaningful section of the fake speech audio.
+    started = time.monotonic()
+    WebDriverWait(driver, 15, poll_frequency=1).until(lambda _: time.monotonic() - started >= 8)
+    driver.find_element(By.ID, 'next-btn').click()
+    wait.until(lambda d: '/interview/results/' in d.current_url)
+    wait.until(lambda d: len(d.find_elements(By.CSS_SELECTOR, '#results-body tr')) == 3)
+    assert '/' in driver.find_element(By.ID, 'total-score').text
+    assert driver.find_element(By.ID, 'results-verdict').text
+    recording_id = driver.current_url.rstrip('/').rsplit('/', 1)[1]
+    feedback = client.get(host + '/api/interview/feedback/' + recording_id, timeout=20)
+    assert feedback.status_code == 200 and 0 <= feedback.json()['score'] <= 1
+    # A different LMS namespace with the same username/task cannot read this result.
+    foreign = requests.Session()
+    result = foreign.post(host + '/lti', data={
+        'lis_person_name_full': 'Other LMS', 'ext_user_username': 'interview-test',
+        'oauth_consumer_key': 'other-' + uuid4().hex, 'custom_task_id': task,
+        'custom_mode': 'interview', 'roles': 'Learner',
+        'lis_outcome_service_url': 'http://example.com/outcomes', 'lis_result_sourcedid': task,
+    }, timeout=30)
+    assert result.status_code == 200
+    assert foreign.get(host + '/api/interview/feedback/' + recording_id, timeout=20).status_code == 404
+    assert foreign.get(host + '/api/interview/results/' + recording_id + '/', timeout=20).status_code == 404

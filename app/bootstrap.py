@@ -21,6 +21,12 @@ def bootstrap():
         )
     elif not version:
         db.db_version.insert_one(VERSIONS[LAST_VERSION].to_dict())
+    for name in ("questions", "interview_recording", "interview_feedback"):
+        db[name].create_index("session_id")
+    for name in ("interview_avatars", "interview_explanatory_note", "celery_task"):
+        db[name].create_index("session_id", unique=True)
+    db.interview_feedback.create_index("recording_id", unique=True)
+    db.interview_recording.create_index([("metadata.consumer_key", 1), ("metadata.task_id", 1)])
     db.oauth_nonces.create_index("expires_at", expireAfterSeconds=0)
     for name in ("criterion", "criterion_pack"):
         db[name].create_index("name", unique=True)

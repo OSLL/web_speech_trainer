@@ -14,7 +14,7 @@ cp .env.example .env
 python3 -c 'import secrets; print(secrets.token_urlsafe(48))'
 ./scripts/version.sh > VERSION.json
 docker compose config --quiet
-docker compose up -d --build --wait web worker_audio worker_presentation worker_training worker_passback beat whisper
+docker compose up -d --build --wait web worker_audio worker_presentation worker_training worker_passback worker_questions beat whisper
 ```
 
 Обязательные настройки: `APP_SECRET_KEY` (от 32 символов),
@@ -139,7 +139,7 @@ export APP_CONF=../app_conf/testing.py COMPOSE_PROJECT_NAME=wst-test
 export COMPOSE_FILE=docker-compose.yml:docker-compose.testing.yml:docker-compose-selenium.yml
 export RABBITMQ_DEFAULT_PASS=isolated_test_password
 export TASK_TIME_LIMIT_SECONDS=180 TASK_SOFT_TIME_LIMIT_SECONDS=150 WORKFLOW_LEASE_SECONDS=190
-docker compose up -d --build --wait web worker_audio worker_presentation worker_training worker_passback beat whisper
+docker compose up -d --build --wait web worker_audio worker_presentation worker_training worker_passback worker_questions beat whisper
 docker compose run --rm selenium-tests
 WST_FAULT_TESTS=1 .venv/bin/python -m pytest -o addopts='' --integration tests/integration -v --timeout=480
 docker compose down --volumes --remove-orphans --timeout 10
@@ -152,3 +152,23 @@ Testing-профиль отключает проверку LTI-подписи и
 
 [Состав тестов](tests/README.md) · [Результаты прогонов](tests/REAL_STACK_RESULTS.md)
 · [Изменения](CHANGELOGS.md) · [Ревью задач](ISSUES_REVIEW.md)
+
+### Интервью
+
+LTI `custom_mode=interview` открывает загрузку DOC/DOCX, генерацию вопросов,
+запись ответов и результаты. Лимиты: `custom_interview_question_count`,
+`custom_interview_timer_minutes`, `custom_interview_attempt_count` (по умолчанию
+3 вопроса, 3 минуты, 2 попытки). Обычный режим остаётся `custom_mode=training`.
+
+`worker_questions` собирается отдельным образом Python 3.11 и использует
+RabbitMQ/Redis основного стека, очередь `question_generation`. Python-настройки
+интервью находятся в `app_conf/config.py` и `testing.py`; INI не используется.
+Research-события сохраняются в томе `research_logs`.
+
+Статус генерации с фиксацией результата: **POST**
+`/api/interview/questions-generation-status/`; чтение страницы загрузки — GET
+`/api/interview/upload-page-state/`. Ключ хранения интервью включает LMS,
+задание и пользователя. Старые username-only данные не открываются автоматически.
+
+ASR интервью пока работает в потоке web; автоматическое восстановление и
+passback оценки интервью в LMS не реализованы.

@@ -62,12 +62,12 @@ assert not any(name.startswith('app.tasks.') for name in sys.modules)
 
 def test_nltk_only_mounted_for_consumers():
     services = yaml.safe_load((ROOT / "docker-compose.yml").read_text())["services"]
-    for name in ("web", "worker_audio", "worker_presentation", "worker_passback", "beat"):
+    for name in ("worker_audio", "worker_presentation", "worker_passback", "beat"):
         assert "nltk_downloader" not in services[name]["depends_on"]
         assert not any(
             "nltk_data" in mount for mount in services[name].get("volumes", [])
         )
-    for name in ("worker_training",):
+    for name in ("web", "worker_training"):
         assert "nltk_downloader" in services[name]["depends_on"]
     flower = yaml.safe_load((ROOT / "docker-compose.workers.yml").read_text())[
         "services"

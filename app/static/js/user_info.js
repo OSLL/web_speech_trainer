@@ -8,10 +8,16 @@ $(document).ready(function () {
             }
             $("#username").text("Login: " + responseJson["username"]);
             $("#trainings").attr("href", `/show_all_trainings/?username=${responseJson["username"]}&f=username@${responseJson["username"]}&f=full_name@${responseJson["full_name"]}`);
+            $("#interviews").attr("href", `/show_all_interviews/?username=${encodeURIComponent(responseJson["username"])}`);
             fetch("/api/task-attempts/")
                 .then(response => response.json())
                 .then(responseJson => {
                     if (responseJson["message"] !== "OK") {
+                        return;
+                    }
+                    if (responseJson["mode"] === "interview") {
+                        $("#training-number").text(`Интервью: ${responseJson["used_attempts"]} / ${responseJson["attempt_count"]}`);
+                        $("#current-points-sum").text("");
                         return;
                     }
                     $("#training-number").text(`Тренировок в текущей попытке: ${responseJson["training_number"]} / ${responseJson["attempt_count"]}`);

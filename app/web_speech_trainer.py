@@ -2,6 +2,7 @@ import sys
 
 from flask import Flask, session, render_template, request, abort
 
+from app.interview import routes_interview
 from app.api.audio import api_audio
 from app.api.criteria import api_criteria
 from app.api.criteria_pack import api_criteria_pack
@@ -153,6 +154,7 @@ def create_app(config_path=None):
     app.register_error_handler(413, request_too_large)
     app.add_url_rule("/", "index", index, methods=["GET"])
     app.add_url_rule("/init/", "init", init, methods=["GET"])
+    app.register_blueprint(routes_interview)
     app.register_blueprint(api_audio)
     app.register_blueprint(api_dump)
     app.register_blueprint(api_criteria)
