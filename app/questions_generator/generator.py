@@ -10,6 +10,7 @@ from requests.exceptions import RequestException, HTTPError, Timeout
 from app.questions_generator.logging_utils import log_timed
 from app.questions_generator.document_parsers.docx_uploader import DocxUploader
 from app.questions_generator.validator import VkrQuestionValidator
+from app.questions_generator.heuristic_rules import build_task_questions
 
 HEURISTIC_QUESTIONS_PERCENTAGE = 0.2
 
@@ -437,11 +438,10 @@ class VkrQuestionGenerator:
         return questions
 
     def heuristic_questions(self):
-        questions = []
         result = parse_introduction(self.full_text)
-        if result["tasks"]:
-            for item in result["tasks"]:
-                questions.append(f'Как следующая ваша задача отражена в тексте - "{item}"?')
+
+        questions = build_task_questions(result["tasks"])
+
         if result["object"]:
             questions.append(f"С какой стороны ваш объект исследования {result['object']} рассматривается в тексте?")
         if result["practical_value"]:
