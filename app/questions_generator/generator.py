@@ -460,14 +460,16 @@ class VkrQuestionGenerator:
                 if len(result) < heuristic_questions_number:
                     result.extend(self.static_questions())
                 if len(result) > heuristic_questions_number:
-                    result = result[:heuristic_questions_number]
+                    chosen = set(random.sample(range(len(result)), heuristic_questions_number))
+                    result = [q for i, q in enumerate(result) if i in chosen]
                 result.extend(self.generate_llm_questions(count=llm_questions_number))
             else:
                 result.extend(self.heuristic_questions())
                 if len(result) < questions_count:
                     result.extend(self.static_questions())
                 if len(result) > questions_count:
-                    result = result[:questions_count]
+                    chosen = set(random.sample(range(len(result)), questions_count))
+                    result = [q for i, q in enumerate(result) if i in chosen]
 
             deduped = list(dict.fromkeys(result))
         return deduped
