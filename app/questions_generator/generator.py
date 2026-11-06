@@ -10,6 +10,8 @@ from requests.exceptions import RequestException, HTTPError, Timeout
 from app.questions_generator.logging_utils import log_timed
 from app.questions_generator.document_parsers.docx_uploader import DocxUploader
 from app.questions_generator.validator import VkrQuestionValidator
+from app.questions_generator.heuristic_rules import build_task_questions
+from app.questions_generator.heuristic_templates import OBJECT_TEMPLATE, PRACTICAL_VALUE_TEMPLATE
 
 HEURISTIC_QUESTIONS_PERCENTAGE = 0.2
 
@@ -437,16 +439,14 @@ class VkrQuestionGenerator:
         return questions
 
     def heuristic_questions(self):
-        questions = []
         result = parse_introduction(self.full_text)
-        if result["tasks"]:
-            for item in result["tasks"]:
-                questions.append(f'Как следующая ваша задача отражена в тексте - "{item}"?')
+
+        questions = build_task_questions(result["tasks"])
+
         if result["object"]:
-            questions.append(f"С какой стороны ваш объект исследования {result['object']} рассматривается в тексте?")
+            questions.append(OBJECT_TEMPLATE.format(object=result["object"]))
         if result["practical_value"]:
-            questions.append(f'Чем вы можете подтвердить практическую значимость своей работы - {result["practical_value"]}?')
-        random.shuffle(questions)
+            questions.append(PRACTICAL_VALUE_TEMPLATE.format(practical_value=result["practical_value"]))
         return questions
 
     def generate_all(self, questions_count, generate_llm_questions) -> List[str]:
@@ -460,15 +460,16 @@ class VkrQuestionGenerator:
                 if len(result) < heuristic_questions_number:
                     result.extend(self.static_questions())
                 if len(result) > heuristic_questions_number:
-                    result = result[:heuristic_questions_number]
+                    chosen = set(random.sample(range(len(result)), heuristic_questions_number))
+                    result = [q for i, q in enumerate(result) if i in chosen]
                 result.extend(self.generate_llm_questions(count=llm_questions_number))
             else:
                 result.extend(self.heuristic_questions())
                 if len(result) < questions_count:
                     result.extend(self.static_questions())
                 if len(result) > questions_count:
-                    result = result[:questions_count]
+                    chosen = set(random.sample(range(len(result)), questions_count))
+                    result = [q for i, q in enumerate(result) if i in chosen]
 
             deduped = list(dict.fromkeys(result))
-        random.shuffle(deduped)
         return deduped
