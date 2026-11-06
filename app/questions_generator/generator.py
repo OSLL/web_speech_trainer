@@ -11,6 +11,7 @@ from app.questions_generator.logging_utils import log_timed
 from app.questions_generator.document_parsers.docx_uploader import DocxUploader
 from app.questions_generator.validator import VkrQuestionValidator
 from app.questions_generator.heuristic_rules import build_task_questions
+from app.questions_generator.heuristic_templates import OBJECT_TEMPLATE, PRACTICAL_VALUE_TEMPLATE
 
 HEURISTIC_QUESTIONS_PERCENTAGE = 0.2
 
@@ -443,10 +444,9 @@ class VkrQuestionGenerator:
         questions = build_task_questions(result["tasks"])
 
         if result["object"]:
-            questions.append(f"С какой стороны ваш объект исследования {result['object']} рассматривается в тексте?")
+            questions.append(OBJECT_TEMPLATE.format(object=result["object"]))
         if result["practical_value"]:
-            questions.append(f'Чем вы можете подтвердить практическую значимость своей работы - {result["practical_value"]}?')
-        random.shuffle(questions)
+            questions.append(PRACTICAL_VALUE_TEMPLATE.format(practical_value=result["practical_value"]))
         return questions
 
     def generate_all(self, questions_count, generate_llm_questions) -> List[str]:
@@ -470,5 +470,4 @@ class VkrQuestionGenerator:
                     result = result[:questions_count]
 
             deduped = list(dict.fromkeys(result))
-        random.shuffle(deduped)
         return deduped
