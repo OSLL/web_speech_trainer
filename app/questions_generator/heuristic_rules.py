@@ -2,6 +2,8 @@ import re
 from dataclasses import dataclass
 from typing import List, Tuple
 
+from app.questions_generator.heuristic_templates import ALGORITHM_TEMPLATES, FALLBACK_TEMPLATES
+
 MAX_TASK_CHARS = 140
 MIN_TASK_CHARS = 10
 
@@ -17,31 +19,20 @@ class TaskQuestionRule:
 ALGORITHM_RULE = TaskQuestionRule(
     name="algorithm",
     trigger=re.compile(r"алгоритм", re.IGNORECASE),
-    templates=(
-        "В задаче {n} («{task}») используется алгоритм. Какова его вычислительная сложность (по времени и по памяти)?",
-        "Почему для задачи {n} вы выбрали именно этот алгоритм, а не альтернативный?",
-        "Какие входные и выходные данные у алгоритма из задачи {n}?",
-        "Какая из характеристик алгоритма из задачи {n} важнее для вашей задачи - скорость работы или расходуемая память, и почему?",
-        "Какие входные данные являются худшим случаем для алгоритма из задачи {n} и почему?",
-        "Как поведение алгоритма из задачи {n} изменится при увеличении объёма входных данных на порядок?",
-        "Какие ограничения или допущения накладывает выбранный алгоритм в задаче {n}?",
-        "Как вы проверяли корректность реализации алгоритма из задачи {n}?",
-        "Можно ли было решить задачу {n} более простым алгоритмом? Почему вы от этого отказались?",
-        "Какие оптимизации вы применяли к алгоритму из задачи {n} и как они повлияли на сложность?",
-        "Как выбранный в задаче {n} алгоритм ведёт себя в предельных или вырожденных случаях (пустой вход, один элемент и т.п.)?",
-        "Есть ли в задаче {n} шаги алгоритма, которые можно выполнять параллельно, и почему вы этого не сделали (или сделали)?",
-    ),
+    templates=ALGORITHM_TEMPLATES,
 )
 
 TASK_QUESTION_RULES: List[TaskQuestionRule] = [
     ALGORITHM_RULE,
 ]
 
-# Вопросы для задач под которые не подошло ни одно правило
-FALLBACK_TEMPLATES = (
-    "Какой главный осязаемый результат задачи {n}?",
-    "Какую роль результат задачи {n} играет в достижении цели работы?",
-)
+
+def _shorten_task(text: str) -> str:
+    """Убирает хвостовую пунктуацию и сокращает формулировку задачи до MAX_TASK_CHARS"""
+    text = text.strip().rstrip(".;,:")
+    if len(text) <= MAX_TASK_CHARS:
+        return text
+    return text[:MAX_TASK_CHARS].rsplit(" ", 1)[0].rstrip(".;,:") + "..."
 
 
 def build_task_questions(
@@ -70,6 +61,6 @@ def build_task_questions(
             template = FALLBACK_TEMPLATES[fallback_index % len(FALLBACK_TEMPLATES)]
             fallback_index += 1
 
-        questions.append(template.format(n=number, task=text))
+        questions.append(template.format(n=number, task=_shorten_task(text)))
 
     return questions
