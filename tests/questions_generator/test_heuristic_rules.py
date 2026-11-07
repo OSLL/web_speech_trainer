@@ -3,13 +3,24 @@ import pytest
 from app.questions_generator.heuristic_rules import (
     ALGORITHM_RULE,
     MAX_TASK_CHARS,
+    METHOD_RULE,
+    METHODOLOGY_RULE,
+    MODEL_RULE,
+    TASK_QUESTION_RULES,
+    WAY_RULE,
     build_task_questions,
 )
 from app.questions_generator.heuristic_templates import (
     ALGORITHM_TEMPLATES,
     FALLBACK_TEMPLATES,
+    INPUT_LIMITS_TEMPLATES,
+    INPUT_OUTPUT_TEMPLATES,
+    METHOD_TEMPLATES,
+    METHODOLOGY_TEMPLATES,
+    MODEL_TEMPLATES,
     OBJECT_TEMPLATE,
     PRACTICAL_VALUE_TEMPLATE,
+    WAY_TEMPLATES,
 )
 
 
@@ -78,7 +89,9 @@ class TestBuildTaskQuestionsAlgorithmRule:
 
 
 class TestTemplatesModule:
-    @pytest.mark.parametrize("bank", [ALGORITHM_TEMPLATES, FALLBACK_TEMPLATES])
+    @pytest.mark.parametrize("bank", [
+        ALGORITHM_TEMPLATES, MODEL_TEMPLATES, METHOD_TEMPLATES, METHODOLOGY_TEMPLATES, WAY_TEMPLATES, FALLBACK_TEMPLATES,
+    ])
     def test_every_task_template_keeps_task_context(self, bank):
         assert all("{task}" in t and "{n}" in t for t in bank)
 
@@ -124,3 +137,74 @@ class TestTaskContextAndOrder:
 
         numbers = [int(q.split("Задача ")[1].split(":")[0]) for q in questions]
         assert numbers == sorted(numbers)
+
+
+class TestNewRules:
+    @pytest.mark.parametrize("rule, task", [
+        (MODEL_RULE, "Построить математическую модель очереди запросов"),
+        (METHOD_RULE, "Предложить метод оценки качества снимков"),
+        (METHODOLOGY_RULE, "Разработать методику тестирования параллельных программ"),
+        (WAY_RULE, "Реализовать способ сжатия данных"),
+    ])
+    def test_task_is_routed_to_its_rule(self, rule, task):
+        question = build_task_questions([task])[0]
+        expected = [t.format(n=1, task=task) for t in rule.templates]
+
+        assert question in expected
+
+    @pytest.mark.parametrize("rule, word", [
+        (MODEL_RULE, "модель"), (MODEL_RULE, "Модели"), (MODEL_RULE, "моделей"),
+        (METHOD_RULE, "метод"), (METHOD_RULE, "методов"), (METHOD_RULE, "МЕТОДЫ"),
+        (METHODOLOGY_RULE, "методика"), (METHODOLOGY_RULE, "методику"), (METHODOLOGY_RULE, "методик"),
+        (WAY_RULE, "способ"), (WAY_RULE, "способа"), (WAY_RULE, "способов"),
+    ])
+    def test_trigger_matches_word_forms(self, rule, word):
+        assert rule.matches(f"Разработать {word} обработки данных")
+
+    @pytest.mark.parametrize("rule, text", [
+        (MODEL_RULE, "Выполнить моделирование нагрузки на сервер"),
+        (METHOD_RULE, "Разработать методику проверки работ"),
+        (METHOD_RULE, "Описать методологию исследования"),
+        (METHODOLOGY_RULE, "Применить метод наименьших квадратов"),
+        (WAY_RULE, "Повысить способность системы к масштабированию"),
+        (WAY_RULE, "Реализовать способный к обучению классификатор"),
+    ])
+    def test_trigger_does_not_match_similar_words(self, rule, text):
+        assert not rule.matches(text)
+
+    @pytest.mark.parametrize("task", [
+        "Провести обзор существующих методов сегментации",
+        "Выполнить сравнение алгоритмов кластеризации",
+        "Проанализировать модели прогнозирования спроса",
+    ])
+    def test_review_tasks_do_not_trigger_rules(self, task):
+        question = build_task_questions([task])[0]
+
+        assert question in [t.format(n=1, task=task) for t in FALLBACK_TEMPLATES]
+
+    def test_first_matching_rule_wins(self):
+        task = "Разработать алгоритм и модель оценки качества"
+
+        assert build_task_questions([task])[0] in [t.format(n=1, task=task) for t in ALGORITHM_TEMPLATES]
+
+    @pytest.mark.parametrize("bank", [MODEL_TEMPLATES, METHOD_TEMPLATES, METHODOLOGY_TEMPLATES, WAY_TEMPLATES])
+    def test_banks_have_no_duplicates_and_share_input_questions(self, bank):
+        assert len(bank) == len(set(bank))
+        assert all(t in bank for t in INPUT_OUTPUT_TEMPLATES + INPUT_LIMITS_TEMPLATES)
+
+    def test_algorithm_bank_has_input_limits_question(self):
+        assert all(t in ALGORITHM_TEMPLATES for t in INPUT_LIMITS_TEMPLATES)
+
+    def test_rule_names_are_unique(self):
+        names = [rule.name for rule in TASK_QUESTION_RULES]
+
+        assert len(names) == len(set(names))
+
+    def test_all_rules_registered(self):
+        assert {r.name for r in TASK_QUESTION_RULES} == {"algorithm", "model", "method", "methodology", "way"}
+
+    def test_each_rule_rotates_its_bank_for_repeated_tasks(self):
+        tasks = [f"Разработать метод номер {i} для обработки" for i in range(1, 4)]
+        questions = build_task_questions(tasks)
+
+        assert len(set(questions)) == 3
