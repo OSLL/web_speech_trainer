@@ -22,6 +22,7 @@ from app.interview_utils import (
     build_invalid_format_message,
     build_upload_redirect_url,
     cleanup_interview_generation_data,
+    get_interview_question_preferences,
     get_interview_questions_count,
     get_interview_session_minutes,
     get_ready_interview_questions,
@@ -111,6 +112,7 @@ def interview_upload_page():
                 file_id=str(saved_task.file_id),
                 questions_count=required_questions_count,
                 generate_llm_questions=False,
+                preferences=get_interview_question_preferences(),
             )
             task_manager.mark_processing(
                 session_id=session_id,
