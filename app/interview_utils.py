@@ -37,6 +37,12 @@ def get_interview_questions_count():
     )
 
 
+def get_interview_question_preferences() -> dict:
+    """Настройки состава вопросов из запуска: доля специфичных вопросов и сложность"""
+    preferences = session.get('interview_question_preferences')
+    return dict(preferences) if isinstance(preferences, dict) else {}
+
+
 def get_default_interview_session_minutes():
     constants = get_config_constants()
     value = getattr(constants, 'default_interview_session_minutes', None) if constants else None
