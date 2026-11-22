@@ -2,6 +2,12 @@ import re
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
+from app.questions_generator.question_composer import (
+    DEFAULT_DIFFICULTY,
+    KIND_SPECIFIC,
+    Question,
+    difficulty_distance,
+)
 from app.questions_generator.heuristic_templates import (
     ALGORITHM_TEMPLATES,
     FALLBACK_TEMPLATES,
@@ -86,15 +92,25 @@ def _shorten_task(text: str) -> str:
     return text[:MAX_TASK_CHARS].rsplit(" ", 1)[0].rstrip(".;,:") + "..."
 
 
-def build_task_questions(
+def _template_difficulty(template) -> str:
+    return getattr(template, "difficulty", DEFAULT_DIFFICULTY)
+
+
+def build_task_question_items(
         tasks: List[str],
         rules: List[TaskQuestionRule] = TASK_QUESTION_RULES,
-) -> List[str]:
+        difficulty: Optional[str] = None,
+) -> List[Question]:
     """
     Проходит по задачам из введения и для каждой подбирает вопрос: если текст задачи совпал с
     одним из правил - вопрос берётся из банка этого правила по кругу, иначе - из FALLBACK_TEMPLATES по кругу
     """
-    questions: List[str] = []
+    def ordered(bank):
+        return sorted(bank, key=lambda t: difficulty_distance(_template_difficulty(t), difficulty))
+
+    questions: List[Question] = []
+    rule_banks = {rule.name: ordered(rule.templates) for rule in rules}
+    fallback_bank = ordered(FALLBACK_TEMPLATES)
     rule_counters = {rule.name: 0 for rule in rules}
     fallback_index = 0
 
@@ -105,13 +121,26 @@ def build_task_questions(
         matched_rule = next((rule for rule in rules if rule.matches(text)), None)
 
         if matched_rule is not None:
-            i = rule_counters[matched_rule.name] % len(matched_rule.templates)
-            template = matched_rule.templates[i]
+            bank = rule_banks[matched_rule.name]
+            template = bank[rule_counters[matched_rule.name] % len(bank)]
             rule_counters[matched_rule.name] += 1
         else:
-            template = FALLBACK_TEMPLATES[fallback_index % len(FALLBACK_TEMPLATES)]
+            template = fallback_bank[fallback_index % len(fallback_bank)]
             fallback_index += 1
 
-        questions.append(template.format(n=number, task=_shorten_task(text)))
+        questions.append(Question(
+            text=template.format(n=number, task=_shorten_task(text)),
+            kind=KIND_SPECIFIC,
+            difficulty=_template_difficulty(template),
+        ))
 
     return questions
+
+
+def build_task_questions(
+        tasks: List[str],
+        rules: List[TaskQuestionRule] = TASK_QUESTION_RULES,
+        difficulty: Optional[str] = None,
+) -> List[str]:
+    """То же, что build_task_question_items, но возвращает только тексты вопросов"""
+    return [question.text for question in build_task_question_items(tasks, rules, difficulty)]
