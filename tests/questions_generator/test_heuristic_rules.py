@@ -8,7 +8,14 @@ from app.questions_generator.heuristic_rules import (
     MODEL_RULE,
     TASK_QUESTION_RULES,
     WAY_RULE,
+    build_task_question_items,
     build_task_questions,
+)
+from app.questions_generator.question_composer import (
+    DIFFICULTY_EASY,
+    DIFFICULTIES,
+    DIFFICULTY_HARD,
+    KIND_SPECIFIC,
 )
 from app.questions_generator.heuristic_templates import (
     ALGORITHM_TEMPLATES,
@@ -208,3 +215,56 @@ class TestNewRules:
         questions = build_task_questions(tasks)
 
         assert len(set(questions)) == 3
+
+
+class TestDifficulty:
+    BANKS = [
+        ALGORITHM_TEMPLATES, MODEL_TEMPLATES, METHOD_TEMPLATES, METHODOLOGY_TEMPLATES, WAY_TEMPLATES, FALLBACK_TEMPLATES,
+    ]
+
+    @pytest.mark.parametrize("bank", BANKS)
+    def test_every_template_has_valid_difficulty(self, bank):
+        assert all(t.difficulty in DIFFICULTIES for t in bank)
+
+    @pytest.mark.parametrize("bank", BANKS[:-1])
+    def test_every_rule_bank_has_easy_and_hard_questions(self, bank):
+        assert {DIFFICULTY_EASY, DIFFICULTY_HARD} <= {t.difficulty for t in bank}
+
+    def test_items_are_specific_and_carry_template_difficulty(self):
+        items = build_task_question_items(["Разработать алгоритм кластеризации отзывов"])
+
+        assert items[0].kind == KIND_SPECIFIC
+        assert items[0].text in [t.format(n=1, task="Разработать алгоритм кластеризации отзывов") for t in ALGORITHM_TEMPLATES]
+
+    def test_without_difficulty_bank_order_is_kept(self):
+        tasks = [f"Разработать алгоритм номер {i}" for i in range(1, 4)]
+
+        questions = build_task_questions(tasks)
+
+        assert questions == [ALGORITHM_TEMPLATES[i].format(n=i + 1, task=tasks[i]) for i in range(3)]
+
+    @pytest.mark.parametrize("target", [DIFFICULTY_EASY, DIFFICULTY_HARD])
+    def test_first_questions_have_requested_difficulty(self, target):
+        tasks = [f"Построить модель номер {i}" for i in range(1, 3)]
+
+        items = build_task_question_items(tasks, difficulty=target)
+
+        assert all(item.difficulty == target for item in items)
+
+    @pytest.mark.parametrize("target", [DIFFICULTY_EASY, DIFFICULTY_HARD])
+    def test_requested_difficulty_does_not_create_immediate_repeats(self, target):
+        tasks = [f"Разработать алгоритм номер {i}" for i in range(1, 8)]
+
+        questions = build_task_questions(tasks, difficulty=target)
+
+        assert len(set(questions)) == len(questions)
+
+    def test_plain_string_templates_are_treated_as_medium(self):
+        from app.questions_generator.heuristic_rules import TaskQuestionRule
+        import re
+
+        rule = TaskQuestionRule("custom", re.compile("тест"), ("Задача {n}: {task}?",))
+
+        items = build_task_question_items(["Провести тестирование системы"], rules=[rule])
+
+        assert items[0].difficulty == "medium"
