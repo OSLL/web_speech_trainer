@@ -52,6 +52,7 @@ class QuestionGenerationTaskService:
         file_id: str,
         questions_count: int,
         generate_llm_questions: bool,
+        preferences: dict | None = None,
     ) -> dict[str, Any]:
         """
         Ставит задачу генерации вопросов в Celery.
@@ -88,7 +89,8 @@ class QuestionGenerationTaskService:
                 "session_id": session_id,
                 "file_id": str(file_id),
                 "questions_count": normalized_questions_count,
-                "generate_llm_questions": generate_llm_questions
+                "generate_llm_questions": generate_llm_questions,
+                "preferences": preferences or {},
             },
         )
 
@@ -101,6 +103,7 @@ class QuestionGenerationTaskService:
                 "file_id": str(file_id),
                 "questions_count": normalized_questions_count,
                 "generate_llm_questions": generate_llm_questions,
+                "preferences": preferences or {},
             },
         )
 
