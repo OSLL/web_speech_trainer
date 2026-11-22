@@ -4,6 +4,7 @@ import tempfile
 
 from app.questions_generator.celery_app import celery_app, HEURISTIC_TEMPLATES
 from app.questions_generator.generator import VkrQuestionGenerator
+from app.questions_generator.question_composer import QuestionSettings
 from app.mongo_odm import DBManager
 from app.mongo_odms.interview_odms import QuestionsDBManager
 from app.config import Config
@@ -27,7 +28,14 @@ def setup_worker_logging(**kwargs):
     retry_backoff=True,
     retry_kwargs={"max_retries": 3},
 )
-def generate_questions(self, session_id: str, file_id: str, questions_count: int, generate_llm_questions: bool):
+def generate_questions(
+        self,
+        session_id: str,
+        file_id: str,
+        questions_count: int,
+        generate_llm_questions: bool,
+        preferences: dict | None = None,
+):
     db = DBManager()
     qdb = QuestionsDBManager()
 
@@ -62,7 +70,8 @@ def generate_questions(self, session_id: str, file_id: str, questions_count: int
 
         generator = VkrQuestionGenerator(temp_path, HEURISTIC_TEMPLATES)
         try:
-            questions = generator.generate_all(questions_count, generate_llm_questions)
+            settings = QuestionSettings.from_preferences(questions_count, preferences)
+            questions = generator.generate_all(questions_count, generate_llm_questions, settings)
         finally:
             generator.uploader.pdf_file.pdf_file.close()
 
