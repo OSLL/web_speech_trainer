@@ -8,6 +8,7 @@ from app.lti_session_passback.lti_module import utils
 from app.lti_session_passback.lti_module.check_request import check_request
 from app.mongo_odm import ConsumersDBManager, PresentationFilesDBManager, SessionsDBManager, TasksDBManager
 from app.utils import ALLOWED_EXTENSIONS, DEFAULT_EXTENSION, check_argument_is_convertible_to_object_id
+from app.questions_generator.question_composer import parse_question_preferences
 
 routes_lti = Blueprint('routes_lti', __name__)
 logger = get_root_logger()
@@ -50,6 +51,14 @@ def lti():
     }
     if any(value <= 0 for value in interview_options.values()):
         return {'message': 'Interview limits must be positive.'}, 400
+    try:
+        interview_question_preferences = parse_question_preferences(
+            custom_params.get('interview_level'),
+            custom_params.get('interview_specific_share'),
+            custom_params.get('interview_difficulty'),
+        )
+    except ValueError as exc:
+        return {'message': f'Invalid interview question settings: {exc}.'}, 400
     task_id = custom_params.get('task_id', '')
     task_description = custom_params.get('task_description', '')
     attempt_count = int(custom_params.get('attempt_count', 1))
@@ -75,6 +84,7 @@ def lti():
     session['formats'] = pres_formats
     session['mode'] = mode
     session.update(interview_options)
+    session['interview_question_preferences'] = interview_question_preferences
 
     if presentation_id and not check_argument_is_convertible_to_object_id(presentation_id):
         presentation_id = ObjectId(presentation_id)

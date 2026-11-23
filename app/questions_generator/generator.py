@@ -1,6 +1,6 @@
 import re
 import logging
-from typing import List, Dict
+from typing import List, Dict, Optional
 import random
 
 from nltk.tokenize import sent_tokenize
@@ -10,7 +10,16 @@ from requests.exceptions import RequestException, HTTPError, Timeout
 from app.questions_generator.logging_utils import log_timed
 from app.questions_generator.document_parsers.docx_uploader import DocxUploader
 from app.questions_generator.validator import VkrQuestionValidator
-from app.questions_generator.heuristic_rules import build_task_questions
+from app.questions_generator.heuristic_rules import build_task_question_items
+from app.questions_generator.question_composer import (
+    DEFAULT_DIFFICULTY,
+    DIFFICULTIES,
+    KIND_GENERAL,
+    KIND_SPECIFIC,
+    Question,
+    QuestionSettings,
+    compose_questions,
+)
 from app.questions_generator.heuristic_templates import OBJECT_TEMPLATE, PRACTICAL_VALUE_TEMPLATE
 
 HEURISTIC_QUESTIONS_PERCENTAGE = 0.2
@@ -412,64 +421,93 @@ class VkrQuestionGenerator:
 
         return questions
 
-    def static_questions(self) -> List[str]:
-        questions: List[str] = []
+    def general_question_items(self) -> List[Question]:
+        """
+        Общие вопросы - подходят к любой работе (пул из CSV), берутся только те, чьи разделы есть в работе
+        Сложность вопроса можно задать в необязательной колонке difficulty (easy/medium/hard), иначе medium
+        """
+        questions: List[Question] = []
 
         for item in self.heuristic_templates:
             required_sections = item["section"]
-            question = item["question"]
 
-            if not required_sections:
-                questions.append(question)
-                continue
+            if required_sections:
+                required_list = [
+                    s.strip().lower()
+                    for s in required_sections.split(",")
+                ]
+                if not all(
+                        any(req in title for title in self.chapter_titles)
+                        for req in required_list
+                ):
+                    continue
 
-            required_list = [
-                s.strip().lower()
-                for s in required_sections.split(",")
-            ]
+            difficulty = (item.get("difficulty") or "").strip().lower()
+            if difficulty not in DIFFICULTIES:
+                difficulty = DEFAULT_DIFFICULTY
 
-            if all(
-                    any(req in title for title in self.chapter_titles)
-                    for req in required_list
-            ):
-                questions.append(question)
+            questions.append(Question(text=item["question"], kind=KIND_GENERAL, difficulty=difficulty))
 
+        return questions
+
+    def static_questions(self) -> List[str]:
+        questions = [question.text for question in self.general_question_items()]
         random.shuffle(questions)
+        return questions
 
+    def specific_question_items(self, difficulty: Optional[str] = None) -> List[Question]:
+        """Специфичные вопросы - построены по тексту работы: по задачам, объекту и практической значимости"""
+        result = parse_introduction(self.full_text)
+
+        questions = build_task_question_items(result["tasks"], difficulty=difficulty)
+
+        if result["object"]:
+            questions.append(Question(
+                text=OBJECT_TEMPLATE.format(object=result["object"]),
+                kind=KIND_SPECIFIC,
+                difficulty=OBJECT_TEMPLATE.difficulty,
+            ))
+        if result["practical_value"]:
+            questions.append(Question(
+                text=PRACTICAL_VALUE_TEMPLATE.format(practical_value=result["practical_value"]),
+                kind=KIND_SPECIFIC,
+                difficulty=PRACTICAL_VALUE_TEMPLATE.difficulty,
+            ))
         return questions
 
     def heuristic_questions(self):
-        result = parse_introduction(self.full_text)
+        return [question.text for question in self.specific_question_items()]
 
-        questions = build_task_questions(result["tasks"])
+    def compose_questions(self, settings: QuestionSettings) -> List[Question]:
+        """Набор вопросов под настройки: доля специфичных, сложность; нехватку добирают вопросами другого вида"""
+        return compose_questions(
+            specific=self.specific_question_items(settings.difficulty),
+            general=self.general_question_items(),
+            settings=settings,
+        )
 
-        if result["object"]:
-            questions.append(OBJECT_TEMPLATE.format(object=result["object"]))
-        if result["practical_value"]:
-            questions.append(PRACTICAL_VALUE_TEMPLATE.format(practical_value=result["practical_value"]))
-        return questions
-
-    def generate_all(self, questions_count, generate_llm_questions) -> List[str]:
+    def generate_all(self, questions_count, generate_llm_questions, settings: Optional[QuestionSettings] = None) -> List[str]:
+        """
+        settings задаёт долю специфичных вопросов и желаемую сложность; число вопросов всегда берётся из questions_count.
+        Без settings специфичных вопросов берётся максимально возможное число, остальное добирается общими
+        """
         with log_timed(self.logger, "полная генерация вопросов", logging.DEBUG):
             result: List[str] = []
+            share = settings.specific_share if settings else None
+            difficulty = settings.difficulty if settings else None
 
             if generate_llm_questions:
                 heuristic_questions_number = int(questions_count * HEURISTIC_QUESTIONS_PERCENTAGE)
                 llm_questions_number = questions_count - heuristic_questions_number
-                result.extend(self.heuristic_questions())
-                if len(result) < heuristic_questions_number:
-                    result.extend(self.static_questions())
-                if len(result) > heuristic_questions_number:
-                    chosen = set(random.sample(range(len(result)), heuristic_questions_number))
-                    result = [q for i, q in enumerate(result) if i in chosen]
+                if heuristic_questions_number > 0:
+                    composed = self.compose_questions(
+                        QuestionSettings(heuristic_questions_number, share, difficulty)
+                    )
+                    result.extend(question.text for question in composed)
                 result.extend(self.generate_llm_questions(count=llm_questions_number))
             else:
-                result.extend(self.heuristic_questions())
-                if len(result) < questions_count:
-                    result.extend(self.static_questions())
-                if len(result) > questions_count:
-                    chosen = set(random.sample(range(len(result)), questions_count))
-                    result = [q for i, q in enumerate(result) if i in chosen]
+                composed = self.compose_questions(QuestionSettings(questions_count, share, difficulty))
+                result.extend(question.text for question in composed)
 
             deduped = list(dict.fromkeys(result))
         return deduped
